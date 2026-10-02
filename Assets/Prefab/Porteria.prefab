@@ -275,6 +275,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1843475470283994218}
   - component: {fileID: 7359369394880146450}
+  - component: {fileID: 8213199406503451221}
   m_Layer: 0
   m_Name: ZonaGol
   m_TagString: Untagged
@@ -343,3 +344,16 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 0.15, y: 3}
   m_EdgeRadius: 0
+--- !u!114 &8213199406503451221
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6502717914632542877}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 50674064ebdd1aa46ad83c0ee16b8675, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Goal
+  defendingTeam: 0
