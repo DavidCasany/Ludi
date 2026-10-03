@@ -23,7 +23,7 @@ public class GameManager : MonoBehaviour
 
     [Header("Tiempo de partido")]
     public float halfDuration = 20f;   // 3 minutos por parte
-    public float resetDelay = 2f;       // pausa tras un gol
+    public float resetDelay = 3f;       // pausa tras un gol
     public float halfTimeBreak = 4f;    // pausa del descanso
 
     [Header("Marcador")]
@@ -34,7 +34,7 @@ public class GameManager : MonoBehaviour
     public int Half { get; private set; } = 1;
 
     // Skater lo consulta para quedarse quieto en el descanso y al acabar el partido
-    public bool PlayersFrozen => State == MatchState.HalfTime || State == MatchState.FullTime;
+    public bool PlayersFrozen => State != MatchState.Playing;
 
     float timeLeft;
     Goal[] goals;
@@ -133,6 +133,10 @@ public class GameManager : MonoBehaviour
 
         if (State == MatchState.HalfTime) DrawCentered("DESCANSO", 80, 0f);
         else if (State == MatchState.FullTime) DrawFullTimeScreen();
+
+        if (State == MatchState.HalfTime) DrawCentered("DESCANSO", 80, 0f);
+        else if (State == MatchState.FullTime) DrawFullTimeScreen();
+        else if (State == MatchState.GoalPause) DrawGoalScreen();
     }
 
     void DrawFullTimeScreen()
@@ -177,5 +181,14 @@ public class GameManager : MonoBehaviour
         Vector2 p = ball.rb.position;
         if (p.x < b.min.x || p.x > b.max.x || p.y < b.min.y || p.y > b.max.y)
             ball.ResetTo(ballStart);
+    }
+    void DrawGoalScreen()
+    {
+        GUI.color = new Color(0f, 0f, 0f, 0.45f);
+        GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
+        GUI.color = Color.white;
+
+        DrawCentered("¡GOL!", 140, -80f);
+        DrawCentered($"{homeScore} - {awayScore}", 90, 80f);
     }
 }
