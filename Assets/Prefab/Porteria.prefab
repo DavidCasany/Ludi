@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 4753247039885361879}
   - component: {fileID: 7879564193545991926}
   - component: {fileID: 1393212881590045436}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: Porteria
   m_TagString: Untagged
   m_Icon: {fileID: 0}

@@ -157,4 +157,12 @@ public class TeamManager : MonoBehaviour
         foreach (Skater s in skaters) s.ResetToAnchor();
         if (goalkeeper != null) goalkeeper.ResetPosition();
     }
+
+    public void SwapSides()
+    {
+        (ownGoal, opponentGoal) = (opponentGoal, ownGoal);
+
+        foreach (Skater s in skaters) s.MirrorAnchor();
+        if (goalkeeper != null) goalkeeper.SwapSide();
+    }
 }

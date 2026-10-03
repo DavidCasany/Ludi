@@ -94,4 +94,9 @@ public class Goalkeeper : MonoBehaviour
     {
         rb.position = startPos;
     }
+    public void SwapSide()
+    {
+        startPos.x = -startPos.x;
+        outwardX = -outwardX;
+    }
 }

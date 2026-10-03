@@ -20,6 +20,7 @@ public class Skater : MonoBehaviour
     public float holdDistance = 0.8f;
     public float pickupRadius = 0.9f;
     public LayerMask ballLayer;
+    public LayerMask wallLayer;
     public float shootForce = 14f;
     [Range(0f, 1f)] public float inheritVelocity = 0.5f;
     public float pickupCooldown = 0.4f;
@@ -62,6 +63,7 @@ public class Skater : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (Frozen) MoveInput = Vector2.zero;
         Move();
 
         if (ball == null) TryPickup();
@@ -95,8 +97,12 @@ public class Skater : MonoBehaviour
 
     Vector2 HoldPosition()
     {
-        return holdPoint != null ? (Vector2)holdPoint.position
-                                 : (Vector2)transform.position + AimDir * holdDistance;
+        Vector2 origin = transform.position;
+        Vector2 desired = holdPoint != null ? (Vector2)holdPoint.position : origin + AimDir * holdDistance;
+        Vector2 delta = desired - origin;
+
+        RaycastHit2D hit = Physics2D.CircleCast(origin, ball.col.bounds.extents.x, delta.normalized, delta.magnitude, wallLayer);
+        return hit.collider != null ? hit.centroid - delta.normalized * 0.02f : desired;
     }
 
     void TryPickup()
@@ -130,14 +136,14 @@ public class Skater : MonoBehaviour
 
     public void Shoot(Vector2 dir, float force)
     {
-        if (!HasBall) return;
+        if (!HasBall || Frozen) return;
         DropBall(dir.normalized * force + rb.linearVelocity * inheritVelocity, pickupCooldown);
     }
 
     // Pase a un compañero: calcula la fuerza para que la bola llegue justo hasta él
     public void PassTo(Skater mate)
     {
-        if (!HasBall || mate == null) return;
+        if (!HasBall || Frozen || mate == null) return;
 
         Vector2 targetPos = (Vector2)mate.transform.position + mate.Velocity * 0.4f; // anticipa su movimiento
         Vector2 dir = targetPos - (Vector2)transform.position;
@@ -190,4 +196,10 @@ public class Skater : MonoBehaviour
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, pickupRadius);
     }
+    public void MirrorAnchor()
+    {
+        Anchor = new Vector2(-Anchor.x, Anchor.y);
+    }
+
+    bool Frozen => GameManager.Instance != null && GameManager.Instance.PlayersFrozen;
 }

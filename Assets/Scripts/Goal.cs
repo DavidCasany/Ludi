@@ -13,4 +13,8 @@ public class Goal : MonoBehaviour
         Team scorer = defendingTeam == Team.Home ? Team.Away : Team.Home;
         GameManager.Instance.GoalScored(scorer);
     }
+    public void SwapDefendingTeam()
+    {
+        defendingTeam = defendingTeam == Team.Home ? Team.Away : Team.Home;
+    }
 }
