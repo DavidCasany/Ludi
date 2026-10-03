@@ -41,6 +41,7 @@ public class Skater : MonoBehaviour
     public bool HasBall => ball != null;
     public bool IsControlled { get; private set; }
 
+
     Rigidbody2D rb;
     Collider2D col;
     Ball ball;
@@ -63,13 +64,17 @@ public class Skater : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (Frozen) MoveInput = Vector2.zero;
+        if (!CanMove)
+        {
+            MoveInput = Vector2.zero;
+            rb.linearVelocity = Vector2.zero;   // quieto de verdad, sin deslizar
+        }
+
         Move();
 
-        if (ball == null) TryPickup();
+        if (ball == null) { if (CanMove) TryPickup(); }
         else ball.rb.position = HoldPosition();
     }
-
     // ---------- Control ----------
 
     public void SetControlled(bool value)
@@ -129,21 +134,19 @@ public class Skater : MonoBehaviour
             return;
         }
 
-        ball = b;
-        ball.Grab(this);
-        Physics2D.IgnoreCollision(col, ball.col, true); // no choca con quien la lleva
+        TakeBall(b);
     }
 
     public void Shoot(Vector2 dir, float force)
     {
-        if (!HasBall || Frozen) return;
+        if (!HasBall || !CanShoot) return;
         DropBall(dir.normalized * force + rb.linearVelocity * inheritVelocity, pickupCooldown);
     }
 
     // Pase a un compañero: calcula la fuerza para que la bola llegue justo hasta él
     public void PassTo(Skater mate)
     {
-        if (!HasBall || Frozen || mate == null) return;
+        if (!HasBall || !CanPass || mate == null) return;
 
         Vector2 targetPos = (Vector2)mate.transform.position + mate.Velocity * 0.4f; // anticipa su movimiento
         Vector2 dir = targetPos - (Vector2)transform.position;
@@ -154,6 +157,7 @@ public class Skater : MonoBehaviour
         speed = Mathf.Clamp(speed, 5f, shootForce);
 
         DropBall(dir.normalized * speed, pickupCooldown);
+        if (GameManager.Instance != null) GameManager.Instance.OnPass(this);
     }
 
     // Te quitan la bola
@@ -200,6 +204,22 @@ public class Skater : MonoBehaviour
     {
         Anchor = new Vector2(-Anchor.x, Anchor.y);
     }
+    public void TakeBall(Ball b)
+    {
+        ball = b;
+        ball.Grab(this);
+        Physics2D.IgnoreCollision(col, ball.col, true); // no choca con quien la lleva
+    }
 
-    bool Frozen => GameManager.Instance != null && GameManager.Instance.PlayersFrozen;
+    public void TeleportTo(Vector2 pos)
+    {
+        transform.position = pos;
+        rb.position = pos;
+        rb.linearVelocity = Vector2.zero;
+        MoveInput = Vector2.zero;
+    }
+
+    bool CanMove => GameManager.Instance == null || GameManager.Instance.CanMove(this);
+    bool CanShoot => GameManager.Instance == null || GameManager.Instance.CanShoot;
+    bool CanPass => GameManager.Instance == null || GameManager.Instance.CanPass;
 }

@@ -23,6 +23,20 @@ public class SkaterAI : MonoBehaviour
     bool hadBall;
     float ballSince;
 
+    public float serveDelay = 3f;
+    Skater NearestTeammate()
+    {
+        Skater best = null;
+        float bestDist = float.MaxValue;
+        foreach (Skater s in tm.skaters)
+        {
+            if (s == me) continue;
+            float d = Vector2.Distance(s.transform.position, transform.position);
+            if (d < bestDist) { bestDist = d; best = s; }
+        }
+        return best;
+    }
+
     void Awake()
     {
         me = GetComponent<Skater>();
@@ -33,6 +47,12 @@ public class SkaterAI : MonoBehaviour
     {
         Ball ball = Ball.Instance;
         if (ball == null || tm == null) return;
+
+        if (me.HasBall && GameManager.Instance != null && GameManager.Instance.IsServing(me))
+        {
+            if (Time.time - ballSince > serveDelay) me.PassTo(NearestTeammate());
+            return;
+        }
 
         if (me.HasBall && !hadBall) ballSince = Time.time;
         hadBall = me.HasBall;

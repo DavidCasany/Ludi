@@ -566,6 +566,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Skater (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 1734135394275785095, guid: 25c73d4cceb9c4d43b877821ccec285b, type: 3}
+      propertyPath: serveDelay
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 2227691106328794400, guid: 25c73d4cceb9c4d43b877821ccec285b, type: 3}
       propertyPath: m_Color.b
       value: 0
@@ -634,6 +638,10 @@ PrefabInstance:
     - target: {fileID: 205241222343420916, guid: 25c73d4cceb9c4d43b877821ccec285b, type: 3}
       propertyPath: m_Name
       value: Skater
+      objectReference: {fileID: 0}
+    - target: {fileID: 1734135394275785095, guid: 25c73d4cceb9c4d43b877821ccec285b, type: 3}
+      propertyPath: serveDelay
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 2227691106328794400, guid: 25c73d4cceb9c4d43b877821ccec285b, type: 3}
       propertyPath: m_Color.b
@@ -777,7 +785,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5175665479086675304, guid: 25c73d4cceb9c4d43b877821ccec285b, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 1.8
+      value: 5.64
       objectReference: {fileID: 0}
     - target: {fileID: 5175665479086675304, guid: 25c73d4cceb9c4d43b877821ccec285b, type: 3}
       propertyPath: m_LocalPosition.y
@@ -1226,14 +1234,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 613a7f2661d617841a5cb01ccab5fcda, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
-  rinkWalls: {fileID: 163244665}
   home: {fileID: 428901360}
   away: {fileID: 1266035816}
   ball: {fileID: 488294942}
   ballStart: {x: 0, y: 0}
+  rinkWalls: {fileID: 0}
   halfDuration: 20
   resetDelay: 2
   halfTimeBreak: 4
+  coinResultTime: 2.5
   homeScore: 0
   awayScore: 0
 --- !u!4 &1119589249
@@ -1265,7 +1274,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5175665479086675304, guid: 25c73d4cceb9c4d43b877821ccec285b, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.2
+      value: 5.67
       objectReference: {fileID: 0}
     - target: {fileID: 5175665479086675304, guid: 25c73d4cceb9c4d43b877821ccec285b, type: 3}
       propertyPath: m_LocalPosition.y
@@ -1530,6 +1539,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Skater (3)
       objectReference: {fileID: 0}
+    - target: {fileID: 1734135394275785095, guid: 25c73d4cceb9c4d43b877821ccec285b, type: 3}
+      propertyPath: serveDelay
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 2227691106328794400, guid: 25c73d4cceb9c4d43b877821ccec285b, type: 3}
       propertyPath: m_Color.b
       value: 0
@@ -1608,6 +1621,10 @@ PrefabInstance:
     - target: {fileID: 205241222343420916, guid: 25c73d4cceb9c4d43b877821ccec285b, type: 3}
       propertyPath: m_Name
       value: Skater (2)
+      objectReference: {fileID: 0}
+    - target: {fileID: 1734135394275785095, guid: 25c73d4cceb9c4d43b877821ccec285b, type: 3}
+      propertyPath: serveDelay
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 2227691106328794400, guid: 25c73d4cceb9c4d43b877821ccec285b, type: 3}
       propertyPath: m_Color.b
