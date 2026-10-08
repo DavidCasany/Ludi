@@ -15,10 +15,18 @@ public class TeamManager : MonoBehaviour
     public List<Skater> skaters = new List<Skater>();  // jugadores de campo (se autorrellena)
     public Goalkeeper goalkeeper;                      // se autorrellena
 
+    [Header("Pase con el ratón")]
+    public float passAssistRadius = 1.5f;  // si el cursor está a menos de esto de un compañero, el pase va a él
+
     public Skater Controlled { get; private set; }
 
     Camera cam;
     float nextAutoSwitch;
+
+    // Apuntado del tiro (bullet time)
+    BulletTime bulletTime;
+    bool aiming;
+    Skater aimingSkater;
 
     void Awake()
     {
@@ -28,6 +36,12 @@ public class TeamManager : MonoBehaviour
 
         foreach (Skater s in skaters) s.team = team;
         if (goalkeeper != null) goalkeeper.team = team;
+
+        if (humanControlled)
+        {
+            bulletTime = GetComponent<BulletTime>();
+            if (bulletTime == null) bulletTime = gameObject.AddComponent<BulletTime>();
+        }
     }
 
     void Start()
@@ -43,6 +57,13 @@ public class TeamManager : MonoBehaviour
         HandleInput();
     }
 
+    void OnDisable()
+    {
+        CancelAim();
+    }
+
+    bool CanShootNow => GameManager.Instance == null || GameManager.Instance.CanShoot;
+
     // ---------- Input del humano ----------
 
     void HandleInput()
@@ -54,14 +75,87 @@ public class TeamManager : MonoBehaviour
         Vector2 toMouse = mouse - (Vector2)Controlled.transform.position;
         if (toMouse.sqrMagnitude > 0.001f) Controlled.AimDir = toMouse.normalized;
 
-        if (Input.GetMouseButtonDown(0))   // chutar
-            Controlled.Shoot(Controlled.AimDir, Controlled.shootForce);
+        HandleShotAim(mouse);
 
-        if (Input.GetMouseButtonDown(1))   // pase al compañero hacia donde apunta el ratón
-            Controlled.PassTo(BestPassTarget(Controlled));
+        if (Input.GetMouseButtonDown(1))   // pase hacia donde apunta el cursor
+        {
+            CancelAim();
+            DoPass(mouse);
+        }
 
         if (Input.GetKeyDown(KeyCode.Space)) // cambiar al jugador más cercano a la bola
+        {
+            CancelAim();
             SwitchToClosestToBall();
+        }
+    }
+
+    // Clic izquierdo: al mantenerlo se activa el bullet time y se apunta; al soltarlo se chuta.
+    void HandleShotAim(Vector2 mouse)
+    {
+        if (aiming)
+        {
+            // Se cancela si cambia el jugador, pierde la bola o el juego no está en marcha
+            if (Controlled != aimingSkater || !Controlled.HasBall || !CanShootNow)
+            {
+                CancelAim();
+                return;
+            }
+
+            // Dirección desde la bola (no desde el centro del jugador) para apuntar con precisión
+            Vector2 ballPos = (Vector2)Controlled.transform.position + Controlled.AimDir * Controlled.holdDistance;
+            Vector2 toTarget = mouse - ballPos;
+            Vector2 shotDir = toTarget.sqrMagnitude > 0.01f ? toTarget.normalized : Controlled.AimDir;
+
+            // Alcance aproximado del tiro: velocidad / rozamiento de la bola
+            float range = Controlled.shootForce / Mathf.Max(Ball.Instance.rb.linearDamping, 0.01f);
+            bulletTime.SetAim(ballPos, shotDir, Controlled.wallLayer, range);
+
+            if (Input.GetMouseButtonUp(0))
+            {
+                bulletTime.End();
+                aiming = false;
+                Controlled.Shoot(shotDir, Controlled.shootForce);
+            }
+            return;
+        }
+
+        if (Input.GetMouseButtonDown(0) && Controlled.HasBall && CanShootNow)
+        {
+            aiming = true;
+            aimingSkater = Controlled;
+            bulletTime.Begin();   // si no hay energía no ralentiza, pero el tiro funciona igual
+        }
+    }
+
+    void CancelAim()
+    {
+        if (!aiming) return;
+        aiming = false;
+        if (bulletTime != null) bulletTime.End();
+    }
+
+    // Pase al punto del cursor; si hay un compañero cerca del cursor, la bola va hacia él
+    void DoPass(Vector2 mouse)
+    {
+        if (!Controlled.HasBall) return;
+
+        Skater mate = MateNearPoint(mouse);
+        if (mate != null) Controlled.PassTo(mate);
+        else Controlled.PassToPoint(mouse);
+    }
+
+    Skater MateNearPoint(Vector2 point)
+    {
+        Skater best = null;
+        float bestDist = passAssistRadius;
+        foreach (Skater s in skaters)
+        {
+            if (s == Controlled) continue;
+            float d = Vector2.Distance(s.transform.position, point);
+            if (d < bestDist) { bestDist = d; best = s; }
+        }
+        return best;
     }
 
     // ---------- Cambio de jugador ----------
@@ -137,23 +231,9 @@ public class TeamManager : MonoBehaviour
         return best;
     }
 
-    // Compañero más alineado con la dirección de apuntado (y no demasiado lejos)
-    Skater BestPassTarget(Skater from)
-    {
-        Skater best = null;
-        float bestScore = 0.5f; // mínimo de alineación (coseno)
-        foreach (Skater s in skaters)
-        {
-            if (s == from) continue;
-            Vector2 to = s.transform.position - from.transform.position;
-            float score = Vector2.Dot(from.AimDir, to.normalized) - to.magnitude * 0.01f;
-            if (score > bestScore) { bestScore = score; best = s; }
-        }
-        return best;
-    }
-
     public void ResetPositions()
     {
+        CancelAim();
         foreach (Skater s in skaters) s.ResetToAnchor();
         if (goalkeeper != null) goalkeeper.ResetPosition();
     }

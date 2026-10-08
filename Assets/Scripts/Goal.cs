@@ -15,6 +15,6 @@ public class Goal : MonoBehaviour
     }
     public void SwapDefendingTeam()
     {
-        defendingTeam = defendingTeam == Team.Home ? Team.Away : Team.Home;
+        defendingTeam = defendingTeam == Team.Home ? Team.Away : Team.Away;
     }
 }

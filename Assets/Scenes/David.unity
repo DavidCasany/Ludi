@@ -432,6 +432,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: GoalKeeper
       objectReference: {fileID: 0}
+    - target: {fileID: 3386077717508655842, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
+      propertyPath: speed
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 3386077717508655842, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
+      propertyPath: anticipation
+      value: 0.2
+      objectReference: {fileID: 0}
     - target: {fileID: 6432086141029467960, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
       propertyPath: m_LocalPosition.x
       value: 13.33
@@ -740,6 +748,7 @@ MonoBehaviour:
   - {fileID: 946209372}
   - {fileID: 125397542}
   goalkeeper: {fileID: 78555742}
+  passAssistRadius: 1.5
 --- !u!4 &428901361
 Transform:
   m_ObjectHideFlags: 0
@@ -1009,6 +1018,14 @@ PrefabInstance:
       propertyPath: m_Color.r
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 3386077717508655842, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
+      propertyPath: speed
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 3386077717508655842, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
+      propertyPath: anticipation
+      value: 0.2
+      objectReference: {fileID: 0}
     - target: {fileID: 6432086141029467960, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
       propertyPath: m_LocalPosition.x
       value: 13.33
@@ -1239,7 +1256,7 @@ MonoBehaviour:
   ball: {fileID: 488294942}
   ballStart: {x: 0, y: 0}
   rinkWalls: {fileID: 0}
-  halfDuration: 20
+  halfDuration: 90
   resetDelay: 2
   halfTimeBreak: 4
   coinResultTime: 2.5
@@ -1357,6 +1374,7 @@ MonoBehaviour:
   - {fileID: 275472254}
   - {fileID: 655470429}
   goalkeeper: {fileID: 1951666710}
+  passAssistRadius: 1.5
 --- !u!4 &1266035817
 Transform:
   m_ObjectHideFlags: 0

@@ -21,9 +21,11 @@ public class Skater : MonoBehaviour
     public float pickupRadius = 0.9f;
     public LayerMask ballLayer;
     public LayerMask wallLayer;
-    public float shootForce = 14f;
+    public float shootForce = 28f;            // velocidad del tiro
+    public float maxPassSpeed = 14f;          // velocidad máxima de un pase (el tiro es bastante más rápido)
     [Range(0f, 1f)] public float inheritVelocity = 0.5f;
     public float pickupCooldown = 0.4f;
+    public float pointPassArriveSpeed = 2f;   // velocidad con la que llega la bola al punto apuntado en un pase
 
     [Header("Robo de bola (stick check)")]
     public float stealCooldown = 0.7f;
@@ -154,7 +156,23 @@ public class Skater : MonoBehaviour
         // Con rozamiento exponencial: distancia = (v0 - vLlegada) / damping
         const float arriveSpeed = 3f;
         float speed = dir.magnitude * ball.rb.linearDamping + arriveSpeed;
-        speed = Mathf.Clamp(speed, 5f, shootForce);
+        speed = Mathf.Clamp(speed, 5f, maxPassSpeed);
+
+        DropBall(dir.normalized * speed, pickupCooldown);
+        if (GameManager.Instance != null) GameManager.Instance.OnPass(this);
+    }
+
+    // Pase al punto indicado (p. ej. el cursor): la bola sale hacia allí y llega con poca velocidad
+    public void PassToPoint(Vector2 point)
+    {
+        if (!HasBall || !CanPass) return;
+
+        Vector2 from = ball.rb.position;
+        Vector2 dir = point - from;
+        if (dir.sqrMagnitude < 0.01f) dir = AimDir;
+
+        float speed = dir.magnitude * ball.rb.linearDamping + pointPassArriveSpeed;
+        speed = Mathf.Clamp(speed, 3f, maxPassSpeed);
 
         DropBall(dir.normalized * speed, pickupCooldown);
         if (GameManager.Instance != null) GameManager.Instance.OnPass(this);

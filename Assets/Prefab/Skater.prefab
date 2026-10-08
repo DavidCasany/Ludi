@@ -195,9 +195,10 @@ MonoBehaviour:
   wallLayer:
     serializedVersion: 2
     m_Bits: 128
-  shootForce: 14
+  shootForce: 28
   inheritVelocity: 0.5
   pickupCooldown: 0.4
+  pointPassArriveSpeed: 2
   stealCooldown: 0.7
   stealChance: 0.35
   controlIndicator: {fileID: 3119260479243291759}
@@ -213,13 +214,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b4abea8979792d84e9ab439d7ce49f5e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SkaterAI
-  shootRange: 9
-  goalHalfWidth: 0.85
-  passPressureDistance: 2.5
+  skill: 0.7
   thinkTime: 0.35
-  formationShift: 0.4
-  attackBias: 3
-  rinkHalfSize: {x: 19, y: 9}
+  pressureDistance: 2
+  ownZoneDistance: 12
+  passMargin: 0.08
+  maxHoldTime: 3.5
+  shootThreshold: 0.2
+  pressuredShootThreshold: 0.12
+  shootPreference: 0.12
+  shootZone: 10
+  shootPatience: 1
+  serveDelay: 3
+  debugLog: 0
 --- !u!1 &3119260479243291759
 GameObject:
   m_ObjectHideFlags: 0
@@ -247,7 +254,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1.0354, y: 1.0354, z: 1.0354}
+  m_LocalScale: {x: 1.1379046, y: 1.1379046, z: 1.1379046}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5175665479086675304}
