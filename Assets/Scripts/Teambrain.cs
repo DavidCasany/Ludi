@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum AIRole { Carrier, Hunter, Finisher, Winger, Safety, Cover, Marker }
+public enum AIRole { Carrier, Hunter, Finisher, Winger, Safety, Cover, Sweeper, Marker }
 
 public struct AIAssignment
 {
@@ -13,9 +13,21 @@ public struct AIAssignment
 // Cerebro del equipo. Se añade solo al GameObject del TeamManager (lo crea SkaterAI si no existe).
 // Cada ~0.15 s decide qué ROL hace cada jugador y a qué POSICIÓN debe ir, de forma coordinada:
 //
-//  Con bola (ataque):  Carrier (con bola) · Finisher (delante de la portería) · Winger (ancho) · Safety (cobertura atrás)
-//  Sin bola (defensa): Hunter (presiona la bola) · Cover (tapa el tiro) · Marker x2 (marcan a los rivales más peligrosos)
-//  Bola suelta:        Hunter (el que llega antes) + posturas de ataque o defensa según quién la tocó último
+//  ATAQUE (la bola es nuestra)
+//    Carrier  : el que lleva la bola
+//    Finisher : busca el mejor sitio de remate delante de la portería
+//    Winger   : se desmarca a un espacio libre y ancho, a distancia de pase
+//    Safety   : espacio libre por detrás de la bola (pase atrás y cobertura)
+//    -> cada rol evalúa una rejilla de puntos de la pista: espacio libre, línea de pase limpia,
+//       distancia de pase, separación con compañeros (reparte al equipo) y, según el rol, tiro/anchura/progresión.
+//
+//  DEFENSA (la bola es del rival)
+//    Hunter   : UN solo jugador presiona la bola (y solo si está a menos de 'pressRadius')
+//    Cover    : sobre la línea bola-portería, escalonado por detrás del presionador
+//    Sweeper  : último hombre, delante de nuestra portería, sin salir de ahí
+//    Marker   : marca (por el lado de la portería) a los rivales más peligrosos y sin cubrir
+//
+//  BOLA SUELTA: Hunter (el que llega antes) + postura de ataque o defensa según quién la tocó último.
 //
 // Los roles se reparten probando todas las combinaciones y eligiendo la que minimiza el recorrido total,
 // con "pegajosidad" para que los jugadores no cambien de rol constantemente.
@@ -31,9 +43,17 @@ public class TeamBrain : MonoBehaviour
     public float roleStickiness = 2f;      // metros de ventaja por mantener el rol actual
     public float hunterStickiness = 0.8f;  // el cazador actual solo cambia si otro llega un 20% antes
 
+    [Header("Ataque: desmarques")]
+    public float spotStep = 3f;            // paso de la rejilla de búsqueda de espacios (m)
+    public float teammateSpacing = 6f;     // distancia a la que los compañeros se estorban (m)
+
+    [Header("Defensa")]
+    public float pressRadius = 16f;        // al rival con bola solo se le presiona si algún defensa está a menos de esto (m)
+    public float sweeperDepth = 8f;        // distancia del último hombre a nuestra portería (m)
+
     [Header("Geometría")]
     public float goalHalfWidth = 0.85f;    // mitad del ancho de la portería
-    public float goalAvoidRadius = 2.8f;   // los jugadores no se colocan dentro de esta zona
+    public float goalAvoidExtra = 1.2f;    // margen extra (m) que la IA deja alrededor de la zona prohibida de las porterías
     public float rinkMargin = 1.2f;
     public Vector2 fallbackRinkHalfSize = new Vector2(19f, 9f); // solo si GameManager.rinkWalls no está asignado
 
@@ -43,6 +63,7 @@ public class TeamBrain : MonoBehaviour
     TeamManager tm;
     readonly Dictionary<Skater, AIAssignment> assignments = new Dictionary<Skater, AIAssignment>();
     readonly Dictionary<Skater, AIRole> lastRoles = new Dictionary<Skater, AIRole>();
+    readonly Dictionary<AIRole, Vector2> lastSpot = new Dictionary<AIRole, Vector2>();
     readonly List<Skater> free = new List<Skater>(8);
     readonly List<AIAssignment> slots = new List<AIAssignment>(8);
     readonly List<Vector2> taken = new List<Vector2>(16);
@@ -84,6 +105,13 @@ public class TeamBrain : MonoBehaviour
         rinkReady = true;
     }
 
+    float LateralHalfExtent()
+    {
+        Vector2 lat = Lateral;
+        return Mathf.Abs(lat.x) * (rinkMax.x - rinkMin.x) * 0.5f +
+               Mathf.Abs(lat.y) * (rinkMax.y - rinkMin.y) * 0.5f;
+    }
+
     public bool IsInsideRink(Vector2 p, float margin)
     {
         return p.x > rinkMin.x + margin && p.x < rinkMax.x - margin &&
@@ -97,24 +125,27 @@ public class TeamBrain : MonoBehaviour
                            Mathf.Clamp(p.y, rinkMin.y + m, rinkMax.y - m));
     }
 
-    Vector2 PushOutOfGoal(Vector2 p, Vector2 goal)
+    // ¿Está 'p' dentro de la red de alguna portería (o a menos de 'extra' de ella)?
+    public bool IsInGoalZone(Vector2 p, float extra)
     {
-        float r = M(goalAvoidRadius);
-        Vector2 d = p - goal;
-        if (d.magnitude >= r) return p;
-
-        Vector2 inward = (Center - goal).normalized;
-        Vector2 dir = d.sqrMagnitude < 0.0001f ? inward : d.normalized;
-        if (Vector2.Dot(dir, inward) < 0.3f) dir = (dir + inward * 1.2f).normalized;
-        return goal + dir * r;
+        Vector2 q = p;
+        Vector2 n;
+        for (int i = 0; i < Goal.All.Count; i++)
+            if (Goal.All[i].TryPushOut(ref q, extra, out n)) return true;
+        return false;
     }
 
-    Vector2 Sanitize(Vector2 p)
+    // Posición válida para la IA: dentro de la pista y fuera de la zona de las porterías
+    public Vector2 Sanitize(Vector2 p)
     {
         p = ClampToRink(p);
-        p = PushOutOfGoal(p, OwnGoalPos);
-        p = PushOutOfGoal(p, OppGoalPos);
-        return p;
+
+        float extra = M(goalAvoidExtra);
+        Vector2 n;
+        for (int i = 0; i < Goal.All.Count; i++)
+            Goal.All[i].TryPushOut(ref p, extra, out n);
+
+        return ClampToRink(p);
     }
 
     static float DistToSegment(Vector2 p, Vector2 a, Vector2 b)
@@ -223,11 +254,11 @@ public class TeamBrain : MonoBehaviour
         }
         else
         {
-            // 2) Cazador de la bola
+            // 2) Cazador de la bola (solo uno)
             Skater hunter = PickHunter(ball);
             if (hunter != null)
             {
-                assignments[hunter] = new AIAssignment(AIRole.Hunter, InterceptPoint(hunter, ball));
+                assignments[hunter] = new AIAssignment(AIRole.Hunter, Sanitize(InterceptPoint(hunter, ball)));
                 free.Remove(hunter);
             }
             currentHunter = hunter;
@@ -279,6 +310,11 @@ public class TeamBrain : MonoBehaviour
             if (t < bestT) { bestT = t; best = s; }
         }
 
+        // Rival con la bola y ningún defensa cerca: nadie sale a presionar, el equipo se coloca
+        if (best != null && ball.IsHeld &&
+            Vector2.Distance(best.transform.position, ball.rb.position) > M(pressRadius))
+            return null;
+
         // Bola suelta y el jugador humano llega claramente antes: no hace falta cazador
         if (best != null && !ball.IsHeld)
         {
@@ -292,94 +328,152 @@ public class TeamBrain : MonoBehaviour
         return best;
     }
 
-    // ---------- Posiciones de ataque ----------
+    // =====================================================================
+    //  ATAQUE: desmarques a espacios libres
+    // =====================================================================
 
     void BuildAttackSlots(Vector2 carrierPos, List<AIAssignment> list)
+    {
+        // Orden = prioridad. Cada rol se coloca teniendo en cuenta a los anteriores (separación).
+        list.Add(new AIAssignment(AIRole.Finisher, FindSpot(AIRole.Finisher, carrierPos)));
+        list.Add(new AIAssignment(AIRole.Winger, FindSpot(AIRole.Winger, carrierPos)));
+        list.Add(new AIAssignment(AIRole.Safety, FindSpot(AIRole.Safety, carrierPos)));
+    }
+
+    // Recorre una rejilla de puntos de la zona del rol y devuelve el mejor
+    Vector2 FindSpot(AIRole role, Vector2 carrier)
     {
         Vector2 goal = OppGoalPos;
         Vector2 atk = AttackDir;
         Vector2 lat = Lateral;
 
-        float lc = Vector2.Dot(carrierPos - Center, lat);
-        float cs = lc >= 0f ? 1f : -1f;                               // lado en el que está el portador
-        float cd = Mathf.Max(Vector2.Dot(goal - carrierPos, atk), 0f); // distancia a portería sobre el eje
+        float cd = Mathf.Max(Vector2.Dot(goal - carrier, atk), 0f);           // distancia del portador a portería
+        float carrierLat = Vector2.Dot(carrier - Center, lat);
+        float latHalf = Mathf.Max(M(3f), LateralHalfExtent() - M(rinkMargin + 0.8f));
 
-        // Rematador: delante de la portería, al lado contrario del portador (poste lejano)
-        float fd = Mathf.Clamp(cd - M(8f), M(4.5f), M(9f));
-        Vector2 finisher = goal - atk * fd + lat * (-cs * M(1.8f));
+        // Zona de búsqueda de cada rol: ud = distancia a la línea de gol, v = posición lateral
+        float udMin, udMax, vMin, vMax, minAbsV = 0f;
+        switch (role)
+        {
+            case AIRole.Finisher:
+                udMin = M(4f); udMax = M(9f);
+                vMin = -M(6f); vMax = M(6f);
+                break;
+            case AIRole.Winger:
+                udMin = M(6f); udMax = Mathf.Max(M(10f), Mathf.Min(cd + M(3f), M(22f)));
+                vMin = -latHalf; vMax = latHalf;
+                minAbsV = M(4f);                       // siempre abierto, nunca por el centro
+                break;
+            default: // Safety
+                udMin = Mathf.Clamp(cd + M(3f), M(12f), M(24f));
+                udMax = Mathf.Min(udMin + M(8f), M(30f));
+                vMin = -M(7f); vMax = M(7f);
+                break;
+        }
+        udMax = Mathf.Max(udMax, udMin);
 
-        // Extremo: abierto por el lado contrario, algo por delante de la bola
-        float wd = Mathf.Max(cd - M(2.5f), M(6f));
-        Vector2 winger = goal - atk * wd + lat * (-cs * M(6f));
+        float step = M(spotStep);
+        int nu = Mathf.Max(1, Mathf.CeilToInt((udMax - udMin) / step)) + 1;
+        int nv = Mathf.Max(1, Mathf.CeilToInt((vMax - vMin) / step)) + 1;
 
-        // Seguridad: detrás del balón, ofrece pase atrás y cubre el contraataque
-        float sd = Mathf.Min(cd + M(6f), M(26f));
-        Vector2 safety = goal - atk * sd + lat * (lc * 0.3f);
+        Vector2 prev;
+        bool hasPrev = lastSpot.TryGetValue(role, out prev);
 
-        list.Add(new AIAssignment(AIRole.Finisher, Refine(finisher, carrierPos, M(1.8f), true)));
-        list.Add(new AIAssignment(AIRole.Winger, Refine(winger, carrierPos, M(2f), false)));
-        list.Add(new AIAssignment(AIRole.Safety, Refine(safety, carrierPos, M(2f), false)));
-    }
-
-    // Busca, alrededor de una posición base, el punto más libre: lejos de rivales,
-    // con línea de pase limpia desde el portador, separado de compañeros y (si toca) con buen tiro.
-    Vector2 Refine(Vector2 center, Vector2 from, float radius, bool wantShot)
-    {
-        center = Sanitize(center);
-        Vector2 best = center;
+        Vector2 best = Sanitize(goal - atk * udMin);
         float bestScore = float.MinValue;
 
-        for (int k = 0; k < 9; k++)
+        for (int i = 0; i < nu; i++)
         {
-            Vector2 p = center;
-            if (k > 0)
+            float ud = Mathf.Min(udMin + i * step, udMax);
+            for (int j = 0; j < nv; j++)
             {
-                float ang = (k - 1) * 45f * Mathf.Deg2Rad;
-                p += new Vector2(Mathf.Cos(ang), Mathf.Sin(ang)) * radius;
+                float v = Mathf.Min(vMin + j * step, vMax);
+                if (Mathf.Abs(v) < minAbsV) continue;
+
+                Vector2 p = Sanitize(goal - atk * ud + lat * v);
+                float s = ScoreSpot(role, p, carrier, carrierLat, latHalf, hasPrev, prev);
+                if (s > bestScore) { bestScore = s; best = p; }
             }
-            p = Sanitize(p);
-
-            float open = Mathf.Clamp01(tm.DistanceToNearestOpponent(p) / M(5f));
-            float lane = LaneClear(from, p);
-            float score = open + 1.5f * lane - 0.6f * Vector2.Distance(p, center) / radius;
-
-            if (wantShot)
-            {
-                Vector2 aim;
-                score += 1.5f * ShotQuality(p, out aim);
-            }
-
-            foreach (Vector2 t in taken)
-            {
-                float d = Vector2.Distance(p, t);
-                if (d < M(3f)) score -= 1.2f * (1f - d / M(3f));
-            }
-
-            if (score > bestScore) { bestScore = score; best = p; }
         }
 
+        lastSpot[role] = best;
         taken.Add(best);
         return best;
     }
 
-    // ---------- Posiciones de defensa ----------
+    float ScoreSpot(AIRole role, Vector2 p, Vector2 carrier, float carrierLat, float latHalf,
+                    bool hasPrev, Vector2 prev)
+    {
+        float open = Mathf.Clamp01(tm.DistanceToNearestOpponent(p) / M(6f));   // espacio libre
+        float lane = LaneClear(carrier, p);                                    // línea de pase limpia
+
+        // Distancia de pase razonable: ni pegado al portador ni demasiado lejos
+        float dc = Vector2.Distance(p, carrier);
+        float range = 1f;
+        if (dc < M(4f)) range = dc / M(4f);
+        else if (dc > M(16f)) range = Mathf.Clamp01(1f - (dc - M(16f)) / M(8f));
+
+        float s = 1.6f * open + 1.4f * lane + 1f * range;
+
+        // Separación respecto a compañeros ya colocados: reparte al equipo por la pista
+        float sp = M(teammateSpacing);
+        for (int i = 0; i < taken.Count; i++)
+        {
+            float d = Vector2.Distance(p, taken[i]);
+            if (d < sp) s -= 1.5f * (1f - d / sp);
+        }
+
+        float v = Vector2.Dot(p - Center, Lateral);
+        float ud = Vector2.Dot(OppGoalPos - p, AttackDir);
+
+        if (role == AIRole.Finisher)
+        {
+            Vector2 aim;
+            s += 2f * ShotQuality(p, out aim);
+        }
+        else if (role == AIRole.Winger)
+        {
+            s += 0.8f * Mathf.Clamp01(Mathf.Abs(v) / latHalf);                      // anchura
+            s += 0.5f * Mathf.Clamp01(Mathf.Abs(v - carrierLat) / M(8f));           // lado distinto al del portador
+            s += 0.6f * (1f - Mathf.Clamp01(ud / M(22f)));                          // progresar
+        }
+
+        // Estabilidad: no cambiar de sitio sin motivo
+        if (hasPrev) s += 0.6f * (1f - Mathf.Clamp01(Vector2.Distance(p, prev) / M(6f)));
+
+        return s;
+    }
+
+    // =====================================================================
+    //  DEFENSA: capas en vez de todos a la bola
+    // =====================================================================
 
     void BuildDefenseSlots(Vector2 ballPos, Ball ball, List<AIAssignment> list)
     {
         Vector2 own = OwnGoalPos;
+        Vector2 atk = AttackDir;
+        Vector2 lat = Lateral;
         Vector2 carrier = ball.IsHeld ? (Vector2)ball.Holder.transform.position : ballPos;
 
-        // Cobertura: entre la bola y nuestra portería, tapando la línea de tiro
+        // Cobertura: sobre la línea bola-portería, escalonada por detrás del presionador
         Vector2 toGoal = own - carrier;
-        toGoal = toGoal.sqrMagnitude < 0.01f ? -AttackDir : toGoal.normalized;
-        float coverDist = Mathf.Min(M(4.5f), Vector2.Distance(carrier, own) * 0.5f);
-        Vector2 cover = Sanitize(carrier + toGoal * coverDist);
+        float dist = toGoal.magnitude;
+        Vector2 dirG = dist < 0.1f ? -atk : toGoal / dist;
+        float coverDist = Mathf.Clamp(dist * 0.45f, M(4f), M(8f));
+        Vector2 cover = Sanitize(carrier + dirG * coverDist);
         list.Add(new AIAssignment(AIRole.Cover, cover));
         taken.Add(cover);
 
+        // Último hombre: delante de nuestra portería, desplazado hacia el lado de la bola
+        float ballLat = Vector2.Dot(carrier - Center, lat);
+        Vector2 sweeper = Sanitize(own + atk * M(sweeperDepth) + lat * Mathf.Clamp(ballLat * 0.4f, -M(4f), M(4f)));
+        list.Add(new AIAssignment(AIRole.Sweeper, sweeper));
+        taken.Add(sweeper);
+
         if (tm.opponent == null) return;
 
-        // Marcajes: los dos rivales más peligrosos (cerca de nuestra portería y con línea de pase libre)
+        // Marcajes: rivales más peligrosos (cerca de nuestra portería, con línea de pase libre)
+        // y que no estén ya cubiertos por la cobertura o el último hombre
         Skater ballOpp = ball.IsHeld ? ball.Holder : NearestOpponentTo(ballPos);
         Skater m1 = null, m2 = null;
         float s1 = float.MinValue, s2 = float.MinValue;
@@ -387,8 +481,10 @@ public class TeamBrain : MonoBehaviour
         foreach (Skater o in tm.opponent.skaters)
         {
             if (o == ballOpp) continue;
+
             Vector2 op = o.transform.position;
-            float danger = (1f - Mathf.Clamp01(Vector2.Distance(op, own) / M(30f))) + LaneClear(carrier, op);
+            float danger = 0.6f * (1f - Mathf.Clamp01(Vector2.Distance(op, own) / M(30f))) + LaneClear(carrier, op);
+            if (Vector2.Distance(op, cover) < M(2.5f) || Vector2.Distance(op, sweeper) < M(2.5f)) danger -= 0.8f;
 
             if (danger > s1) { s2 = s1; m2 = m1; s1 = danger; m1 = o; }
             else if (danger > s2) { s2 = danger; m2 = o; }
@@ -404,7 +500,7 @@ public class TeamBrain : MonoBehaviour
         Vector2 goalSide = (own - op).normalized;
         Vector2 ballSide = (carrier - op).normalized;
         Vector2 dir = (goalSide * 0.7f + ballSide * 0.3f).normalized;   // por el lado de la portería, algo hacia el pase
-        return new AIAssignment(AIRole.Marker, Sanitize(op + dir * M(1.4f)));
+        return new AIAssignment(AIRole.Marker, Sanitize(op + dir * M(1.5f)));
     }
 
     Skater NearestOpponentTo(Vector2 p)
@@ -491,7 +587,8 @@ public class TeamBrain : MonoBehaviour
             case AIRole.Winger: return Color.cyan;
             case AIRole.Safety: return Color.blue;
             case AIRole.Cover: return Color.magenta;
-            default: return new Color(1f, 0.5f, 0f);
+            case AIRole.Sweeper: return Color.green;
+            default: return new Color(1f, 0.5f, 0f);   // Marker
         }
     }
 }
