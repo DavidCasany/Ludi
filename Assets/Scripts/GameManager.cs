@@ -1,15 +1,17 @@
+using System;
 using System.Collections;
 using UnityEngine;
 
 public enum MatchState
 {
-    CoinToss,    // el jugador elige cara o cruz
-    CoinResult,  // se muestra el resultado del sorteo
-    Kickoff,     // saque de centro: reloj parado hasta el primer pase
-    Playing,     // el reloj corre
-    GoalPause,   // gol: reloj parado y jugadores quietos
-    HalfTime,    // fin de la 1ª parte
-    FullTime     // fin del partido
+    CoinToss,       // el jugador elige cara o cruz
+    CoinResult,     // se muestra el resultado del sorteo
+    Kickoff,        // saque de centro: reloj parado hasta el primer pase
+    Playing,        // el reloj corre (o, en el gol de oro, se juega sin reloj)
+    GoalPause,      // gol: reloj parado y jugadores quietos
+    HalfTime,       // fin de la 1ª parte
+    OvertimeBreak,  // empate al final y hace falta un ganador: pausa antes del gol de oro
+    FullTime        // fin del partido
 }
 
 public class GameManager : MonoBehaviour
@@ -27,14 +29,27 @@ public class GameManager : MonoBehaviour
     public float halfDuration = 180f;   // 3 minutos por parte
     public float resetDelay = 2f;       // pausa tras un gol
     public float halfTimeBreak = 4f;    // pausa del descanso
+    public float overtimeBreak = 3f;    // pausa antes del gol de oro
     public float coinResultTime = 2.5f; // cuánto se ve el resultado del sorteo
 
     [Header("Marcador")]
     public int homeScore;
     public int awayScore;
+    [SerializeField] string homeName = "HOME";
+    [SerializeField] string awayName = "AWAY";
+
+    [Header("Reglas")]
+    [Tooltip("Si acaba en empate se juega una prórroga a gol de oro (lo activa el torneo)")]
+    [SerializeField] bool requireWinner = false;
 
     public MatchState State { get; private set; } = MatchState.CoinToss;
     public int Half { get; private set; } = 1;
+    public bool IsGoldenGoal { get; private set; }
+    public string HomeName => homeName;
+    public string AwayName => awayName;
+
+    // Se lanza una sola vez al terminar el partido: (goles local, goles visitante)
+    public event Action<int, int> MatchFinished;
 
     float timeLeft;
     Goal[] goals;
@@ -57,12 +72,20 @@ public class GameManager : MonoBehaviour
         playerTeam = home.humanControlled ? Team.Home : Team.Away;
     }
 
+    // Lo llama quien organiza el partido (p. ej. el torneo) antes de que empiece
+    public void ConfigureMatch(string homeTeamName, string awayTeamName, bool mustHaveWinner)
+    {
+        homeName = homeTeamName;
+        awayName = awayTeamName;
+        requireWinner = mustHaveWinner;
+    }
+
     void Update()
     {
         CheckBallInBounds();
 
-        // El reloj solo corre mientras se juega (no en el saque, ni en pausas)
-        if (State != MatchState.Playing) return;
+        // El reloj solo corre mientras se juega (no en el saque, ni en pausas, ni en el gol de oro)
+        if (State != MatchState.Playing || IsGoldenGoal) return;
 
         timeLeft -= Time.deltaTime;
         if (timeLeft <= 0f)
@@ -78,7 +101,7 @@ public class GameManager : MonoBehaviour
     public bool CanPass => State == MatchState.Playing || State == MatchState.Kickoff;
 
     public bool CanMove(Skater s) => State == MatchState.Playing;
-  
+
     public bool IsServing(Skater s) => State == MatchState.Kickoff && s == kickoffServer;
 
     // Lo llama Skater.PassTo: el primer pase del sacador pone el juego en marcha
@@ -91,7 +114,7 @@ public class GameManager : MonoBehaviour
 
     void ChooseCoin(bool playerPicksHeads)
     {
-        bool heads = Random.value < 0.5f;
+        bool heads = UnityEngine.Random.value < 0.5f;
         bool playerWins = heads == playerPicksHeads;
         firstServer = playerWins ? playerTeam : Other(playerTeam);
 
@@ -152,6 +175,13 @@ public class GameManager : MonoBehaviour
         if (scorer == Team.Home) homeScore++;
         else awayScore++;
 
+        // Gol de oro: el primer gol termina el partido (tras ver la celebración)
+        if (IsGoldenGoal)
+        {
+            StartCoroutine(GoldenGoalEndRoutine());
+            return;
+        }
+
         // Saca el equipo que ha encajado el gol
         StartCoroutine(GoalRestartRoutine(Other(scorer)));
     }
@@ -160,6 +190,12 @@ public class GameManager : MonoBehaviour
     {
         yield return new WaitForSeconds(resetDelay);
         StartKickoff(servingTeam);
+    }
+
+    IEnumerator GoldenGoalEndRoutine()
+    {
+        yield return new WaitForSeconds(resetDelay);
+        FinishMatch();
     }
 
     // ---------- Partes ----------
@@ -171,9 +207,14 @@ public class GameManager : MonoBehaviour
             State = MatchState.HalfTime;
             StartCoroutine(HalfTimeRoutine());
         }
+        else if (requireWinner && homeScore == awayScore)
+        {
+            State = MatchState.OvertimeBreak;
+            StartCoroutine(OvertimeRoutine());
+        }
         else
         {
-            State = MatchState.FullTime;
+            FinishMatch();
         }
     }
 
@@ -185,6 +226,22 @@ public class GameManager : MonoBehaviour
         Half = 2;
         timeLeft = halfDuration;
         StartKickoff(Other(firstServer));   // en la 2ª parte saca el equipo contrario
+    }
+
+    IEnumerator OvertimeRoutine()
+    {
+        yield return new WaitForSeconds(overtimeBreak);
+
+        Half = 3;
+        IsGoldenGoal = true;
+        StartKickoff(firstServer);          // la prórroga la saca quien sacó al principio
+    }
+
+    void FinishMatch()
+    {
+        if (State == MatchState.FullTime) return;
+        State = MatchState.FullTime;
+        if (MatchFinished != null) MatchFinished(homeScore, awayScore);
     }
 
     void SwapSides()
@@ -221,8 +278,9 @@ public class GameManager : MonoBehaviour
     void OnGUI()
     {
         GUIStyle hud = new GUIStyle(GUI.skin.label) { fontSize = 28, fontStyle = FontStyle.Bold };
-        GUI.Label(new Rect(10, 10, 500, 40), $"HOME {homeScore} - {awayScore} AWAY", hud);
-        GUI.Label(new Rect(10, 50, 500, 40), $"{Half}ª PARTE   {FormatTime(timeLeft)}", hud);
+        GUI.Label(new Rect(10, 10, 700, 40), $"{homeName} {homeScore} - {awayScore} {awayName}", hud);
+        string clock = IsGoldenGoal ? "PRÓRROGA · GOL DE ORO" : $"{Half}ª PARTE   {FormatTime(timeLeft)}";
+        GUI.Label(new Rect(10, 50, 700, 40), clock, hud);
 
         switch (State)
         {
@@ -231,6 +289,7 @@ public class GameManager : MonoBehaviour
             case MatchState.Kickoff: DrawKickoffHint(); break;
             case MatchState.GoalPause: DrawGoalScreen(); break;
             case MatchState.HalfTime: DrawCentered("DESCANSO", 80, 0f); break;
+            case MatchState.OvertimeBreak: DrawOvertimeScreen(); break;
             case MatchState.FullTime: DrawFullTimeScreen(); break;
         }
     }
@@ -267,16 +326,23 @@ public class GameManager : MonoBehaviour
     void DrawGoalScreen()
     {
         DrawDim(0.45f);
-        DrawCentered("¡GOL!", 140, -80f);
+        DrawCentered(IsGoldenGoal ? "¡GOL DE ORO!" : "¡GOL!", 140, -80f);
         DrawCentered($"{homeScore} - {awayScore}", 90, 80f);
+    }
+
+    void DrawOvertimeScreen()
+    {
+        DrawDim(0.6f);
+        DrawCentered("EMPATE", 70, -80f);
+        DrawCentered("Prórroga a gol de oro: el primero que marque gana", 36, 20f);
     }
 
     void DrawFullTimeScreen()
     {
         DrawDim(0.75f);
 
-        string result = homeScore > awayScore ? "GANA HOME"
-                      : awayScore > homeScore ? "GANA AWAY"
+        string result = homeScore > awayScore ? "GANA " + homeName
+                      : awayScore > homeScore ? "GANA " + awayName
                       : "EMPATE";
 
         DrawCentered("FIN DEL PARTIDO", 50, -140f);

@@ -1236,6 +1236,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1119589249}
   - component: {fileID: 1119589248}
+  - component: {fileID: 1119589250}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -1263,9 +1264,13 @@ MonoBehaviour:
   halfDuration: 90
   resetDelay: 2
   halfTimeBreak: 4
+  overtimeBreak: 3
   coinResultTime: 2.5
   homeScore: 0
   awayScore: 0
+  homeName: HOME
+  awayName: AWAY
+  requireWinner: 0
 --- !u!4 &1119589249
 Transform:
   m_ObjectHideFlags: 0
@@ -1281,6 +1286,19 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1119589250
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1119589247}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b7c2d70317c29c4a87d0e0fcb97eaa7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TournamentMatchBridge
+  gameManager: {fileID: 0}
 --- !u!1001 &1251734759
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1802,11 +1820,11 @@ PrefabInstance:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
+  - {fileID: 1119589249}
   - {fileID: 1266035817}
   - {fileID: 27086008}
   - {fileID: 428901361}
   - {fileID: 1699681134}
-  - {fileID: 1119589249}
   - {fileID: 163244666}
   - {fileID: 635885372}
   - {fileID: 88100480}

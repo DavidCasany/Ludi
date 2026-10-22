@@ -37,6 +37,13 @@ public class Goalkeeper : MonoBehaviour
         outwardX = Mathf.Sign(-startPos.x);
     }
 
+    // Color del equipo (lo usa el torneo). Se guarda como base para volver a él tras el destello de parada.
+    public void SetColor(Color c)
+    {
+        baseColor = c;
+        if (sr != null) sr.color = c;
+    }
+
     void FixedUpdate()
     {
         Ball ball = Ball.Instance;
@@ -94,6 +101,7 @@ public class Goalkeeper : MonoBehaviour
     {
         rb.position = startPos;
     }
+
     public void SwapSide()
     {
         startPos.x = -startPos.x;

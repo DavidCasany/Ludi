@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c73b63b7cdf5489458daf61ecaa8e427, type: 3}
+  m_Name: Tournament_Ludi
+  m_EditorClassIdentifier: Assembly-CSharp::TournamentConfig
+  tournamentName: Copa Ludi
+  teams:
+  - {fileID: 11400000, guid: 930df219e5b54fe40a31958332587ede, type: 2}
+  - {fileID: 11400000, guid: 2ae1dfd9925a1cb4894f6c9180be4854, type: 2}
+  - {fileID: 11400000, guid: 1c20eb68f6fff0f41bb6f6817f10f646, type: 2}
+  - {fileID: 11400000, guid: ad64609f7f6facd479502645f9af1b86, type: 2}
+  - {fileID: 11400000, guid: 49a2a8b6533566d4981ac3f92b59816e, type: 2}
+  - {fileID: 11400000, guid: 8f2d59f735ca57d4d92ccd597a8bb5e0, type: 2}
+  - {fileID: 11400000, guid: c77b5719793a74f4cbfdba262237dee2, type: 2}
+  - {fileID: 11400000, guid: fa72f003d10ac114daf2a2ea66b607d1, type: 2}
+  playerTeam: {fileID: 11400000, guid: c77b5719793a74f4cbfdba262237dee2, type: 2}
+  shuffleSeeds: 1
+  hubScene: Tournament
+  matchScene: David
+  goalsPerTeam: 3
