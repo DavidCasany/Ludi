@@ -4,17 +4,29 @@ using UnityEngine;
 
 public enum StickResult { None, Cooldown, Whiff, Stolen, Intercepted, TooFast, Shielded, Dribbled, Grace, Failed }
 
+// Un pase planificado: a qué compañero, y si va directo o rebotando en la banda
+public struct PassPlan
+{
+    public Skater mate;
+    public bool bank;          // true = rebota en la banda antes de llegar
+    public Vector2 waypoint;   // directo: punto de llegada; con rebote: punto de la banda
+    public float length;       // longitud total del recorrido
+    public Vector2 firstDir;   // dirección de salida de la bola
+}
+
 // El "cuerpo" del jugador. No lee input: otro script (TeamManager para el humano,
 // SkaterAI para la IA) le dice hacia dónde moverse, a dónde apuntar y qué acciones hacer.
 //
 // REGLAS DE LA BOLA
 //  - Una bola SUELTA solo se queda automáticamente si va despacio (autoPickupMaxSpeed).
-//    Los pases de un compañero se controlan hasta receiverMaxSpeed. Los rivales no pueden
-//    quedarse un pase rápido por el simple hecho de estar cerca.
+//    Los pases de un compañero se controlan hasta receiverMaxSpeed.
 //  - La bola de un rival NO se roba por proximidad: se roba con el STICK (Stick()).
-//    Un defensa puede interceptar con el stick una bola suelta rápida (hasta stickCatchMaxSpeed).
-//  - Te la pueden robar si te atacan por el lado de la bola. No pueden si la proteges con el cuerpo,
-//    si estás en pleno regate o si acabas de recibirla (possessionGrace).
+//
+// ROBOS (inspirados en el NBA 2K): existen pero fallan MUCHO y fallar sale caro.
+//  - Un golpe válido solo roba con una probabilidad baja (stealBaseChance, ~25 %), que sube o baja con:
+//    el lado desde el que atacas, si el portador corre con la bola, y los atributos (stealRating / ballControl).
+//  - No se puede robar si el portador protege la bola con el cuerpo, está regateando o acaba de recibirla.
+//  - Todo golpe que no consigue la bola deja al atacante descolocado (missRecovery): puede ser regateado.
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(Collider2D))]
 public class Skater : MonoBehaviour
@@ -28,6 +40,8 @@ public class Skater : MonoBehaviour
     public float maxSpeed = 7f;
     public float acceleration = 25f;
     public float deceleration = 6f;
+    [Range(0.3f, 1.5f)] public float speedScale = 0.8f;   // escala global de velocidad y aceleración (bájala para un juego más lento)
+    [Range(0f, 0.8f)] public float turnPenalty = 0.35f;   // aceleración que se pierde al girar de golpe (inercia de patín)
 
     [Header("Sprint")]
     public float sprintMultiplier = 1.4f;       // velocidad y aceleración extra
@@ -53,21 +67,38 @@ public class Skater : MonoBehaviour
     public float passSpeedMax = 24f;        // el tiro (shootForce) sigue siendo más rápido
     public float passWindow = 1.5f;         // tiempo en el que los compañeros pueden controlar el pase
 
+    [Header("Asistencia de pase")]
+    public float passAssistAngle = 14f;        // el pase se ajusta a un compañero si apuntas a menos de este ángulo
+    public float laneBlockRadius = 1f;         // un rival a menos de esto de la línea de pase la bloquea
+    public float bankWallMargin = 0.3f;        // separación de la banda donde rebota la bola
+    public float bankCornerClearance = 3f;     // el rebote debe caer lejos de las esquinas redondeadas
+    public float bankMaxLength = 40f;          // longitud máxima de un pase con rebote
+
     [Header("Control de la bola (recogida)")]
     public float autoPickupMaxSpeed = 7f;   // velocidad máxima para quedarse una bola suelta por proximidad
     public float receiverMaxSpeed = 24f;    // ... si es un pase de un compañero
     public float receiverPickupBonus = 1.3f;// el receptor de un pase tiene más radio de recogida
 
-    [Header("Stick: robo e intercepción")]
+    [Header("Atributos (estilo 2K, 0 a 1)")]
+    [Range(0f, 1f)] public float stealRating = 0.5f;   // habilidad para robar e interceptar
+    [Range(0f, 1f)] public float ballControl = 0.5f;   // habilidad para proteger la bola
+
+    [Header("Stick: alcance")]
     public float stickReach = 1.4f;                 // alcance del stick desde el centro del jugador
     [Range(20f, 180f)] public float stickArc = 110f;// ángulo (total) del arco frontal del stick
     public float stickCatchMaxSpeed = 18f;          // velocidad máxima de una bola suelta que se puede interceptar
     public float minSwingInterval = 0.2f;           // mínimo entre golpes (aunque no haya cooldown)
+
+    [Header("Stick: robos (difíciles a propósito)")]
     public bool useStealCooldown = true;            // ¿hay cooldown entre intentos de robo/intercepción?
-    public float stealCooldown = 0.8f;              // duración del cooldown (si useStealCooldown está activo)
-    [Range(0f, 1f)] public float stealSuccessChance = 1f; // probabilidad de robo si el golpe es válido
+    public float stealCooldown = 1.5f;              // duración del cooldown (si useStealCooldown está activo)
+    [Range(0f, 1f)] public float stealBaseChance = 0.25f;     // probabilidad base de que un golpe válido robe la bola
+    [Range(0f, 0.5f)] public float sprintStealBonus = 0.12f;  // se suma si el portador corre con la bola
+    [Range(0f, 1f)] public float interceptSuccessChance = 0.45f; // prob. de controlar un pase rápido con el stick
+    public float missRecovery = 0.6f;               // tiempo descolocado tras un golpe fallido (el coste del riesgo)
     public float possessionGrace = 0.6f;            // tras recibir la bola no te la pueden robar
     [Range(-1f, 1f)] public float shieldDot = -0.2f;// la bola está protegida si el atacante queda por debajo de este valor
+    public bool logSteals = false;                  // imprime en consola la probabilidad de cada robo
 
     [Header("Regate (juke)")]
     public float jukeSpeed = 13f;
@@ -91,11 +122,13 @@ public class Skater : MonoBehaviour
     public bool HasBall => ball != null;
     public bool IsControlled { get; private set; }
 
+    public float TopSpeed => maxSpeed * speedScale;   // velocidad máxima real (sin sprint)
     public bool IsSprinting { get; private set; }
     public bool IsExhausted => exhausted;
     public float Stamina01 => stamina;
     public bool IsDribbling => Time.time < jukeUntil;
     public bool IsStaggered => Time.time < staggerUntil;
+    public bool IsProtected => IsDribbling || Time.time < graceUntil;   // no se le puede robar ahora mismo
     public float CurrentHoldDistance => holdDistance + (IsSprinting ? sprintHoldExtra : 0f);
 
     public float StickCooldown01 => (useStealCooldown && Time.time < nextStealTime)
@@ -187,7 +220,7 @@ public class Skater : MonoBehaviour
         // Regate: impulso rápido en una dirección fija
         if (IsDribbling)
         {
-            rb.linearVelocity = jukeDir * jukeSpeed;
+            rb.linearVelocity = jukeDir * jukeSpeed * speedScale;
             IsSprinting = false;
             return;
         }
@@ -200,8 +233,26 @@ public class Skater : MonoBehaviour
         float sprintMul = IsSprinting ? sprintMultiplier : 1f;
         float slowMul = IsStaggered ? staggerSlow : 1f;
 
-        Vector2 target = input * maxSpeed * sprintMul * slowMul;
-        float rate = moving ? acceleration * sprintMul : deceleration;
+        Vector2 target = input * TopSpeed * sprintMul * slowMul;
+
+        float rate;
+        if (moving)
+        {
+            rate = acceleration * speedScale * sprintMul;
+
+            // Inercia de patín: girar de golpe cuesta aceleración
+            Vector2 vel = rb.linearVelocity;
+            if (turnPenalty > 0f && vel.sqrMagnitude > 1f)
+            {
+                float turn = Vector2.Angle(vel, input) / 180f;   // 0 = misma dirección, 1 = marcha atrás
+                rate *= 1f - turnPenalty * turn;
+            }
+        }
+        else
+        {
+            rate = deceleration * speedScale;
+        }
+
         rb.linearVelocity = Vector2.MoveTowards(rb.linearVelocity, target, rate * dt);
         // En Unity 2022 o anterior: rb.velocity
     }
@@ -302,6 +353,7 @@ public class Skater : MonoBehaviour
     {
         if (!HasBall || !CanShoot) return;
         DropBall(dir.normalized * force + rb.linearVelocity * inheritVelocity, pickupCooldown, false);
+        if (IsControlled) GameCamera.Shake(0.12f, 0.12f);   // pequeño golpe de cámara al tirar
     }
 
     float PassSpeedFor(float distance)
@@ -309,26 +361,191 @@ public class Skater : MonoBehaviour
         return Mathf.Clamp(distance * passSpeedPerMeter, passSpeedMin, passSpeedMax);
     }
 
-    // Pase a un compañero: rápido (≈ 0.5 s de vuelo) y anticipando su movimiento
-    public void PassTo(Skater mate)
-    {
-        if (!HasBall || !CanPass || mate == null) return;
+    // ---------- Pases asistidos ----------
+    // El pase no depende solo de la física: se elige un receptor (directo o rebotando en la banda)
+    // y la bola corrige su rumbo hacia él durante el vuelo (ver Ball.SetGuide).
 
-        Vector2 from = ball.rb.position;
+    static float DistToSegment(Vector2 p, Vector2 a, Vector2 b)
+    {
+        Vector2 ab = b - a;
+        float l2 = ab.sqrMagnitude;
+        if (l2 < 0.0001f) return Vector2.Distance(p, a);
+        float t = Mathf.Clamp01(Vector2.Dot(p - a, ab) / l2);
+        return Vector2.Distance(p, a + ab * t);
+    }
+
+    // ¿Hay un rival sobre el segmento a-b? (el pase se interceptaría)
+    bool LaneBlocked(Vector2 a, Vector2 b)
+    {
+        for (int i = 0; i < All.Count; i++)
+        {
+            Skater s = All[i];
+            if (s.team == team) continue;
+            if (DistToSegment(s.transform.position, a, b) < laneBlockRadius) return true;
+        }
+        return false;
+    }
+
+    // Pase directo: apunta a donde estará el compañero cuando llegue la bola
+    PassPlan DirectPlan(Skater mate, Vector2 from)
+    {
         Vector2 mp = mate.transform.position;
         float d0 = Vector2.Distance(from, mp);
-
         float flight = Mathf.Min(d0 / (PassSpeedFor(d0) * 0.7f), 0.6f);   // tiempo de vuelo aproximado
         Vector2 target = mp + mate.Velocity * flight;
-
         Vector2 dir = target - from;
-        if (dir.sqrMagnitude < 0.01f) dir = AimDir;
 
-        DropBall(dir.normalized * PassSpeedFor(dir.magnitude), pickupCooldown, true);
+        PassPlan plan;
+        plan.mate = mate;
+        plan.bank = false;
+        plan.waypoint = target;
+        plan.length = dir.magnitude;
+        plan.firstDir = dir.sqrMagnitude > 0.01f ? dir.normalized : AimDir;
+        return plan;
+    }
+
+    // Pase rebotando en una banda: se refleja al compañero en cada banda y se busca el punto de rebote
+    bool TryBankPlan(Skater mate, Vector2 from, out PassPlan plan)
+    {
+        plan = default(PassPlan);
+
+        Bounds b;
+        if (!Rink.TryGetBounds(out b)) return false;
+
+        Vector2 m = (Vector2)mate.transform.position + mate.Velocity * 0.3f;
+        float minX = b.min.x + bankWallMargin, maxX = b.max.x - bankWallMargin;
+        float minY = b.min.y + bankWallMargin, maxY = b.max.y - bankWallMargin;
+
+        float bestLen = float.MaxValue;
+        bool found = false;
+
+        for (int w = 0; w < 4; w++)
+        {
+            bool vertical = w < 2;   // bandas izquierda/derecha (x constante)
+            float wall = w == 0 ? minX : (w == 1 ? maxX : (w == 2 ? minY : maxY));
+
+            Vector2 reflected;
+            float t;
+            if (vertical)
+            {
+                reflected = new Vector2(2f * wall - m.x, m.y);
+                float den = reflected.x - from.x;
+                if (Mathf.Abs(den) < 0.001f) continue;
+                t = (wall - from.x) / den;
+            }
+            else
+            {
+                reflected = new Vector2(m.x, 2f * wall - m.y);
+                float den = reflected.y - from.y;
+                if (Mathf.Abs(den) < 0.001f) continue;
+                t = (wall - from.y) / den;
+            }
+
+            if (t <= 0.05f || t >= 0.95f) continue;
+            Vector2 hit = from + (reflected - from) * t;
+
+            // El rebote debe caer en un tramo recto de la banda (lejos de las esquinas redondeadas)
+            if (vertical)
+            {
+                if (hit.y < minY + bankCornerClearance || hit.y > maxY - bankCornerClearance) continue;
+            }
+            else
+            {
+                if (hit.x < minX + bankCornerClearance || hit.x > maxX - bankCornerClearance) continue;
+            }
+
+            float len = Vector2.Distance(from, hit) + Vector2.Distance(hit, m);
+            if (len > bankMaxLength || len >= bestLen) continue;
+            if (LaneBlocked(from, hit) || LaneBlocked(hit, m)) continue;
+
+            bestLen = len;
+            found = true;
+            plan.mate = mate;
+            plan.bank = true;
+            plan.waypoint = hit;
+            plan.length = len;
+            plan.firstDir = (hit - from).normalized;
+        }
+        return found;
+    }
+
+    // Plan de pase a un compañero concreto (lo usa la IA): directo, o con rebote si el directo está bloqueado
+    PassPlan PlanPass(Skater mate)
+    {
+        Vector2 from = ball.rb.position;
+        PassPlan direct = DirectPlan(mate, from);
+        if (!LaneBlocked(from, direct.waypoint)) return direct;
+
+        PassPlan bank;
+        if (TryBankPlan(mate, from, out bank)) return bank;
+        return direct;
+    }
+
+    // Pase asistido para el humano: el más cercano a donde apuntas. Puede ser un compañero junto al cursor,
+    // un compañero en la dirección del cursor, o uno al que se llega rebotando en la banda.
+    // Sirve para ejecutar el pase y para mostrar la vista previa.
+    public bool PlanSmartPass(Vector2 aimPoint, float cursorRadius, out PassPlan plan)
+    {
+        plan = default(PassPlan);
+        if (!HasBall) return false;
+
+        Vector2 from = ball.rb.position;
+        Vector2 toAim = aimPoint - from;
+        if (toAim.sqrMagnitude < 0.01f) toAim = AimDir;
+        Vector2 aimDir = toAim.normalized;
+
+        float bestAngle = passAssistAngle;
+        bool found = false;
+
+        for (int i = 0; i < All.Count; i++)
+        {
+            Skater mate = All[i];
+            if (mate.team != team || mate == this) continue;
+
+            // Directo
+            PassPlan direct = DirectPlan(mate, from);
+            float ang = Vector2.Angle(aimDir, direct.firstDir);
+            if (Vector2.Distance(mate.transform.position, aimPoint) < cursorRadius) ang = 0f;   // cursor sobre el compañero
+            if (ang < bestAngle) { bestAngle = ang; plan = direct; found = true; }
+
+            // Rebotando en la banda (si el cursor apunta hacia ese rebote)
+            PassPlan bank;
+            if (TryBankPlan(mate, from, out bank))
+            {
+                float bAng = Vector2.Angle(aimDir, bank.firstDir) + 2f;   // ligera preferencia por el directo
+                if (bAng < bestAngle) { bestAngle = bAng; plan = bank; found = true; }
+            }
+        }
+        return found;
+    }
+
+    // Pase del humano: asistido si apunta a un compañero (directo o rebotado); si no, al punto indicado
+    public void SmartPass(Vector2 aimPoint, float cursorRadius)
+    {
+        if (!HasBall || !CanPass) return;
+
+        PassPlan plan;
+        if (PlanSmartPass(aimPoint, cursorRadius, out plan)) ExecutePass(plan);
+        else PassToPoint(aimPoint);
+    }
+
+    void ExecutePass(PassPlan plan)
+    {
+        float length = plan.length * (plan.bank ? 1.25f : 1f);   // el rebote le quita algo de velocidad
+        Vector2 velocity = plan.firstDir * PassSpeedFor(length);
+
+        DropBall(velocity, pickupCooldown, true, plan.mate, plan.bank ? (Vector2?)plan.waypoint : null);
         if (GameManager.Instance != null) GameManager.Instance.OnPass(this);
     }
 
-    // Pase al punto indicado (p. ej. el cursor)
+    // Pase a un compañero (lo usa la IA): asistido, directo o con rebote
+    public void PassTo(Skater mate)
+    {
+        if (!HasBall || !CanPass || mate == null) return;
+        ExecutePass(PlanPass(mate));
+    }
+
+    // Pase al punto indicado (p. ej. el cursor) sin asistencia
     public void PassToPoint(Vector2 point)
     {
         if (!HasBall || !CanPass) return;
@@ -348,13 +565,14 @@ public class Skater : MonoBehaviour
         DropBall(pushDir * 4f, 0.6f, false);
     }
 
-    void DropBall(Vector2 velocity, float cooldown, bool isPass)
+    void DropBall(Vector2 velocity, float cooldown, bool isPass, Skater guideMate = null, Vector2? guideWaypoint = null)
     {
         Ball b = ball;
         ball = null;
         nextPickupTime = Time.time + cooldown;
         b.Release(velocity);
         if (isPass) b.MarkPass(team, passWindow);
+        if (guideMate != null) b.SetGuide(guideMate, guideWaypoint);
         StartCoroutine(ReenableCollision(b, cooldown));
     }
 
@@ -366,8 +584,7 @@ public class Skater : MonoBehaviour
 
     // ---------- Stick: robar o interceptar ----------
 
-    // Golpe de stick hacia AimDir. Roba la bola de un rival si está en alcance y arco,
-    // o intercepta una bola suelta rápida. Devuelve qué ha pasado.
+    // Golpe de stick hacia AimDir. Es una apuesta: si no consigue la bola, el atacante queda descolocado.
     public StickResult Stick()
     {
         if (HasBall || !CanMove || IsStaggered) return StickResult.None;
@@ -381,11 +598,11 @@ public class Skater : MonoBehaviour
         Feedback.Swing(pos, AimDir, stickReach, stickArc);
 
         Ball b = Ball.Instance;
-        if (b == null) return StickResult.Whiff;
+        if (b == null) return Miss(StickResult.Whiff, missRecovery);
 
         Vector2 to = b.rb.position - pos;
         if (to.magnitude > stickReach || Vector2.Angle(AimDir, to) > stickArc * 0.5f)
-            return StickResult.Whiff;
+            return Miss(StickResult.Whiff, missRecovery);   // golpe al aire: queda descolocado
 
         // Bola de un rival: intento de robo
         if (b.IsHeld)
@@ -394,13 +611,26 @@ public class Skater : MonoBehaviour
             return b.Holder.ResolveSteal(this);
         }
 
-        // Bola suelta: intercepción
-        if (Time.time < nextPickupTime) return StickResult.Whiff;
+        // Bola suelta
+        if (Time.time < nextPickupTime) return Miss(StickResult.Whiff, missRecovery * 0.5f);
 
         if (b.Speed > stickCatchMaxSpeed)
         {
             Feedback.Popup(b.rb.position, "¡MUY RÁPIDA!", colInfo);
-            return StickResult.TooFast;
+            return Miss(StickResult.TooFast, missRecovery * 0.5f);
+        }
+
+        // Los pases rápidos no se controlan siempre: a veces solo se toca y se desvía
+        if (b.Speed > autoPickupMaxSpeed)
+        {
+            float chance = interceptSuccessChance * Mathf.Lerp(0.7f, 1.3f, stealRating);
+            if (Random.value > chance)
+            {
+                b.rb.linearVelocity = Rotate(b.rb.linearVelocity, Random.Range(-25f, 25f)) * 0.75f;
+                b.Touch(team);
+                Feedback.Popup(b.rb.position, "¡TOCADA!", colInfo);
+                return Miss(StickResult.Failed, missRecovery * 0.5f);
+            }
         }
 
         Team other = team == Team.Home ? Team.Away : Team.Home;
@@ -411,39 +641,72 @@ public class Skater : MonoBehaviour
         return StickResult.Intercepted;
     }
 
-    // Lo llama el atacante sobre el que lleva la bola. Reglas claras y siempre con motivo visible.
+    StickResult Miss(StickResult result, float recovery)
+    {
+        Stagger(recovery);
+        return result;
+    }
+
+    // Probabilidad de que un golpe válido contra 'carrier' robe la bola
+    float StealChanceAgainst(Skater carrier, float side)
+    {
+        float chance = stealBaseChance;
+
+        // Mejor atacando por el lado de la bola que por el lateral
+        chance *= Mathf.Lerp(0.6f, 1.2f, Mathf.InverseLerp(shieldDot, 1f, side));
+
+        // Con la bola más suelta (corriendo) es más fácil
+        if (carrier.IsSprinting) chance += sprintStealBonus;
+
+        // Atributos
+        chance *= Mathf.Lerp(0.7f, 1.3f, stealRating) * Mathf.Lerp(1.3f, 0.7f, carrier.ballControl);
+
+        return Mathf.Clamp(chance, 0.03f, 0.75f);
+    }
+
+    // Lo llama el atacante sobre el que lleva la bola. Cada fallo deja descolocado al atacante.
     StickResult ResolveSteal(Skater thief)
     {
         Vector2 pos = transform.position;
-        Vector2 popupPos = pos;
 
         // 1) En pleno regate: no se puede robar
         if (IsDribbling)
         {
-            Feedback.Popup(popupPos, "¡REGATE!", colWarn);
+            thief.Stagger(thief.missRecovery);
+            Feedback.Popup(pos, "¡REGATE!", colWarn);
             return StickResult.Dribbled;
         }
 
         // 2) Acaba de recibir la bola
         if (Time.time < graceUntil)
         {
-            Feedback.Popup(popupPos, "¡AGUANTA!", colInfo);
+            thief.Stagger(thief.missRecovery);
+            Feedback.Popup(pos, "¡AGUANTA!", colInfo);
             return StickResult.Grace;
         }
 
         // 3) Protegida con el cuerpo: el atacante queda del lado contrario a la bola
         Vector2 ballDir = (ball.rb.position - pos).normalized;
         Vector2 toThief = ((Vector2)thief.transform.position - pos).normalized;
-        if (Vector2.Dot(ballDir, toThief) < shieldDot)
+        float side = Vector2.Dot(ballDir, toThief);
+        if (side < shieldDot)
         {
-            Feedback.Popup(popupPos, "¡PROTEGIDA!", colInfo);
+            thief.Stagger(thief.missRecovery);
+            Feedback.Popup(pos, "¡PROTEGIDA!", colInfo);
             return StickResult.Shielded;
         }
 
-        // 4) Probabilidad opcional (1 = siempre que el golpe sea válido)
-        if (Random.value > stealSuccessChance)
+        // 4) Tirada: la mayoría de golpes válidos fallan
+        float chance = thief.StealChanceAgainst(this, side);
+        bool success = Random.value < chance;
+
+        if (thief.logSteals)
+            Debug.Log($"Robo {thief.name} -> {name}: probabilidad {chance:P0} -> {(success ? "ROBA" : "falla")}");
+
+        if (!success)
         {
-            Feedback.Popup(popupPos, "¡FALLO!", colInfo);
+            thief.Stagger(thief.missRecovery);
+            Feedback.Popup(pos, "¡AGUANTÓ!", colInfo);
             return StickResult.Failed;
         }
 
@@ -519,6 +782,13 @@ public class Skater : MonoBehaviour
         Vector2 perp = new Vector2(-away.y, away.x);
         if (Vector2.Dot(perp, fwd) < 0f) perp = -perp;
         return (perp + fwd * 0.5f).normalized;   // corte lateral con algo de avance
+    }
+
+    static Vector2 Rotate(Vector2 v, float deg)
+    {
+        float r = deg * Mathf.Deg2Rad;
+        float c = Mathf.Cos(r), s = Mathf.Sin(r);
+        return new Vector2(v.x * c - v.y * s, v.x * s + v.y * c);
     }
 
     // ---------- Reinicios ----------

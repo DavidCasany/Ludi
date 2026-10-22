@@ -749,6 +749,10 @@ MonoBehaviour:
   - {fileID: 125397542}
   goalkeeper: {fileID: 78555742}
   passAssistRadius: 1.5
+  autoSwitchLockout: 0.6
+  stickAimAssist: 1
+  stickAssistFactor: 1.3
+  showControlsHint: 1
 --- !u!4 &428901361
 Transform:
   m_ObjectHideFlags: 0
@@ -1255,7 +1259,7 @@ MonoBehaviour:
   away: {fileID: 1266035816}
   ball: {fileID: 488294942}
   ballStart: {x: 0, y: 0}
-  rinkWalls: {fileID: 0}
+  rinkWalls: {fileID: 163244665}
   halfDuration: 90
   resetDelay: 2
   halfTimeBreak: 4
@@ -1375,6 +1379,10 @@ MonoBehaviour:
   - {fileID: 655470429}
   goalkeeper: {fileID: 1951666710}
   passAssistRadius: 1.5
+  autoSwitchLockout: 0.6
+  stickAimAssist: 1
+  stickAssistFactor: 1.3
+  showControlsHint: 1
 --- !u!4 &1266035817
 Transform:
   m_ObjectHideFlags: 0

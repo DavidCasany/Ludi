@@ -28,6 +28,7 @@ public class Goal : MonoBehaviour
         if (other.GetComponent<Ball>() == null) return;
 
         Team scorer = defendingTeam == Team.Home ? Team.Away : Team.Home;
+        if (GameManager.Instance.State == MatchState.Playing) GameCamera.Shake(0.5f, 0.45f);   // el gol cuenta: sacudida
         GameManager.Instance.GoalScored(scorer);
     }
 

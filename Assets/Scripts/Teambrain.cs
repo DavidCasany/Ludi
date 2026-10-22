@@ -38,6 +38,9 @@ public class TeamBrain : MonoBehaviour
     [Tooltip("Largo de pista de referencia (m). Todas las distancias de la IA se escalan con (largo real de la pista / este valor).")]
     public float referenceRinkLength = 40f;
 
+    [Tooltip("Si está activo, las distancias de la IA se escalan con el largo de la pista. Déjalo desactivado: el tamaño de los jugadores, su velocidad y la bola no cambian aunque la pista sea mayor.")]
+    public bool scaleWithRink = false;
+
     [Header("Reparto de roles")]
     public float updateInterval = 0.15f;
     public float roleStickiness = 2f;      // metros de ventaja por mantener el rol actual
@@ -101,7 +104,7 @@ public class TeamBrain : MonoBehaviour
         Bounds b = gm.rinkWalls.bounds;
         rinkMin = b.min;
         rinkMax = b.max;
-        Unit = Mathf.Max(0.1f, b.size.x / referenceRinkLength);
+        Unit = scaleWithRink ? Mathf.Max(0.1f, b.size.x / referenceRinkLength) : 1f;
         rinkReady = true;
     }
 
@@ -292,7 +295,7 @@ public class TeamBrain : MonoBehaviour
         Vector2 target = p;
         for (int i = 0; i < 3; i++)
         {
-            float t = Mathf.Min(Vector2.Distance(s.transform.position, target) / s.maxSpeed, 1.5f);
+            float t = Mathf.Min(Vector2.Distance(s.transform.position, target) / s.TopSpeed, 1.5f);
             float travel = (1f - Mathf.Exp(-damp * t)) / damp;   // distancia recorrida con rozamiento
             target = p + v * travel;
         }
@@ -305,7 +308,7 @@ public class TeamBrain : MonoBehaviour
         float bestT = float.MaxValue;
         foreach (Skater s in free)
         {
-            float t = Vector2.Distance(s.transform.position, InterceptPoint(s, ball)) / s.maxSpeed;
+            float t = Vector2.Distance(s.transform.position, InterceptPoint(s, ball)) / s.TopSpeed;
             if (s == currentHunter) t *= hunterStickiness;
             if (t < bestT) { bestT = t; best = s; }
         }
@@ -321,7 +324,7 @@ public class TeamBrain : MonoBehaviour
             foreach (Skater s in tm.skaters)
             {
                 if (!s.IsControlled) continue;
-                float th = Vector2.Distance(s.transform.position, InterceptPoint(s, ball)) / s.maxSpeed;
+                float th = Vector2.Distance(s.transform.position, InterceptPoint(s, ball)) / s.TopSpeed;
                 if (th < bestT * 0.8f) return null;
             }
         }
@@ -404,23 +407,40 @@ public class TeamBrain : MonoBehaviour
     float ScoreSpot(AIRole role, Vector2 p, Vector2 carrier, float carrierLat, float latHalf,
                     bool hasPrev, Vector2 prev)
     {
-        float open = Mathf.Clamp01(tm.DistanceToNearestOpponent(p) / M(6f));   // espacio libre
+        float nearestOpp = tm.DistanceToNearestOpponent(p);
+        float open = Mathf.Clamp01(nearestOpp / M(6f));                        // espacio libre
         float lane = LaneClear(carrier, p);                                    // línea de pase limpia
 
-        // Distancia de pase razonable: ni pegado al portador ni demasiado lejos
+        // Distancia de pase: separado del portador (mín. ~5 m) y a una distancia cómoda (5-12 m)
         float dc = Vector2.Distance(p, carrier);
-        float range = 1f;
-        if (dc < M(4f)) range = dc / M(4f);
-        else if (dc > M(16f)) range = Mathf.Clamp01(1f - (dc - M(16f)) / M(8f));
+        float range;
+        if (dc < M(5f)) range = dc / M(5f) - 1f;                               // pegado al portador: penaliza (-1..0)
+        else if (dc <= M(12f)) range = 1f;
+        else range = Mathf.Clamp01(1f - (dc - M(12f)) / M(8f));
 
-        float s = 1.6f * open + 1.4f * lane + 1f * range;
+        // La línea de pase limpia es lo principal: un apoyo sin línea no sirve de nada
+        float s = 1.2f * open + 3f * lane + 1.2f * range;
+        if (lane < 0.6f) s -= 2.5f * (0.6f - lane) / 0.6f;
 
-        // Separación respecto a compañeros ya colocados: reparte al equipo por la pista
+        // Marcado de cerca: el pase se perdería
+        float markR = M(2.5f);
+        if (nearestOpp < markR) s -= 1.5f * (1f - nearestOpp / markR);
+
+        // Separación respecto a compañeros ya colocados (reparte al equipo por la pista)
+        // y reparto angular alrededor del portador: dos apoyos en la misma línea se tapan entre sí
         float sp = M(teammateSpacing);
+        Vector2 dirP = p - carrier;
         for (int i = 0; i < taken.Count; i++)
         {
             float d = Vector2.Distance(p, taken[i]);
             if (d < sp) s -= 1.5f * (1f - d / sp);
+
+            Vector2 dirT = taken[i] - carrier;
+            if (dirP.magnitude > M(3f) && dirT.magnitude > M(3f))
+            {
+                float ang = Vector2.Angle(dirP, dirT);
+                if (ang < 30f) s -= 1f * (1f - ang / 30f);
+            }
         }
 
         float v = Vector2.Dot(p - Center, Lateral);
@@ -439,7 +459,7 @@ public class TeamBrain : MonoBehaviour
         }
 
         // Estabilidad: no cambiar de sitio sin motivo
-        if (hasPrev) s += 0.6f * (1f - Mathf.Clamp01(Vector2.Distance(p, prev) / M(6f)));
+        if (hasPrev) s += 0.3f * (1f - Mathf.Clamp01(Vector2.Distance(p, prev) / M(6f)));
 
         return s;
     }

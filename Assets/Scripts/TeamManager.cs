@@ -26,6 +26,13 @@ public class TeamManager : MonoBehaviour
     [Header("Pase con el ratón")]
     public float passAssistRadius = 1.5f;  // si el cursor está a menos de esto de un compañero, el pase va a él
 
+    [Header("Cambio de jugador")]
+    public float autoSwitchLockout = 0.6f;   // mínimo entre cambios automáticos de jugador (s)
+
+    [Header("Stick")]
+    public bool stickAimAssist = true;       // el golpe apunta a la bola si está al alcance
+    public float stickAssistFactor = 1.3f;   // alcance de la ayuda = stickReach x esto
+
     [Header("HUD")]
     public bool showControlsHint = true;
 
@@ -91,6 +98,7 @@ public class TeamManager : MonoBehaviour
         if (toMouse.sqrMagnitude > 0.001f) Controlled.AimDir = toMouse.normalized;
 
         HandleLeftClick(mouse);
+        ShowPassPreview(mouse);
 
         if (Input.GetMouseButtonDown(1))   // pase hacia donde apunta el cursor
         {
@@ -155,7 +163,28 @@ public class TeamManager : MonoBehaviour
         }
         else
         {
+            // Ayuda de apuntado: si la bola está cerca, el golpe va hacia ella aunque el cursor esté en otro sitio
+            Ball b = Ball.Instance;
+            if (stickAimAssist && b != null)
+            {
+                Vector2 toBall = b.rb.position - (Vector2)Controlled.transform.position;
+                if (toBall.magnitude <= Controlled.stickReach * stickAssistFactor)
+                    Controlled.AimDir = toBall.normalized;
+            }
             Controlled.Stick();
+        }
+    }
+
+    // Vista previa del pase asistido: a quién irá (y por dónde) si pulsas el clic derecho ahora
+    void ShowPassPreview(Vector2 mouse)
+    {
+        if (aiming || !Controlled.HasBall) return;
+
+        PassPlan plan;
+        if (Controlled.PlanSmartPass(mouse, passAssistRadius, out plan))
+        {
+            Vector2 from = (Vector2)Controlled.transform.position + Controlled.AimDir * Controlled.CurrentHoldDistance;
+            Feedback.ShowPassPreview(from, plan.bank, plan.waypoint, plan.mate.transform.position);
         }
     }
 
@@ -171,9 +200,8 @@ public class TeamManager : MonoBehaviour
     {
         if (!Controlled.HasBall) return;
 
-        Skater mate = MateNearPoint(mouse);
-        if (mate != null) Controlled.PassTo(mate);
-        else Controlled.PassToPoint(mouse);
+        // Asistido: compañero junto al cursor, en la dirección del cursor, o al que se llega rebotando en la banda
+        Controlled.SmartPass(mouse, passAssistRadius);
     }
 
     Skater MateNearPoint(Vector2 point)
@@ -196,24 +224,37 @@ public class TeamManager : MonoBehaviour
         Ball ball = Ball.Instance;
         if (ball == null) return;
 
-        // Siempre controlas a quien lleva la bola
+        // 1) Siempre controlas a quien lleva la bola (si un compañero la recoge, saltas a él)
         if (ball.IsHeld && ball.Holder.team == team)
         {
-            if (ball.Holder != Controlled) SetControlled(ball.Holder);
+            if (ball.Holder != Controlled)
+            {
+                SetControlled(ball.Holder);
+                nextAutoSwitch = Time.time + autoSwitchLockout;
+            }
             return;
         }
 
-        // Bola suelta tras un pase/tiro nuestro: pasar al que va a recibirla
-        if (!ball.IsHeld && ball.LastTouchTeam == team && Time.time >= nextAutoSwitch)
+        // El rival tiene la bola, o hay un cambio reciente: no se cambia solo (defendiendo, cambias con Espacio)
+        if (ball.IsHeld || Time.time < nextAutoSwitch) return;
+
+        Vector2 bp = ball.rb.position;
+        Skater nearest = ClosestToBall();
+        if (nearest == Controlled) return;
+
+        float dNew = Vector2.Distance(nearest.transform.position, bp);
+        float dCur = Vector2.Distance(Controlled.transform.position, bp);
+
+        // 2) Pase de nuestro equipo en vuelo: pasas al receptor cuando la bola se le acerca
+        // 3) Bola suelta cualquiera: solo si estás lejos de ella y otro está claramente más cerca
+        bool ourPass = ball.IsPassFor(team);
+        bool switchNow = ourPass ? dNew + 1f < dCur
+                                 : dCur > 6f && dNew + 3f < dCur;
+
+        if (switchNow)
         {
-            Skater nearest = ClosestToBall();
-            float dNew = Vector2.Distance(nearest.transform.position, ball.transform.position);
-            float dCur = Vector2.Distance(Controlled.transform.position, ball.transform.position);
-            if (nearest != Controlled && dNew + 1f < dCur)
-            {
-                SetControlled(nearest);
-                nextAutoSwitch = Time.time + 0.3f;
-            }
+            SetControlled(nearest);
+            nextAutoSwitch = Time.time + autoSwitchLockout;
         }
     }
 

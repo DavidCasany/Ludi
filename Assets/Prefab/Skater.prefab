@@ -186,6 +186,14 @@ MonoBehaviour:
   maxSpeed: 7
   acceleration: 25
   deceleration: 6
+  speedScale: 0.8
+  turnPenalty: 0.35
+  sprintMultiplier: 1.4
+  sprintDuration: 2.5
+  sprintRecharge: 4
+  sprintRechargeDelay: 0.6
+  sprintResumeThreshold: 0.25
+  sprintHoldExtra: 0.25
   holdPoint: {fileID: 0}
   holdDistance: 0.8
   pickupRadius: 0.9
@@ -198,9 +206,40 @@ MonoBehaviour:
   shootForce: 28
   inheritVelocity: 0.5
   pickupCooldown: 0.4
-  pointPassArriveSpeed: 2
+  passSpeedPerMeter: 2.2
+  passSpeedMin: 9
+  passSpeedMax: 24
+  passWindow: 1.5
+  passAssistAngle: 14
+  laneBlockRadius: 1
+  bankWallMargin: 0.3
+  bankCornerClearance: 3
+  bankMaxLength: 40
+  autoPickupMaxSpeed: 7
+  receiverMaxSpeed: 24
+  receiverPickupBonus: 1.3
+  stealRating: 0.5
+  ballControl: 0.5
+  stickReach: 1.4
+  stickArc: 110
+  stickCatchMaxSpeed: 18
+  minSwingInterval: 0.2
+  useStealCooldown: 1
   stealCooldown: 0.7
-  stealChance: 0.35
+  stealBaseChance: 0.25
+  sprintStealBonus: 0.12
+  interceptSuccessChance: 0.45
+  missRecovery: 0.6
+  possessionGrace: 0.6
+  shieldDot: -0.2
+  logSteals: 0
+  jukeSpeed: 13
+  jukeDuration: 0.28
+  jukeCooldown: 1.2
+  jukeStaminaCost: 0.2
+  jukeBeatRange: 2.5
+  jukeBeatTime: 0.5
+  staggerSlow: 0.4
   controlIndicator: {fileID: 3119260479243291759}
 --- !u!114 &1734135394275785095
 MonoBehaviour:
@@ -215,17 +254,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SkaterAI
   skill: 0.7
-  thinkTime: 0.35
+  thinkTime: 0.45
   pressureDistance: 2
   ownZoneDistance: 12
-  passMargin: 0.08
+  passMargin: 0.15
   maxHoldTime: 3.5
   shootThreshold: 0.2
   pressuredShootThreshold: 0.12
   shootPreference: 0.12
   shootZone: 10
   shootPatience: 1
-  serveDelay: 3
+  jukeChance: 0.6
+  sprintMinStamina: 0.3
+  stickReaction: 0.25
+  interceptChance: 0.5
+  kickoffDelay: 0.35
   debugLog: 0
 --- !u!1 &3119260479243291759
 GameObject:

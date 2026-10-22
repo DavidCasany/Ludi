@@ -109,6 +109,79 @@ public class Feedback : MonoBehaviour
             if (Time.unscaledTime - popups[i].born >= popups[i].life) popups.RemoveAt(i);
     }
 
+    // ---------- Vista previa del pase asistido ----------
+
+    LineRenderer previewLine, previewRing;
+    bool previewThisFrame;
+
+    // Dibuja hacia dónde irá el pase: una línea (con el rebote en la banda si lo hay) y un anillo sobre el receptor.
+    // Verde = pase directo, celeste = pase con rebote. Hay que llamarlo cada frame mientras se quiere ver.
+    public static void ShowPassPreview(Vector2 from, bool bank, Vector2 waypoint, Vector2 matePos)
+    {
+        Get().DrawPreview(from, bank, waypoint, matePos);
+    }
+
+    void DrawPreview(Vector2 from, bool bank, Vector2 waypoint, Vector2 matePos)
+    {
+        if (lineMat == null) lineMat = new Material(Shader.Find("Sprites/Default"));
+        if (previewLine == null)
+        {
+            previewLine = MakeLine("PassPreviewLine", 3, 0.08f);
+            previewRing = MakeLine("PassPreviewRing", 25, 0.09f);
+        }
+
+        Color c = bank ? new Color(0.5f, 0.85f, 1f, 0.9f) : new Color(0.4f, 1f, 0.5f, 0.9f);
+        previewLine.startColor = c;
+        previewLine.endColor = c;
+        previewRing.startColor = c;
+        previewRing.endColor = c;
+
+        previewLine.SetPosition(0, from);
+        if (bank)
+        {
+            previewLine.SetPosition(1, waypoint);
+            previewLine.SetPosition(2, matePos);
+        }
+        else
+        {
+            previewLine.SetPosition(1, matePos);
+            previewLine.SetPosition(2, matePos);
+        }
+
+        for (int i = 0; i < 25; i++)
+        {
+            float a = i / 24f * Mathf.PI * 2f;
+            previewRing.SetPosition(i, matePos + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * 0.9f);
+        }
+
+        previewThisFrame = true;
+    }
+
+    LineRenderer MakeLine(string objName, int points, float width)
+    {
+        GameObject go = new GameObject(objName);
+        go.transform.SetParent(transform, false);
+
+        LineRenderer lr = go.AddComponent<LineRenderer>();
+        lr.material = lineMat;
+        lr.useWorldSpace = true;
+        lr.positionCount = points;
+        lr.widthMultiplier = width;
+        lr.sortingOrder = 45;
+        lr.enabled = false;
+        return lr;
+    }
+
+    void LateUpdate()
+    {
+        if (previewLine != null)
+        {
+            previewLine.enabled = previewThisFrame;
+            previewRing.enabled = previewThisFrame;
+        }
+        previewThisFrame = false;
+    }
+
     // ---------- Textos flotantes ----------
 
     void OnGUI()
