@@ -16,6 +16,9 @@ public class Goal : MonoBehaviour
 
     Collider2D col;
 
+    // Acceso perezoso: otros scripts pueden llamar a TryPushOut antes de que se ejecute nuestro Awake
+    Collider2D Col => col != null ? col : (col = GetComponent<Collider2D>());
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetStatics() { All.Clear(); }
 
@@ -37,31 +40,73 @@ public class Goal : MonoBehaviour
         defendingTeam = defendingTeam == Team.Home ? Team.Away : Team.Home;
     }
 
+    // Centro de la BOCA de la portería: el punto medio de la cara frontal del collider (sobre la línea de gol).
+    // Hay que apuntar aquí, no al transform de la red: ese suele estar detrás de la línea.
+    public Vector2 Mouth
+    {
+        get
+        {
+            Bounds b = Col.bounds;
+            float frontX = b.center.x > 0f ? b.min.x : b.max.x;   // la cara que mira al centro (x = 0)
+            return new Vector2(frontX, b.center.y);
+        }
+    }
+
+    // Portería más cercana a un punto (para traducir el Transform de TeamManager a una Goal)
+    public static Goal Nearest(Vector2 p)
+    {
+        Goal best = null;
+        float bestD = float.MaxValue;
+        for (int i = 0; i < All.Count; i++)
+        {
+            float d = ((Vector2)All[i].Col.bounds.center - p).sqrMagnitude;
+            if (d < bestD) { bestD = d; best = All[i]; }
+        }
+        return best;
+    }
+
+    // Caja de la zona prohibida (red + padding + 'extra'). La usa GoalNav para rodear la portería.
+    public Bounds KeepOutBounds(float extra)
+    {
+        Bounds b = Col.bounds;
+        b.Expand(2f * (keepOutPadding + extra));
+        return b;
+    }
+
     // Si 'p' está dentro de la zona prohibida (red + padding + 'extra'), lo empuja fuera y devuelve true.
-    // Sale por el frente (hacia el centro de la pista, x = 0) salvo que esté más cerca de un lateral.
+    // Sale por la cara más cercana: frente, espalda o laterales (antes no existía la espalda y un jugador
+    // que llegaba por detrás de la red podía "atravesarla" hacia el frente).
     // 'normal' = dirección en la que se ha sacado (para anular la velocidad hacia dentro).
     public bool TryPushOut(ref Vector2 p, float extra, out Vector2 normal)
     {
         normal = Vector2.zero;
 
-        Bounds b = col.bounds;
+        Bounds b = Col.bounds;
         float pad = keepOutPadding + extra;
         float minX = b.min.x - pad, maxX = b.max.x + pad;
         float minY = b.min.y - pad, maxY = b.max.y + pad;
 
         if (p.x < minX || p.x > maxX || p.y < minY || p.y > maxY) return false;
 
-        float frontX = b.center.x > 0f ? -1f : 1f;               // el frente mira al centro de la pista
+        float frontX = b.center.x > 0f ? -1f : 1f;               // el frente mira al centro de la pista (x = 0)
         float dFront = frontX > 0f ? maxX - p.x : p.x - minX;
+        float dBack = frontX > 0f ? p.x - minX : maxX - p.x;
         float dBottom = p.y - minY;
         float dTop = maxY - p.y;
 
-        if (dFront <= dBottom && dFront <= dTop)
+        float m = Mathf.Min(Mathf.Min(dFront, dBack), Mathf.Min(dBottom, dTop));
+
+        if (m == dFront)
         {
             p.x = frontX > 0f ? maxX : minX;
             normal = new Vector2(frontX, 0f);
         }
-        else if (dBottom < dTop)
+        else if (m == dBack)
+        {
+            p.x = frontX > 0f ? minX : maxX;
+            normal = new Vector2(-frontX, 0f);
+        }
+        else if (m == dBottom)
         {
             p.y = minY;
             normal = Vector2.down;

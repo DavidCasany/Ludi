@@ -442,7 +442,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6432086141029467960, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 13.33
+      value: 12.55
       objectReference: {fileID: 0}
     - target: {fileID: 6432086141029467960, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
       propertyPath: m_LocalPosition.y
@@ -718,6 +718,7 @@ GameObject:
   m_Component:
   - component: {fileID: 428901361}
   - component: {fileID: 428901360}
+  - component: {fileID: 428901362}
   m_Layer: 0
   m_Name: TeamHome
   m_TagString: Untagged
@@ -773,6 +774,34 @@ Transform:
   - {fileID: 78555746}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &428901362
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 428901359}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1224e5fc030266b4e9fe7b0f3a74235f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TeamBrain
+  profile: {fileID: 11400000, guid: 9e45ae85bdb2e434eaec3e27f485f8a7, type: 2}
+  referenceRinkLength: 40
+  scaleWithRink: 0
+  updateInterval: 0.15
+  roleStickiness: 2
+  hunterStickiness: 0.8
+  spotStep: 3
+  teammateSpacing: 7
+  supportLead: 0.6
+  sweeperDepth: 7
+  goalHalfWidth: 0.85
+  goalAvoidExtra: 1.2
+  tightGoalExtra: 0.1
+  rinkMargin: 1.2
+  fallbackRinkHalfSize: {x: 19, y: 9}
+  drawGizmos: 1
 --- !u!114 &488294942 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6003093541081876334, guid: a2b9cbc9fbae69b4eb80979204bc21aa, type: 3}
@@ -1032,7 +1061,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6432086141029467960, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 13.33
+      value: 12.55
       objectReference: {fileID: 0}
     - target: {fileID: 6432086141029467960, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
       propertyPath: m_LocalPosition.y
@@ -1366,6 +1395,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1266035817}
   - component: {fileID: 1266035816}
+  - component: {fileID: 1266035818}
   m_Layer: 0
   m_Name: TeamAway
   m_TagString: Untagged
@@ -1421,6 +1451,34 @@ Transform:
   - {fileID: 1951666714}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1266035818
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1266035815}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1224e5fc030266b4e9fe7b0f3a74235f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TeamBrain
+  profile: {fileID: 11400000, guid: 07372ee881936114caddc74d1c8d9d54, type: 2}
+  referenceRinkLength: 40
+  scaleWithRink: 0
+  updateInterval: 0.15
+  roleStickiness: 2
+  hunterStickiness: 0.8
+  spotStep: 3
+  teammateSpacing: 7
+  supportLead: 0.6
+  sweeperDepth: 7
+  goalHalfWidth: 0.85
+  goalAvoidExtra: 1.2
+  tightGoalExtra: 0.1
+  rinkMargin: 1.2
+  fallbackRinkHalfSize: {x: 19, y: 9}
+  drawGizmos: 1
 --- !u!4 &1314960895 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5175665479086675304, guid: 25c73d4cceb9c4d43b877821ccec285b, type: 3}

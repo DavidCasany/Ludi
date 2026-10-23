@@ -22,11 +22,11 @@ public struct PassPlan
 //    Los pases de un compañero se controlan hasta receiverMaxSpeed.
 //  - La bola de un rival NO se roba por proximidad: se roba con el STICK (Stick()).
 //
-// ROBOS (inspirados en el NBA 2K): existen pero fallan MUCHO y fallar sale caro.
-//  - Un golpe válido solo roba con una probabilidad baja (stealBaseChance, ~25 %), que sube o baja con:
-//    el lado desde el que atacas, si el portador corre con la bola, y los atributos (stealRating / ballControl).
+// ROBOS: dependen del ÁNGULO, no del azar puro.
+//  - Entrar por el lado de la bola roba casi siempre (stealMaxChance); por el lateral es una apuesta
+//    (stealBaseChance). Influyen también si el portador corre y los atributos (stealRating / ballControl).
 //  - No se puede robar si el portador protege la bola con el cuerpo, está regateando o acaba de recibirla.
-//  - Todo golpe que no consigue la bola deja al atacante descolocado (missRecovery): puede ser regateado.
+//  - Todo golpe que no consigue la bola deja al atacante descolocado (missRecovery), menos si el intento era bueno.
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(Collider2D))]
 public class Skater : MonoBehaviour
@@ -89,10 +89,11 @@ public class Skater : MonoBehaviour
     public float stickCatchMaxSpeed = 18f;          // velocidad máxima de una bola suelta que se puede interceptar
     public float minSwingInterval = 0.2f;           // mínimo entre golpes (aunque no haya cooldown)
 
-    [Header("Stick: robos (difíciles a propósito)")]
+    [Header("Stick: robos")]
     public bool useStealCooldown = true;            // ¿hay cooldown entre intentos de robo/intercepción?
     public float stealCooldown = 1.5f;              // duración del cooldown (si useStealCooldown está activo)
-    [Range(0f, 1f)] public float stealBaseChance = 0.25f;     // probabilidad base de que un golpe válido robe la bola
+    [Range(0f, 1f)] public float stealBaseChance = 0.2f;   // probabilidad entrando por el PEOR ángulo válido
+    [Range(0f, 1f)] public float stealMaxChance = 0.8f;    // probabilidad entrando de cara a la bola
     [Range(0f, 0.5f)] public float sprintStealBonus = 0.12f;  // se suma si el portador corre con la bola
     [Range(0f, 1f)] public float interceptSuccessChance = 0.45f; // prob. de controlar un pase rápido con el stick
     public float missRecovery = 0.6f;               // tiempo descolocado tras un golpe fallido (el coste del riesgo)
@@ -354,6 +355,14 @@ public class Skater : MonoBehaviour
         if (!HasBall || !CanShoot) return;
         DropBall(dir.normalized * force + rb.linearVelocity * inheritVelocity, pickupCooldown, false);
         if (IsControlled) GameCamera.Shake(0.12f, 0.12f);   // pequeño golpe de cámara al tirar
+    }
+
+    // Tiro que sale EXACTAMENTE en 'dir': compensa la velocidad heredada del patinador
+    public void ShootExact(Vector2 dir, float speed)
+    {
+        Vector2 desired = dir.normalized * speed;
+        Vector2 cmd = desired - rb.linearVelocity * inheritVelocity;
+        Shoot(cmd.normalized, cmd.magnitude);
     }
 
     float PassSpeedFor(float distance)
@@ -647,21 +656,28 @@ public class Skater : MonoBehaviour
         return result;
     }
 
-    // Probabilidad de que un golpe válido contra 'carrier' robe la bola
+    // Lo expuesta que está la bola hacia una posición: 1 = la bola está entre el portador y esa posición,
+    // -1 = el portador la tapa con el cuerpo. Lo usan la IA y la defensa asistida para golpear con sentido.
+    public float BallExposureTo(Vector2 attackerPos)
+    {
+        if (ball == null) return -1f;
+        Vector2 pos = transform.position;
+        Vector2 ballDir = (ball.rb.position - pos).normalized;
+        Vector2 toAttacker = (attackerPos - pos).normalized;
+        return Vector2.Dot(ballDir, toAttacker);
+    }
+
+    // Probabilidad de robo según el ÁNGULO: entrar por el lado de la bola es casi seguro,
+    // por el lateral es una apuesta. Deja de ser una tirada fija y pasa a ser una habilidad.
     float StealChanceAgainst(Skater carrier, float side)
     {
-        float chance = stealBaseChance;
+        float t = Mathf.InverseLerp(shieldDot, 0.85f, side);
+        float chance = Mathf.Lerp(stealBaseChance, stealMaxChance, t);
 
-        // Mejor atacando por el lado de la bola que por el lateral
-        chance *= Mathf.Lerp(0.6f, 1.2f, Mathf.InverseLerp(shieldDot, 1f, side));
-
-        // Con la bola más suelta (corriendo) es más fácil
         if (carrier.IsSprinting) chance += sprintStealBonus;
 
-        // Atributos
-        chance *= Mathf.Lerp(0.7f, 1.3f, stealRating) * Mathf.Lerp(1.3f, 0.7f, carrier.ballControl);
-
-        return Mathf.Clamp(chance, 0.03f, 0.75f);
+        chance *= Mathf.Lerp(0.8f, 1.2f, stealRating) * Mathf.Lerp(1.2f, 0.8f, carrier.ballControl);
+        return Mathf.Clamp(chance, 0.05f, 0.9f);
     }
 
     // Lo llama el atacante sobre el que lleva la bola. Cada fallo deja descolocado al atacante.
@@ -696,7 +712,7 @@ public class Skater : MonoBehaviour
             return StickResult.Shielded;
         }
 
-        // 4) Tirada: la mayoría de golpes válidos fallan
+        // 4) Tirada según el ángulo de entrada
         float chance = thief.StealChanceAgainst(this, side);
         bool success = Random.value < chance;
 
@@ -705,7 +721,7 @@ public class Skater : MonoBehaviour
 
         if (!success)
         {
-            thief.Stagger(thief.missRecovery);
+            thief.Stagger(thief.missRecovery * (side > 0.5f ? 0.5f : 1f));   // un buen intento fallido castiga menos
             Feedback.Popup(pos, "¡AGUANTÓ!", colInfo);
             return StickResult.Failed;
         }

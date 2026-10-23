@@ -41,6 +41,10 @@ public class TournamentMatchBridge : MonoBehaviour
         gameManager.ConfigureMatch(player.ShortName, rival.ShortName, true);
         ApplyTeam(gameManager.home, player);
         ApplyTeam(gameManager.away, rival);
+
+        // Mejoras roguelite de cada equipo (el rival también ha ido eligiendo)
+        TeamStatApplier.Apply(gameManager.home, TournamentSession.UpgradesOf(TournamentSession.PlayerTeam));
+        TeamStatApplier.Apply(gameManager.away, TournamentSession.UpgradesOf(match.OpponentOf(TournamentSession.PlayerTeam)));
     }
 
     static void ApplyTeam(TeamManager tm, TeamData data)

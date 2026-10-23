@@ -21,6 +21,12 @@ public class TournamentConfig : ScriptableObject
     [Header("Simulación de partidos IA vs IA")]
     [SerializeField, Range(0.5f, 8f)] float goalsPerTeam = 3f;
 
+    [Header("Mejoras entre partidos (roguelite)")]
+    [Tooltip("Sin lista, el torneo funciona sin mejoras")]
+    [SerializeField] UpgradePool upgradePool;
+    [Tooltip("Mejoras que elige cada equipo antes del primer partido")]
+    [SerializeField, Min(0)] int startingPicks = 1;
+
     public string TournamentName => tournamentName;
     public IReadOnlyList<TeamData> Teams => teams;
     public TeamData PlayerTeam => playerTeam;
@@ -28,6 +34,8 @@ public class TournamentConfig : ScriptableObject
     public string HubScene => hubScene;
     public string MatchScene => matchScene;
     public float GoalsPerTeam => goalsPerTeam;
+    public UpgradePool UpgradePool => upgradePool;
+    public int StartingPicks => startingPicks;
 
     public bool IsValid(out string error)
     {

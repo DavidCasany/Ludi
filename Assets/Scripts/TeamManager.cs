@@ -10,7 +10,8 @@ public enum Team { Home, Away }
 //   Shift .......... sprint (gasta barra)
 //   Clic izq. ...... con bola: mantener = bullet time + apuntar, soltar = tirar
 //                    sin bola: golpe de stick (robar / interceptar hacia el cursor)
-//   Clic der. ...... pase hacia el cursor (se ajusta a un compañero cercano al cursor)
+//   Clic der. ...... con bola: pase hacia el cursor (se ajusta a un compañero cercano al cursor)
+//                    sin bola (mantener): defensa asistida (DefendAssist)
 //   Espacio ........ con bola: regate | sin bola: cambiar al jugador más cercano a la bola
 public class TeamManager : MonoBehaviour
 {
@@ -46,6 +47,9 @@ public class TeamManager : MonoBehaviour
     bool aiming;
     Skater aimingSkater;
 
+    // Defensa asistida (clic derecho mantenido sin bola)
+    DefendAssist defendAssist;
+
     GUIStyle smallStyle;
 
     void Awake()
@@ -61,6 +65,9 @@ public class TeamManager : MonoBehaviour
         {
             bulletTime = GetComponent<BulletTime>();
             if (bulletTime == null) bulletTime = gameObject.AddComponent<BulletTime>();
+
+            defendAssist = GetComponent<DefendAssist>();
+            if (defendAssist == null) defendAssist = gameObject.AddComponent<DefendAssist>();
         }
     }
 
@@ -106,6 +113,10 @@ public class TeamManager : MonoBehaviour
             DoPass(mouse);
         }
 
+        // Defensa asistida: mantener clic derecho sin bola
+        if (!Controlled.HasBall && Input.GetMouseButton(1) && defendAssist != null)
+            defendAssist.Tick(Controlled, input, ownGoal);
+
         if (Input.GetKeyDown(KeyCode.Space))
         {
             if (Controlled.HasBall)
@@ -134,8 +145,8 @@ public class TeamManager : MonoBehaviour
                 return;
             }
 
-            // Dirección desde la bola (no desde el centro del jugador) para apuntar con precisión
-            Vector2 ballPos = (Vector2)Controlled.transform.position + Controlled.AimDir * Controlled.CurrentHoldDistance;
+            // Dirección desde la posición REAL de la bola para que el tiro salga hacia el cursor
+            Vector2 ballPos = Ball.Instance.rb.position;
             Vector2 toTarget = mouse - ballPos;
             Vector2 shotDir = toTarget.sqrMagnitude > 0.01f ? toTarget.normalized : Controlled.AimDir;
 
@@ -147,7 +158,7 @@ public class TeamManager : MonoBehaviour
             {
                 bulletTime.End();
                 aiming = false;
-                Controlled.Shoot(shotDir, Controlled.shootForce);
+                Controlled.ShootExact(shotDir, Controlled.shootForce);   // sin desvío por la velocidad del patinador
             }
             return;
         }
@@ -356,7 +367,7 @@ public class TeamManager : MonoBehaviour
         if (showControlsHint)
         {
             GUI.Label(new Rect(10f, Screen.height - 24f, 900f, 20f),
-                "WASD mover · Shift sprint · Clic izq: tirar (mantener) / stick sin bola · Clic der: pase · Espacio: regate / cambiar jugador",
+                "WASD mover · Shift sprint · Clic izq: tirar (mantener) / stick · Clic der: pase / defender (mantener sin bola) · Espacio: regate / cambiar",
                 smallStyle);
         }
     }

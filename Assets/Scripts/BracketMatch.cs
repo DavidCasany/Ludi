@@ -27,6 +27,10 @@ public class BracketMatch
     public int loserToMatch = -1;
     public int loserToSlot;
 
+    // Jornada del calendario (0, 1, 2...). Todos los partidos de una jornada se juegan "a la vez".
+    // Siempre es mayor que la de los partidos de los que viene cada equipo.
+    public int Stage => order / 1000;
+
     public bool IsReady => teamA >= 0 && teamB >= 0 && winner < 0;
     public bool IsDone => winner >= 0;
     public bool Involves(int team) => team >= 0 && (teamA == team || teamB == team);

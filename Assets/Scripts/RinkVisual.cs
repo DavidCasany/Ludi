@@ -1,10 +1,11 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 // Dibuja la pista (hielo, bandas, línea central, círculo central y áreas de portería) a partir del
 // EdgeCollider2D de GameManager.rinkWalls. Con una cámara que sigue la bola, un fondo vacío no deja
-// notar el movimiento; esto da referencias visuales. Se crea solo al empezar si existe un GameManager
-// con rinkWalls. Para quitarlo, borra este archivo.
+// notar el movimiento; esto da referencias visuales. Se crea solo cada vez que se carga una escena
+// que tiene un GameManager con rinkWalls. Para quitarlo, borra este archivo.
 public class RinkVisual : MonoBehaviour
 {
     public Color iceColor = new Color(0.52f, 0.68f, 0.80f);
@@ -19,15 +20,27 @@ public class RinkVisual : MonoBehaviour
 
     Material mat;
 
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-    static void Boot()
+    // Se suscribe a sceneLoaded UNA vez al arrancar el juego, antes de cargar la primera escena.
+    // Así se crea la pista en cualquier escena con GameManager, sea la primera o una cargada después
+    // con SceneManager.LoadScene (por ejemplo, del torneo al partido).
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    static void Init()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;   // evita suscribirse dos veces si el Domain Reload está desactivado
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         if (FindFirstObjectByType<RinkVisual>() != null) return;
 
         GameManager gm = FindFirstObjectByType<GameManager>();
         if (gm == null || gm.rinkWalls == null) return;
 
-        new GameObject("RinkVisual").AddComponent<RinkVisual>();
+        // Se crea en la escena recién cargada, así se destruye con ella al volver al torneo
+        GameObject go = new GameObject("RinkVisual");
+        SceneManager.MoveGameObjectToScene(go, scene);
+        go.AddComponent<RinkVisual>();
     }
 
     void Start()
