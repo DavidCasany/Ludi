@@ -28,7 +28,9 @@ public class TeamManager : MonoBehaviour
     public float passAssistRadius = 1.5f;  // si el cursor está a menos de esto de un compañero, el pase va a él
 
     [Header("Cambio de jugador")]
-    public float autoSwitchLockout = 0.6f;   // mínimo entre cambios automáticos de jugador (s)
+    public float autoSwitchLockout = 0.6f;     // mínimo entre cambios automáticos de jugador (s)
+    public float manualSwitchLockout = 1.5f;   // tras cambiar con Espacio, el automático espera esto (s)
+    public float defendSwitchMargin = 5f;      // defendiendo: cambia si otro está esto mejor situado (m)
 
     [Header("Stick")]
     public bool stickAimAssist = true;       // el golpe apunta a la bola si está al alcance
@@ -41,6 +43,7 @@ public class TeamManager : MonoBehaviour
 
     Camera cam;
     float nextAutoSwitch;
+    Skater lastRivalCarrier;
 
     // Apuntado del tiro (bullet time)
     BulletTime bulletTime;
@@ -117,7 +120,7 @@ public class TeamManager : MonoBehaviour
         if (!Controlled.HasBall && Input.GetMouseButton(1) && defendAssist != null)
             defendAssist.Tick(Controlled, input, ownGoal);
 
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (Input.GetKeyDown(KeyCode.Space) && !GoalkeeperQTE.BlocksInput)
         {
             if (Controlled.HasBall)
             {
@@ -230,7 +233,7 @@ public class TeamManager : MonoBehaviour
 
     // ---------- Cambio de jugador ----------
 
-    void AutoSelect()
+        void AutoSelect()
     {
         Ball ball = Ball.Instance;
         if (ball == null) return;
@@ -238,6 +241,7 @@ public class TeamManager : MonoBehaviour
         // 1) Siempre controlas a quien lleva la bola (si un compañero la recoge, saltas a él)
         if (ball.IsHeld && ball.Holder.team == team)
         {
+            lastRivalCarrier = null;
             if (ball.Holder != Controlled)
             {
                 SetControlled(ball.Holder);
@@ -246,8 +250,29 @@ public class TeamManager : MonoBehaviour
             return;
         }
 
-        // El rival tiene la bola, o hay un cambio reciente: no se cambia solo (defendiendo, cambias con Espacio)
-        if (ball.IsHeld || Time.time < nextAutoSwitch) return;
+        // 2) El rival lleva la bola: controlas al defensor mejor situado
+        if (ball.IsHeld)
+        {
+            Skater carrier = ball.Holder;
+            bool newCarrier = carrier != lastRivalCarrier;
+            lastRivalCarrier = carrier;
+
+            if (Time.time < nextAutoSwitch || Input.GetMouseButton(1)) return;   // no cambiar en plena defensa asistida
+
+            Skater best = BestDefender(carrier, null);
+            if (best == null || best == Controlled) return;
+
+            float margin = newCarrier ? 1.5f : defendSwitchMargin;   // al perder la bola, cambio casi inmediato
+            if (DefenderScore(best, carrier) + margin < DefenderScore(Controlled, carrier))
+            {
+                SetControlled(best);
+                nextAutoSwitch = Time.time + autoSwitchLockout;
+            }
+            return;
+        }
+
+        lastRivalCarrier = null;
+        if (Time.time < nextAutoSwitch) return;
 
         Vector2 bp = ball.rb.position;
         Skater nearest = ClosestToBall();
@@ -256,8 +281,8 @@ public class TeamManager : MonoBehaviour
         float dNew = Vector2.Distance(nearest.transform.position, bp);
         float dCur = Vector2.Distance(Controlled.transform.position, bp);
 
-        // 2) Pase de nuestro equipo en vuelo: pasas al receptor cuando la bola se le acerca
-        // 3) Bola suelta cualquiera: solo si estás lejos de ella y otro está claramente más cerca
+        // 3) Pase de nuestro equipo en vuelo: pasas al receptor cuando la bola se le acerca
+        // 4) Bola suelta cualquiera: solo si estás lejos de ella y otro está claramente más cerca
         bool ourPass = ball.IsPassFor(team);
         bool switchNow = ourPass ? dNew + 1f < dCur
                                  : dCur > 6f && dNew + 3f < dCur;
@@ -269,18 +294,61 @@ public class TeamManager : MonoBehaviour
         }
     }
 
+    // Distancia "efectiva" de un defensor al portador: si está por detrás de él (más lejos de nuestra
+    // portería que el portador), persiguiendo no llega nunca, así que se penaliza.
+    float DefenderScore(Skater s, Skater carrier)
+    {
+        Vector2 sp = s.transform.position;
+        Vector2 cp = carrier.transform.position;
+        Vector2 goal = ownGoal != null ? (Vector2)ownGoal.position : sp;
+
+        float d = Vector2.Distance(sp, cp);
+        float behind = Vector2.Distance(sp, goal) - Vector2.Distance(cp, goal);
+        if (behind > 0f) d += behind * 1.5f;
+        return d;
+    }
+
+    Skater BestDefender(Skater carrier, Skater exclude)
+    {
+        Skater best = null;
+        float bestScore = float.MaxValue;
+        foreach (Skater s in skaters)
+        {
+            if (s == exclude) continue;
+            float sc = DefenderScore(s, carrier);
+            if (sc < bestScore) { bestScore = sc; best = s; }
+        }
+        return best;
+    }
+
+    // Espacio sin bola: defendiendo, al mejor defensor; si no, al más cercano a la bola
     void SwitchToClosestToBall()
     {
         Ball ball = Ball.Instance;
-        Skater best = null;
-        float bestDist = float.MaxValue;
-        foreach (Skater s in skaters)
+        if (ball == null) return;
+
+        Skater best;
+        if (ball.IsHeld && ball.Holder.team != team)
         {
-            if (s == Controlled) continue;
-            float d = Vector2.Distance(s.transform.position, ball.transform.position);
-            if (d < bestDist) { bestDist = d; best = s; }
+            best = BestDefender(ball.Holder, Controlled);
         }
-        if (best != null) SetControlled(best);
+        else
+        {
+            best = null;
+            float bestDist = float.MaxValue;
+            foreach (Skater s in skaters)
+            {
+                if (s == Controlled) continue;
+                float d = Vector2.Distance(s.transform.position, ball.transform.position);
+                if (d < bestDist) { bestDist = d; best = s; }
+            }
+        }
+
+        if (best != null)
+        {
+            SetControlled(best);
+            nextAutoSwitch = Time.time + manualSwitchLockout;
+        }
     }
 
     public void SetControlled(Skater s)

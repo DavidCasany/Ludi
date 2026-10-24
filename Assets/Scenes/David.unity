@@ -189,7 +189,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 3386077717508655842, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
   m_PrefabInstance: {fileID: 212247822}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 129474551}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 95c08426a3a7e724bbb49c46b17e7a8a, type: 3}
@@ -277,6 +277,32 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: def45111234da6941ae4e375a7f06720, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Skater
+--- !u!1 &129474551 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 178672772309614791, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
+  m_PrefabInstance: {fileID: 212247822}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &129474552
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 129474551}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5906c4c94d3a91945b486aefd01a1f64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GoalkeeperQTE
+  slowTimeScale: 0.06
+  barTime: 0.9
+  key: 32
+  greenWidthFar: 0.28
+  greenWidthNear: 0.14
+  nearDistance: 3
+  farDistance: 12
+  barSize: {x: 320, y: 22}
+  resultShowTime: 0.6
 --- !u!1 &163244663
 GameObject:
   m_ObjectHideFlags: 0
@@ -483,7 +509,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 178672772309614791, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 129474552}
   m_SourcePrefab: {fileID: 100100000, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
 --- !u!4 &275472249 stripped
 Transform:
@@ -751,6 +780,8 @@ MonoBehaviour:
   goalkeeper: {fileID: 78555742}
   passAssistRadius: 1.5
   autoSwitchLockout: 0.6
+  manualSwitchLockout: 1.5
+  defendSwitchMargin: 5
   stickAimAssist: 1
   stickAssistFactor: 1.3
   showControlsHint: 1
@@ -792,10 +823,18 @@ MonoBehaviour:
   updateInterval: 0.15
   roleStickiness: 2
   hunterStickiness: 0.8
+  humanPressRadius: 4
   spotStep: 3
   teammateSpacing: 7
   supportLead: 0.6
   sweeperDepth: 7
+  defenseShape: 2
+  zoneFollow: 0.4
+  zoneDepthMin: 4.5
+  zoneDepthMax: 11
+  zoneHalfWidth: 2.8
+  zoneHalfLength: 2.2
+  humanFillRadius: 2.5
   goalHalfWidth: 0.85
   goalAvoidExtra: 1.2
   tightGoalExtra: 0.1
@@ -1428,6 +1467,8 @@ MonoBehaviour:
   goalkeeper: {fileID: 1951666710}
   passAssistRadius: 1.5
   autoSwitchLockout: 0.6
+  manualSwitchLockout: 1.5
+  defendSwitchMargin: 5
   stickAimAssist: 1
   stickAssistFactor: 1.3
   showControlsHint: 1
@@ -1469,10 +1510,18 @@ MonoBehaviour:
   updateInterval: 0.15
   roleStickiness: 2
   hunterStickiness: 0.8
+  humanPressRadius: 4
   spotStep: 3
   teammateSpacing: 7
   supportLead: 0.6
   sweeperDepth: 7
+  defenseShape: 0
+  zoneFollow: 0.4
+  zoneDepthMin: 4.5
+  zoneDepthMax: 11
+  zoneHalfWidth: 2.8
+  zoneHalfLength: 2.2
+  humanFillRadius: 2.5
   goalHalfWidth: 0.85
   goalAvoidExtra: 1.2
   tightGoalExtra: 0.1

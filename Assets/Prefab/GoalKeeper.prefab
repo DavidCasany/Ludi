@@ -183,7 +183,7 @@ MonoBehaviour:
   speed: 5.5
   reach: 0.55
   goalHalfWidth: 0.85
-  positioningSpeedFactor: 0.5
+  positioningSpeedFactor: 0.8
   maxDepth: 0.45
   postHugInset: 0.2
   reactionTime: 0.17

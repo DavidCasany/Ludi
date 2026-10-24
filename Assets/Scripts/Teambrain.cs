@@ -43,6 +43,8 @@ public class TeamBrain : MonoBehaviour
     public float updateInterval = 0.15f;
     public float roleStickiness = 2f;
     public float hunterStickiness = 0.8f;
+    [Tooltip("Si el jugador humano está a menos de esto del portador rival, él hace de Hunter y la IA no dobla")]
+    public float humanPressRadius = 4f;
 
     [Header("Ataque: desmarques")]
     public float spotStep = 3f;
@@ -52,6 +54,20 @@ public class TeamBrain : MonoBehaviour
 
     [Header("Defensa")]
     public float sweeperDepth = 7f;
+
+    [Header("Defensa en zona (si Defense Shape no es ManMarking)")]
+    public DefenseShape defenseShape = DefenseShape.ManMarking;
+    [Range(0f, 1f), Tooltip("Cuánto sale el bloque hacia la bola (0 = pegado a la portería)")]
+    public float zoneFollow = 0.4f;
+    public float zoneDepthMin = 4.5f;    // centro del bloque: distancia mínima a nuestra portería (m)
+    public float zoneDepthMax = 11f;     // ... y máxima
+    public float zoneHalfWidth = 2.8f;   // semiancho del bloque (m)
+    public float zoneHalfLength = 2.2f;  // semilargo del bloque (m)
+    [Tooltip("Si el humano está así de cerca de un vértice, lo ocupa él")]
+    public float humanFillRadius = 2.5f;
+
+    readonly List<Vector2> zonePts = new List<Vector2>(4);
+    readonly List<Skater> markCandidates = new List<Skater>(8);
 
     [Header("Geometría")]
     public float goalHalfWidth = 0.85f;
@@ -337,7 +353,7 @@ public class TeamBrain : MonoBehaviour
         }
         else
         {
-            Skater hunter = PickHunter(ball);
+            Skater hunter = HumanIsPressing(ball) ? null : PickHunter(ball);
             if (hunter != null)
             {
                 Vector2 t = ball.IsHeld ? ContainPoint(ball.Holder) : Sanitize(InterceptPoint(hunter, ball), M(tightGoalExtra));
@@ -356,7 +372,10 @@ public class TeamBrain : MonoBehaviour
         }
 
         if (attackingPosture) BuildAttackSlots(refPos, slots);
+        else if (defenseShape != DefenseShape.ManMarking) BuildZoneSlots(ballPos, ball, currentHunter != null, slots);
         else BuildDefenseSlots(ballPos, ball, slots);
+
+
 
         while (slots.Count > free.Count) slots.RemoveAt(slots.Count - 1);
         while (slots.Count < free.Count)
@@ -394,6 +413,15 @@ public class TeamBrain : MonoBehaviour
             target = p + v * travel;
         }
         return ClampToRink(target);
+    }
+
+    bool HumanIsPressing(Ball ball)
+    {
+        if (!ball.IsHeld || ball.Holder.team == tm.team) return false;
+        Vector2 bp = ball.rb.position;
+        foreach (Skater s in tm.skaters)
+            if (s.IsControlled && Vector2.Distance(s.transform.position, bp) < M(humanPressRadius)) return true;
+        return false;
     }
 
     Skater PickHunter(Ball ball)
@@ -597,6 +625,88 @@ public class TeamBrain : MonoBehaviour
         if (m2 != null) list.Add(MarkSlot(m2, own, carrier));
     }
 
+        // Bloque en zona entre la bola y nuestra portería. El humano y el Hunter ocupan vértices.
+    void BuildZoneSlots(Vector2 ballPos, Ball ball, bool aiHunter, List<AIAssignment> list)
+    {
+        Vector2 own = OwnGoalPos;
+        Vector2 carrier = ball.IsHeld ? (Vector2)ball.Holder.transform.position : ballPos;
+        Vector2 toBall = carrier - own;
+        float dist = toBall.magnitude;
+        Vector2 u = dist > 0.1f ? toBall / dist : AttackDir;   // eje portería -> bola
+        Vector2 v = new Vector2(-u.y, u.x);                    // lateral
+
+        // Centro del bloque: sale hacia la bola, pero la línea delantera nunca queda por delante de ella
+        float depth = Mathf.Clamp(dist * zoneFollow, M(zoneDepthMin), M(zoneDepthMax));
+        depth = Mathf.Min(depth, Mathf.Max(M(zoneDepthMin), dist - M(zoneHalfLength + 1.5f)));
+        Vector2 c = own + u * depth;
+        float w = M(zoneHalfWidth), l = M(zoneHalfLength);
+
+        zonePts.Clear();
+        if (defenseShape == DefenseShape.Box)
+        {
+            zonePts.Add(c + u * l + v * w); zonePts.Add(c + u * l - v * w);
+            zonePts.Add(c - u * l + v * w); zonePts.Add(c - u * l - v * w);
+        }
+        else // Diamond
+        {
+            zonePts.Add(c + u * l * 1.3f); zonePts.Add(c + v * w);
+            zonePts.Add(c - v * w);        zonePts.Add(c - u * l * 1.3f);
+        }
+
+        if (aiHunter) RemoveNearest(zonePts, carrier, float.MaxValue);   // el vértice de delante lo cubre el Hunter
+        foreach (Skater s in tm.skaters)
+            if (s.IsControlled) RemoveNearest(zonePts, s.transform.position, M(humanFillRadius));   // el humano rellena el suyo
+
+        foreach (Vector2 p in zonePts)
+        {
+            Vector2 q = Sanitize(p);
+            bool back = Vector2.Dot(p - c, u) < 0f;
+            list.Add(new AIAssignment(back ? AIRole.Sweeper : AIRole.Cover, q));
+            taken.Add(q);
+        }
+
+        AddMarkers(list, ball, carrier, own, 2);   // los que sobren marcan a los rivales peligrosos fuera del bloque
+    }
+
+    static void RemoveNearest(List<Vector2> pts, Vector2 p, float maxDist)
+    {
+        int best = -1;
+        float bestD = maxDist;
+        for (int i = 0; i < pts.Count; i++)
+        {
+            float d = Vector2.Distance(pts[i], p);
+            if (d < bestD) { bestD = d; best = i; }
+        }
+        if (best >= 0) pts.RemoveAt(best);
+    }
+
+    void AddMarkers(List<AIAssignment> list, Ball ball, Vector2 carrier, Vector2 own, int count)
+    {
+        if (tm.opponent == null) return;
+        Skater ballOpp = ball.IsHeld ? ball.Holder : NearestOpponentTo(ball.rb.position);
+
+        markCandidates.Clear();
+        foreach (Skater o in tm.opponent.skaters)
+        {
+            if (o == ballOpp) continue;
+            Vector2 op = o.transform.position;
+            bool covered = false;
+            for (int i = 0; i < taken.Count; i++)
+                if (Vector2.Distance(op, taken[i]) < M(2.5f)) { covered = true; break; }
+            if (!covered) markCandidates.Add(o);
+        }
+
+        markCandidates.Sort((a, b) => Danger(b, own, carrier).CompareTo(Danger(a, own, carrier)));
+        for (int i = 0; i < markCandidates.Count && i < count; i++)
+            list.Add(MarkSlot(markCandidates[i], own, carrier));
+    }
+
+    float Danger(Skater o, Vector2 own, Vector2 carrier)
+    {
+        Vector2 op = o.transform.position;
+        return 0.6f * (1f - Mathf.Clamp01(Vector2.Distance(op, own) / M(30f))) + LaneClear(carrier, op);
+    }
+
     AIAssignment MarkSlot(Skater o, Vector2 own, Vector2 carrier)
     {
         Vector2 op = o.transform.position;
@@ -695,3 +805,5 @@ public class TeamBrain : MonoBehaviour
         }
     }
 }
+
+public enum DefenseShape { ManMarking, Box, Diamond }

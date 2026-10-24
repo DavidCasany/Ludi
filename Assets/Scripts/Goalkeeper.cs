@@ -41,6 +41,9 @@ public class Goalkeeper : MonoBehaviour
     [SerializeField] float minRebound = 4f;
     [SerializeField] float maxDeflectAngle = 60f;
     [SerializeField] float saveFlashTime = 0.25f;
+    [SerializeField] float qteSaveSpeed = 40f;   // estirada tras acertar el QTE (m/s)
+
+    GoalkeeperQTE qte;   // opcional: solo en el portero del humano
 
     public float ReactionTime => reactionTime;
     public float HalfWidth => col != null ? col.bounds.extents.y : 0.4f;   // lo usa TeamBrain para valorar tiros
@@ -67,6 +70,7 @@ public class Goalkeeper : MonoBehaviour
 
         startPos = rb.position;
         outwardX = Mathf.Sign(-startPos.x);
+        qte = GetComponent<GoalkeeperQTE>();
     }
 
     // Color del equipo (lo usa el torneo)
@@ -93,9 +97,24 @@ public class Goalkeeper : MonoBehaviour
                     shotTime = Time.time;
                     shotDelay = reactionTime + (IsScreened(ball, crossY) ? screenPenalty : 0f);
                     readOffset = Random.Range(-readError, readError);
+
+                    if (UseQTE(ball)) qte.Begin(Vector2.Distance(ball.rb.position, startPos));
                 }
 
-                if (Time.time - shotTime < shotDelay)
+                if (qte != null && qte.State != QTEState.Idle)
+                {
+                    // Portero del humano: manda el QTE
+                    if (qte.State == QTEState.Success)
+                    {
+                        target = new Vector2(rb.position.x, crossY);
+                        moveSpeed = qteSaveSpeed;
+                    }
+                    else
+                    {
+                        target = rb.position;   // esperando o fallado: plantado
+                    }
+                }
+                else if (Time.time - shotTime < shotDelay)
                 {
                     target = rb.position;                                    // "plantado": aún no ha reaccionado
                 }
@@ -108,6 +127,7 @@ public class Goalkeeper : MonoBehaviour
             else
             {
                 tracking = false;
+                if (qte != null && qte.State != QTEState.Idle) qte.Cancel();
                 target = PositionTarget(ball.rb.position);
             }
         }
@@ -213,13 +233,14 @@ public class Goalkeeper : MonoBehaviour
 
     void SaveVisual()
     {
-        if (sr == null) return;
         sr.color = Color.yellow;
         flashUntil = Time.time + saveFlashTime;
+        if (sr == null) return;
     }
 
     public void ResetPosition()
     {
+        if (qte != null) qte.Cancel();
         rb.position = startPos;
         tracking = false;
     }
@@ -228,5 +249,13 @@ public class Goalkeeper : MonoBehaviour
     {
         startPos.x = -startPos.x;
         outwardX = -outwardX;
+    }
+
+    // QTE solo para tiros del rival (no pases ni desvíos de nuestro equipo)
+    bool UseQTE(Ball ball)
+    {
+        if (qte == null || !qte.enabled) return false;
+        if (ball.LastTouchTeam == team) return false;
+        return !ball.IsPassFor(ball.LastTouchTeam);
     }
 }
