@@ -11,6 +11,8 @@ public class GoalkeeperQTE : MonoBehaviour
     [SerializeField, Range(0.02f, 0.5f)] float slowTimeScale = 0.06f;   // velocidad del juego durante el QTE
     [SerializeField] float barTime = 0.9f;                              // segundos REALES que tarda la línea en cruzar
     [SerializeField] KeyCode key = KeyCode.Space;
+    [SerializeField] float inputGrace = 0.15f;                    // s reales al inicio en que se ignora la tecla
+    [SerializeField, Range(0.3f, 1f)] float arriveMargin = 0.75f; // la barra acaba antes de que llegue la bola
 
     [Header("Dificultad")]
     [SerializeField, Range(0.05f, 0.6f)] float greenWidthFar = 0.28f;   // anchura de la zona verde (fracción) en tiros lejanos
@@ -21,6 +23,10 @@ public class GoalkeeperQTE : MonoBehaviour
     [Header("Barra")]
     [SerializeField] Vector2 barSize = new Vector2(320f, 22f);
     [SerializeField] float resultShowTime = 0.6f;
+
+
+    [SerializeField] bool debugLog = true;   // escribe en la consola la cámara lenta de cada QTE
+    float appliedScale = 1f, appliedFixed = 0.02f;
 
     public QTEState State { get; private set; } = QTEState.Idle;
 
@@ -38,7 +44,7 @@ public class GoalkeeperQTE : MonoBehaviour
     bool lastOk;
     GUIStyle labelStyle;
 
-    public void Begin(float shotDistance)
+    public void Begin(float shotDistance, float timeToGoal)
     {
         if (State == QTEState.Running) return;
 
@@ -55,16 +61,33 @@ public class GoalkeeperQTE : MonoBehaviour
         savedTimeScale = Time.timeScale;
         savedFixedDelta = Time.fixedDeltaTime;
         float baseFixed = savedFixedDelta / Mathf.Max(savedTimeScale, 0.01f);
-        Time.timeScale = slowTimeScale;
-        Time.fixedDeltaTime = baseFixed * slowTimeScale;   // física suave en cámara lenta
+
+        // Cámara lenta suficiente para que la barra termine ANTES de que llegue la bola
+        float needed = timeToGoal * arriveMargin / Mathf.Max(barTime, 0.1f);
+        float scale = Mathf.Clamp(Mathf.Min(slowTimeScale, needed), 0.01f, 1f);
+        appliedScale = scale;
+        appliedFixed = baseFixed * scale;
+        Time.timeScale = appliedScale;
+        Time.fixedDeltaTime = appliedFixed;
+
+        if (debugLog) Debug.Log($"QTE en {name}: la bola llega en {timeToGoal:F2}s, cámara lenta x{scale:F3}");
     }
 
     void Update()
     {
         if (State != QTEState.Running) return;
 
+        // Nadie nos quita la cámara lenta mientras dura el QTE
+        if (!Mathf.Approximately(Time.timeScale, appliedScale))
+        {
+            Time.timeScale = appliedScale;
+            Time.fixedDeltaTime = appliedFixed;
+        }
+
         cursor = (Time.unscaledTime - startTime) / Mathf.Max(barTime, 0.1f);
-        if (Input.GetKeyDown(key)) Resolve(Mathf.Abs(cursor - greenCenter) <= greenWidth * 0.5f);
+        float elapsed = Time.unscaledTime - startTime;
+        cursor = elapsed / Mathf.Max(barTime, 0.1f);
+        if (elapsed >= inputGrace && Input.GetKeyDown(key)) Resolve(Mathf.Abs(cursor - greenCenter) <= greenWidth * 0.5f);
         else if (cursor >= 1f) Resolve(false);
     }
 

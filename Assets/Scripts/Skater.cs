@@ -82,6 +82,7 @@ public class Skater : MonoBehaviour
     [Header("Atributos (estilo 2K, 0 a 1)")]
     [Range(0f, 1f)] public float stealRating = 0.5f;   // habilidad para robar e interceptar
     [Range(0f, 1f)] public float ballControl = 0.5f;   // habilidad para proteger la bola
+    [HideInInspector] public float stealChanceScale = 1f;   // lo rellena SkaterAI desde el AIProfile del equipo
 
     [Header("Stick: alcance")]
     public float stickReach = 1.4f;                 // alcance del stick desde el centro del jugador
@@ -122,6 +123,7 @@ public class Skater : MonoBehaviour
     public Vector2 Velocity => rb.linearVelocity;
     public bool HasBall => ball != null;
     public bool IsControlled { get; private set; }
+    public float BodyRadius => col != null ? col.bounds.extents.x : 0.3f;   // lo usa BallBlocker
 
     public float TopSpeed => maxSpeed * speedScale;   // velocidad máxima real (sin sprint)
     public bool IsSprinting { get; private set; }
@@ -677,6 +679,7 @@ public class Skater : MonoBehaviour
         if (carrier.IsSprinting) chance += sprintStealBonus;
 
         chance *= Mathf.Lerp(0.8f, 1.2f, stealRating) * Mathf.Lerp(1.2f, 0.8f, carrier.ballControl);
+        chance *= stealChanceScale;
         return Mathf.Clamp(chance, 0.05f, 0.9f);
     }
 

@@ -11,6 +11,9 @@ public class Goal : MonoBehaviour
 
     public Team defendingTeam; // equipo que defiende esta portería
 
+    // Semiancho real de la boca de la portería (lo usan el portero y la IA)
+    public float HalfWidth => Col.bounds.extents.y;
+    
     [Tooltip("Margen extra alrededor del collider de la red que los jugadores no pueden pisar")]
     public float keepOutPadding = 0.3f;
 

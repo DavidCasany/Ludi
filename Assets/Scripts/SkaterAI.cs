@@ -71,6 +71,8 @@ public class SkaterAI : MonoBehaviour
             brain = tm.GetComponent<TeamBrain>();
             if (brain == null) brain = tm.gameObject.AddComponent<TeamBrain>();
         }
+
+        if (brain != null) me.stealChanceScale = brain.Profile.stealChanceScale;
     }
 
     void FixedUpdate()
