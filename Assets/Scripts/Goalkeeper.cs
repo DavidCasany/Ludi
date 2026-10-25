@@ -6,8 +6,9 @@ using UnityEngine;
 //
 //  1) COLOCACIÓN: bisectriz del ángulo bola-palos, saliendo un poco hacia la bola. Recolocarse es más lento.
 //  2) TIRO: tarda 'reactionTime' en reaccionar (más si le tapan) y se estira a 'speed'.
-//     Si tiene GoalkeeperQTE (portero del humano), manda el QTE.
-//  3) REBOTE: la bola sale con parte de su velocidad: hay segundas jugadas.
+//     Portero del HUMANO (con GoalkeeperQTE): cada TIRO rival abre un QTE. Acertar = parada segura.
+//     Los desvíos, bloqueos, rebotes y bolas lentas no abren QTE: el portero reacciona solo, como el de la IA.
+//  3) REBOTE: la bola sale con parte de su velocidad y nunca recta al centro: hay segundas jugadas.
 //
 // 'speed' y 'reach' los modifican las mejoras del torneo (TeamStatApplier).
 [RequireComponent(typeof(Rigidbody2D))]
@@ -32,19 +33,24 @@ public class Goalkeeper : MonoBehaviour
     [SerializeField] float reactionTime = 0.17f;
     [SerializeField] float screenPenalty = 0.1f;          // reacción extra si un rival se cruza en la línea de tiro
     [SerializeField] float screenRadius = 0.7f;
-    [SerializeField] float shotMinSpeed = 9f;             // por debajo no se considera tiro
+    [SerializeField] float shotMinSpeed = 6f;             // por debajo no se considera que la bola vaya a puerta
     [SerializeField, Range(0f, 0.5f)] float readError = 0.12f;   // error al leer por dónde cruzará (m)
 
     [Header("Parada y rebote")]
     [SerializeField, Range(0f, 1f)] float reboundFactor = 0.45f;
     [SerializeField] float minRebound = 4f;
     [SerializeField] float maxDeflectAngle = 60f;
+    [SerializeField] float minReboundAngle = 25f;         // ningún rebote sale recto hacia la zona de remate
     [SerializeField] float saveFlashTime = 0.25f;
-    [SerializeField] float minReboundAngle = 25f;   // ningún rebote sale recto hacia la zona de remate
-    [SerializeField] float qteClearAngle = 65f;     // parada del QTE: despeje hacia la banda (entre esto y 80°)
+
+    [Header("QTE (solo portero del humano)")]
+    [Tooltip("Solo los tiros más rápidos que esto abren un QTE (los lentos los para el portero solo)")]
+    [SerializeField] float qteMinSpeed = 12f;
+    [Tooltip("Más lejos de esto no hay QTE")]
+    [SerializeField] float qteMaxDistance = 14f;
+    [SerializeField] float qteClearAngle = 65f;           // parada del QTE: despeje hacia la banda (entre esto y 80°)
     [SerializeField] float qteFailExtraDelay = 0.08f;     // QTE fallado: reacciona algo más tarde que la IA
     [SerializeField] float qteFailReadMultiplier = 2.5f;  // ... y lee peor por dónde va la bola
-    [SerializeField] float qteMaxDistance = 14f;         // más lejos de esto no hay QTE (es un pase o un tiro lejano)
 
     public float ReactionTime => reactionTime;
     public float HalfWidth => col != null ? col.bounds.extents.y : 0.4f;   // lo usa TeamBrain para valorar tiros
@@ -70,6 +76,7 @@ public class Goalkeeper : MonoBehaviour
     float shotTime;
     float shotDelay;
     float readOffset;
+    int lastQteShot = -1;   // ShotId del último tiro que abrió un QTE (un QTE por tiro)
 
     // Desplazamiento lateral máximo del centro: cuerpo tocando el palo + reach
     float LateralLimit => Mathf.Max(0f, goalHalf - HalfWidth) + reach;
@@ -81,11 +88,10 @@ public class Goalkeeper : MonoBehaviour
         sr = GetComponentInChildren<SpriteRenderer>();
         if (sr != null) baseColor = sr.color;
         qte = GetComponent<GoalkeeperQTE>();
+        owner = GetComponentInParent<TeamManager>();
 
         startPos = rb.position;
         outwardX = Mathf.Sign(-startPos.x);
-
-        owner = GetComponentInParent<TeamManager>();
     }
 
     // Se mide con la portería real la primera vez que hace falta (no depende del orden de Awake/OnEnable)
@@ -141,8 +147,14 @@ public class Goalkeeper : MonoBehaviour
                     shotTime = Time.time;
                     shotDelay = reactionTime + (IsScreened(ball, crossY) ? screenPenalty : 0f);
                     readOffset = Random.Range(-readError, readError);
+                }
 
-                    if (UseQTE(ball, timeToLine)) qte.Begin(Vector2.Distance(ball.rb.position, startPos), timeToLine);
+                // Un QTE por TIRO (no por "bola que viene"): aunque el anterior acabe de resolverse, un tiro nuevo abre otro
+                if (ball.ShotId != lastQteShot && UseQTE(ball, timeToLine))
+                {
+                    lastQteShot = ball.ShotId;
+                    shotTime = Time.time;   // la reacción cuenta desde este tiro
+                    qte.Begin(Vector2.Distance(ball.rb.position, startPos), timeToLine);
                 }
 
                 QTEState q = qte != null ? qte.State : QTEState.Idle;
@@ -167,7 +179,8 @@ public class Goalkeeper : MonoBehaviour
                 }
                 else
                 {
-                    // Portero de la IA, o QTE fallado: reacción normal (si ha fallado, más tarde y leyendo peor)
+                    // Portero de la IA, bola que no es un tiro, o QTE fallado: reacción normal
+                    // (si ha fallado el QTE, reacciona más tarde y lee peor por dónde va la bola)
                     bool failed = q == QTEState.Fail;
                     float delay = shotDelay + (failed ? qteFailExtraDelay : 0f);
                     float error = readOffset * (failed ? qteFailReadMultiplier : 1f);
@@ -227,9 +240,7 @@ public class Goalkeeper : MonoBehaviour
         return y + dir * depth;
     }
 
-    // ¿Viene un tiro a PUERTA? Se comprueba en la línea de gol real; devuelve la Y por la que
-    // cruzará la línea del portero (que está un poco por delante).
-    // ¿Viene un tiro a PUERTA? Devuelve por dónde cruzará la línea del portero y cuánto le falta a la bola.
+    // ¿Viene la bola a PUERTA? Devuelve por dónde cruzará la línea del portero y cuánto le falta.
     bool IsShotIncoming(Ball ball, out float crossY, out float timeToLine)
     {
         crossY = goalCenterY;
@@ -253,12 +264,13 @@ public class Goalkeeper : MonoBehaviour
         return true;
     }
 
-    // QTE para cualquier bola que va a puerta, salvo un pase de nuestro propio equipo
-    // QTE solo en el portero del HUMANO, solo con tiros de verdad (no pases) y desde una distancia razonable
+    // QTE solo en el portero del HUMANO y solo con TIROS del rival:
+    // no con pases, desvíos de stick, bloqueos, rebotes del portero ni bolas lentas.
     bool UseQTE(Ball ball, float timeToLine)
     {
         if (qte == null || !qte.enabled || !HumanKeeper) return false;
-        if (ball.IsPassFor(Team.Home) || ball.IsPassFor(Team.Away)) return false;   // un pase no es un tiro
+        if (!ball.IsShot || ball.ShotTeam == team) return false;
+        if (ball.Speed < qteMinSpeed) return false;
         if (Vector2.Distance(ball.rb.position, startPos) > qteMaxDistance) return false;
         return timeToLine > 0.02f;
     }
@@ -314,7 +326,7 @@ public class Goalkeeper : MonoBehaviour
 
         float speedOut = Mathf.Max(minRebound, incomingSpeed * reboundFactor);
         ball.rb.linearVelocity = dir * speedOut;
-        ball.Touch(team);
+        ball.Touch(team);   // la bola deja de ser "tiro": el rebote no abre otro QTE
 
         tracking = false;
         SaveVisual();

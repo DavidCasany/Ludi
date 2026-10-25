@@ -21,6 +21,12 @@ public class Ball : MonoBehaviour
 
     public bool IsPassFor(Team team) => !IsHeld && Time.time < passUntil && PassTeam == team;
 
+    // Tiros: cada tiro de un jugador tiene un número (ShotId). El portero del humano abre UN QTE por tiro.
+    // Un pase, un toque de stick, un bloqueo o una parada dejan de ser "tiro" (IsShot = false).
+    public bool IsShot { get; private set; }
+    public Team ShotTeam { get; private set; }
+    public int ShotId { get; private set; }
+
     [Header("Pase guiado (asistencia)")]
     [Tooltip("Grados por segundo que la bola puede girar para corregir su trayectoria hacia el receptor")]
     public float guideTurnRate = 320f;
@@ -132,6 +138,7 @@ public class Ball : MonoBehaviour
         Holder = skater;
         LastTouchTeam = skater.team;
         passUntil = 0f;
+        IsShot = false;
         guideTarget = null;
         rb.linearVelocity = Vector2.zero;
         rb.angularVelocity = 0f;
@@ -150,6 +157,16 @@ public class Ball : MonoBehaviour
     {
         PassTeam = team;
         passUntil = Time.time + duration;
+        IsShot = false;
+    }
+
+    // Lo llama Skater.Shoot: a partir de aquí la bola es un tiro de 'team'
+    public void MarkShot(Team team)
+    {
+        IsShot = true;
+        ShotTeam = team;
+        ShotId++;
+        passUntil = 0f;
     }
 
     // Para toques que no son de un Skater (p. ej. el portero)
@@ -158,6 +175,7 @@ public class Ball : MonoBehaviour
         LastTouchTeam = team;
         passUntil = 0f;
         guideTarget = null;
+        IsShot = false;   // un desvío ya no es el tiro original
     }
 
     public void ResetTo(Vector2 position)
@@ -165,6 +183,7 @@ public class Ball : MonoBehaviour
         Holder = null;
         passUntil = 0f;
         guideTarget = null;
+        IsShot = false;
         rb.bodyType = RigidbodyType2D.Dynamic;
         rb.linearVelocity = Vector2.zero;
         rb.angularVelocity = 0f;
