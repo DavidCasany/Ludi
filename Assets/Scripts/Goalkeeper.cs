@@ -12,7 +12,11 @@ using UnityEngine;
 //     Portero del HUMANO (con GoalkeeperQTE): cada TIRO rival abre un QTE. Acertar = parada segura.
 //     Los desvíos, bloqueos, rebotes y bolas lentas no abren QTE: el portero reacciona solo, como el de la IA.
 //     Mientras se decide el QTE la bola NO puede entrar: si llega a la línea se congela hasta el resultado.
-//  3) REBOTE: la bola sale con parte de su velocidad y nunca recta al centro: hay segundas jugadas.
+//     Si el tiro se DESVÍA en un jugador, el portero sigue un instante hacia donde iba y vuelve a reaccionar
+//     (y un QTE acertado deja de ser parada segura).
+//  3) PARADA: a veces CONTROLA la bola y se la pasa al compañero más libre (más a menudo con tiros flojos,
+//     siempre con un QTE acertado); si no, REBOTE con parte de la velocidad y nunca recto al centro.
+//  El portero sabe de qué equipo es por la PORTERÍA que defiende, no por la jerarquía.
 //
 // 'speed' y 'reach' los modifican las mejoras del torneo (TeamStatApplier).
 [RequireComponent(typeof(Rigidbody2D))]
@@ -46,6 +50,8 @@ public class Goalkeeper : MonoBehaviour
     [SerializeField] float screenRadius = 0.7f;
     [SerializeField] float shotMinSpeed = 6f;             // por debajo no se considera que la bola vaya a puerta
     [SerializeField, Range(0f, 0.5f)] float readError = 0.12f;   // error al leer por dónde cruzará (m)
+    [Tooltip("Tiempo extra de reacción cuando el tiro se desvía en un jugador (s)")]
+    [SerializeField] float deflectReaction = 0.15f;
 
     [Header("Parada y rebote")]
     [SerializeField, Range(0f, 1f)] float reboundFactor = 0.45f;
@@ -53,6 +59,16 @@ public class Goalkeeper : MonoBehaviour
     [SerializeField] float maxDeflectAngle = 60f;
     [SerializeField] float minReboundAngle = 25f;         // ningún rebote sale recto hacia la zona de remate
     [SerializeField] float saveFlashTime = 0.25f;
+
+    [Header("Control y pase del portero (en vez de rebote)")]
+    [Tooltip("Probabilidad de controlar la bola y pasarla a un compañero con un tiro lento")]
+    [SerializeField, Range(0f, 1f)] float controlChanceSlow = 0.6f;
+    [Tooltip("... con un tiro fuerte")]
+    [SerializeField, Range(0f, 1f)] float controlChanceFast = 0.2f;
+    [SerializeField] float slowShotSpeed = 12f;
+    [SerializeField] float fastShotSpeed = 28f;
+    [SerializeField] float keeperPassSpeedMin = 9f;
+    [SerializeField] float keeperPassSpeedMax = 18f;
 
     [Header("QTE (solo portero del humano)")]
     [Tooltip("Solo los tiros más rápidos que esto abren un QTE (los lentos los para el portero solo)")]
@@ -73,7 +89,23 @@ public class Goalkeeper : MonoBehaviour
     float flashUntil;
     GoalkeeperQTE qte;   // opcional: solo en el portero del humano
     TeamManager owner;
-    bool HumanKeeper => owner != null && owner.humanControlled;
+    Goal myGoal;   // la portería que defiende (se mide en EnsureFit)
+
+    // Equipo que defiende ESTA portería. Se deduce de la portería y no de la jerarquía, así un portero
+    // colgado del TeamManager equivocado no se confunde de equipo.
+    Team DefendingTeam => myGoal != null ? myGoal.defendingTeam : team;
+
+    // ¿Es el portero del jugador humano? (el QTE solo se abre en este)
+    bool HumanKeeper
+    {
+        get
+        {
+            GameManager gm = GameManager.Instance;
+            if (gm == null || gm.home == null || myGoal == null) return owner != null && owner.humanControlled;
+            Team human = gm.home.humanControlled ? Team.Home : Team.Away;
+            return myGoal.defendingTeam == human;
+        }
+    }
 
     // Geometría real de la portería
     bool fitted;
@@ -89,6 +121,11 @@ public class Goalkeeper : MonoBehaviour
     float shotDelay;
     float readOffset;
     int lastQteShot = -1;   // ShotId del último tiro que abrió un QTE (un QTE por tiro)
+
+    // Desvíos: si el tiro cambia de trayectoria, el portero sigue un momento hacia donde iba y vuelve a reaccionar
+    int lastDeflectId;
+    bool deflected;
+    Vector2 diveTarget;
 
     // Seguro del QTE: si la bola llega a la línea mientras se decide, se queda congelada ahí hasta el resultado
     bool holdingBall;
@@ -117,6 +154,7 @@ public class Goalkeeper : MonoBehaviour
         fitted = true;
 
         Goal g = Goal.Nearest(startPos);
+        myGoal = g;
         if (g == null)
         {
             lineX = startPos.x;
@@ -170,6 +208,18 @@ public class Goalkeeper : MonoBehaviour
                     shotTime = Time.time;
                     shotDelay = reactionTime + (IsScreened(ball, crossY) ? screenPenalty : 0f);
                     readOffset = Random.Range(-readError, readError);
+                    lastDeflectId = ball.DeflectId;
+                    deflected = false;
+                    diveTarget = rb.position;
+                }
+                else if (ball.DeflectId != lastDeflectId)
+                {
+                    // ¡Desvío! El tiro ha cambiado de trayectoria: vuelve a reaccionar (y ya no hay parada segura)
+                    lastDeflectId = ball.DeflectId;
+                    deflected = true;
+                    shotTime = Time.time;
+                    shotDelay = reactionTime + deflectReaction;
+                    readOffset = Random.Range(-readError, readError);
                 }
 
                 // Un QTE por TIRO (no por "bola que viene"): aunque el anterior acabe de resolverse, un tiro nuevo abre otro
@@ -194,7 +244,7 @@ public class Goalkeeper : MonoBehaviour
                         ball.rb.linearVelocity = Vector2.zero;
                     }
                 }
-                else if (q == QTEState.Success)
+                else if (q == QTEState.Success && !deflected)
                 {
                     // Parada garantizada: se coloca al instante y, cuando la bola llega a su altura, la despeja él
                     Vector2 savePos = InterceptPoint(ball);
@@ -209,7 +259,7 @@ public class Goalkeeper : MonoBehaviour
                 }
                 else
                 {
-                    // Portero de la IA, bola que no es un tiro, o QTE fallado: reacción normal
+                    // Portero de la IA, bola que no es un tiro, QTE fallado o tiro desviado: reacción normal
                     // (si ha fallado el QTE, reacciona más tarde y lee peor por dónde va la bola)
                     bool failed = q == QTEState.Fail;
                     float delay = shotDelay + (failed ? qteFailExtraDelay : 0f);
@@ -217,11 +267,14 @@ public class Goalkeeper : MonoBehaviour
 
                     if (Time.time - shotTime < delay)
                     {
-                        target = rb.position;
+                        // Aún no ha reaccionado. Tras un desvío sigue hacia donde iba: a contrapié
+                        target = deflected ? diveTarget : rb.position;
+                        if (deflected) moveSpeed = speed;
                     }
                     else
                     {
                         target = InterceptPoint(ball) + new Vector2(0f, error);
+                        diveTarget = target;
                         moveSpeed = speed;
                     }
                 }
@@ -256,7 +309,7 @@ public class Goalkeeper : MonoBehaviour
         holdingBall = false;
         if (ball.IsHeld) return false;               // alguien la ha cogido: se acabó el seguro
 
-        if (q == QTEState.Success)
+        if (q == QTEState.Success && !deflected)
         {
             // Parada sobre la línea: el portero llega a la bola y la despeja
             rb.position = ClampToArea(new Vector2(rb.position.x, ball.rb.position.y));
@@ -359,7 +412,7 @@ public class Goalkeeper : MonoBehaviour
     bool UseQTE(Ball ball, float timeToLine)
     {
         if (qte == null || !qte.enabled || !HumanKeeper) return false;
-        if (!ball.IsShot || ball.ShotTeam == team) return false;
+        if (!ball.IsShot || ball.ShotTeam == DefendingTeam) return false;
         if (ball.Speed < qteMinSpeed) return false;
         if (Vector2.Distance(ball.rb.position, startPos) > qteMaxDistance) return false;
         return timeToLine > 0.02f;
@@ -374,7 +427,7 @@ public class Goalkeeper : MonoBehaviour
         for (int i = 0; i < Skater.All.Count; i++)
         {
             Skater s = Skater.All[i];
-            if (s.team == team) continue;
+            if (s.team == DefendingTeam) continue;
 
             Vector2 p = s.transform.position;
             if (Vector2.Distance(p, b) > 4f) continue;
@@ -402,6 +455,17 @@ public class Goalkeeper : MonoBehaviour
     // Rebote vivo: hacia fuera, con un ángulo que depende de dónde golpea y con parte de la velocidad
     void Deflect(Ball ball, float incomingSpeed)
     {
+        // QTE acertado: el portero SIEMPRE controla y saca la bola jugada. Si no, depende de lo fuerte del tiro.
+        bool qteSave = qte != null && qte.State == QTEState.Success && !deflected;
+        float control = Mathf.Lerp(controlChanceSlow, controlChanceFast,
+                                   Mathf.InverseLerp(slowShotSpeed, fastShotSpeed, incomingSpeed));
+        if ((qteSave || Random.value < control) && TryKeeperPass(ball))
+        {
+            tracking = false;
+            SaveVisual();
+            return;
+        }
+
         float offset = (ball.rb.position.y - rb.position.y) / Mathf.Max(col.bounds.extents.y, 0.01f);
         float angleDeg = Mathf.Clamp(offset, -1f, 1f) * maxDeflectAngle + Random.Range(-10f, 10f);
 
@@ -416,10 +480,57 @@ public class Goalkeeper : MonoBehaviour
 
         float speedOut = Mathf.Max(minRebound, incomingSpeed * reboundFactor);
         ball.rb.linearVelocity = dir * speedOut;
-        ball.Touch(team);   // la bola deja de ser "tiro": el rebote no abre otro QTE
+        ball.Touch(DefendingTeam);   // la bola deja de ser "tiro": el rebote no abre otro QTE
 
         tracking = false;
         SaveVisual();
+    }
+
+    // El portero controla la bola y se la pasa al compañero más libre (como en Tape to Tape: la defensa
+    // recupera la posesión tras la parada en vez de dejar un rebote al rival). Devuelve false si no hay pase.
+    bool TryKeeperPass(Ball ball)
+    {
+        Team myTeam = DefendingTeam;
+        Vector2 from = ball.rb.position;
+        Skater best = null;
+        float bestScore = float.MinValue;
+
+        for (int i = 0; i < Skater.All.Count; i++)
+        {
+            Skater m = Skater.All[i];
+            if (m.team != myTeam) continue;
+
+            Vector2 mp = m.transform.position;
+            float d = Vector2.Distance(from, mp);
+            if (d < 2.5f || d > 22f) continue;          // ni pegado ni demasiado lejos
+            if (DepthOf(mp) < 1f) continue;              // nunca hacia la línea de fondo
+
+            float lane = float.MaxValue, open = float.MaxValue;
+            for (int j = 0; j < Skater.All.Count; j++)
+            {
+                Skater o = Skater.All[j];
+                if (o.team == myTeam) continue;
+                Vector2 op = o.transform.position;
+                lane = Mathf.Min(lane, DistToSegment(op, from, mp));
+                open = Mathf.Min(open, Vector2.Distance(op, mp));
+            }
+            if (lane < 1f) continue;                     // línea de pase tapada
+
+            float score = Mathf.Min(open, 6f) + 0.5f * Mathf.Min(lane, 4f) - 0.05f * d;
+            if (score > bestScore) { bestScore = score; best = m; }
+        }
+
+        if (best == null) return false;
+
+        Vector2 to = (Vector2)best.transform.position + best.Velocity * 0.3f - from;
+        float spd = Mathf.Clamp(to.magnitude * 2.2f, keeperPassSpeedMin, keeperPassSpeedMax);
+        ball.rb.linearVelocity = to.normalized * spd;
+        ball.Touch(myTeam);
+        ball.MarkPass(myTeam, 1.5f);   // los compañeros la controlan aunque vaya rápida
+        ball.SetGuide(best, null);     // y la bola corrige hacia el receptor
+
+        Feedback.Popup(rb.position, "¡CONTROLA!", new Color(0.4f, 1f, 0.5f));
+        return true;
     }
 
     void SaveVisual()

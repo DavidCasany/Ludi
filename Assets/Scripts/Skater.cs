@@ -357,7 +357,7 @@ public class Skater : MonoBehaviour
         if (!HasBall || !CanShoot) return;
         Ball b = ball;
         DropBall(dir.normalized * force + rb.linearVelocity * inheritVelocity, pickupCooldown, false);
-        b.MarkShot(team);   // el portero sabe que es un tiro (y de quién)
+        b.MarkShot(team, this);   // el portero sabe que es un tiro (y de quién)
         if (IsControlled) GameCamera.Shake(0.12f, 0.12f);   // pequeño golpe de cámara al tirar
     }
 

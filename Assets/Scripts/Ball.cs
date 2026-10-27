@@ -26,6 +26,16 @@ public class Ball : MonoBehaviour
     public bool IsShot { get; private set; }
     public Team ShotTeam { get; private set; }
     public int ShotId { get; private set; }
+    public Skater Shooter { get; private set; }      // quién ha tirado (no puede desviar su propio tiro)
+    public float ShotDistance { get; private set; }  // distancia del tiro a la portería atacada (tiro exterior o no)
+
+    // Jugada: tiros seguidos del mismo equipo sin que el rival recupere la bola (los rebotes suman)
+    public int ShotStreak { get; private set; }
+    Team streakTeam;
+    bool streakAlive;
+
+    // Cada desvío (un jugador toca un tiro y le cambia la trayectoria) suma 1: el portero tiene que volver a reaccionar
+    public int DeflectId { get; private set; }
 
     [Header("Pase guiado (asistencia)")]
     [Tooltip("Grados por segundo que la bola puede girar para corregir su trayectoria hacia el receptor")]
@@ -139,6 +149,7 @@ public class Ball : MonoBehaviour
         LastTouchTeam = skater.team;
         passUntil = 0f;
         IsShot = false;
+        if (skater.team != streakTeam) streakAlive = false;   // el rival la recupera: se acaba la jugada
         guideTarget = null;
         rb.linearVelocity = Vector2.zero;
         rb.angularVelocity = 0f;
@@ -161,12 +172,31 @@ public class Ball : MonoBehaviour
     }
 
     // Lo llama Skater.Shoot: a partir de aquí la bola es un tiro de 'team'
-    public void MarkShot(Team team)
+    public void MarkShot(Team team, Skater shooter = null)
     {
         IsShot = true;
         ShotTeam = team;
         ShotId++;
+        Shooter = shooter;
         passUntil = 0f;
+
+        ShotStreak = streakAlive && streakTeam == team ? ShotStreak + 1 : 1;
+        streakTeam = team;
+        streakAlive = true;
+
+        ShotDistance = float.MaxValue;
+        for (int i = 0; i < Goal.All.Count; i++)
+            if (Goal.All[i].defendingTeam != team)
+                ShotDistance = Mathf.Min(ShotDistance, Vector2.Distance(rb.position, Goal.All[i].Mouth));
+    }
+
+    // Un jugador toca el tiro y le cambia la trayectoria: sigue siendo el mismo tiro (no abre otro QTE)
+    public void Deflect(Team team)
+    {
+        LastTouchTeam = team;
+        passUntil = 0f;
+        guideTarget = null;
+        DeflectId++;
     }
 
     // Para toques que no son de un Skater (p. ej. el portero)
@@ -184,6 +214,8 @@ public class Ball : MonoBehaviour
         passUntil = 0f;
         guideTarget = null;
         IsShot = false;
+        streakAlive = false;
+        ShotStreak = 0;
         rb.bodyType = RigidbodyType2D.Dynamic;
         rb.linearVelocity = Vector2.zero;
         rb.angularVelocity = 0f;
