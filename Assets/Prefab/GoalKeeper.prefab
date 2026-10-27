@@ -180,12 +180,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Goalkeeper
   team: 0
-  speed: 5.5
-  reach: 0.55
-  goalHalfWidth: 0.85
-  positioningSpeedFactor: 0.8
-  maxDepth: 0.45
-  postHugInset: 0.2
+  speed: 7
+  reach: 0.2
+  positioningSpeedFactor: 0.6
+  lineOffset: 0.05
+  maxDepth: 0.6
+  fallbackGoalHalfWidth: 0.85
   reactionTime: 0.17
   screenPenalty: 0.1
   screenRadius: 0.7
@@ -195,3 +195,4 @@ MonoBehaviour:
   minRebound: 4
   maxDeflectAngle: 50
   saveFlashTime: 0.25
+  qteSaveSpeed: 40

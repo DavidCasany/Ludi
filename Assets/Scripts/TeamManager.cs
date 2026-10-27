@@ -24,6 +24,13 @@ public class TeamManager : MonoBehaviour
     public List<Skater> skaters = new List<Skater>();  // jugadores de campo (se autorrellena)
     public Goalkeeper goalkeeper;                      // se autorrellena
 
+    [Header("Tiro asistido")]
+    public bool shotAssist = true;
+    [Tooltip("Si apuntas a menos de estos grados de una esquina de la portería, el tiro se ajusta a ella")]
+    public float shotAssistAngle = 10f;
+
+    TeamBrain brain;
+
     [Header("Pase con el ratón")]
     public float passAssistRadius = 1.5f;  // si el cursor está a menos de esto de un compañero, el pase va a él
 
@@ -33,8 +40,8 @@ public class TeamManager : MonoBehaviour
     public float defendSwitchMargin = 5f;      // defendiendo: cambia si otro está esto mejor situado (m)
 
     [Header("Stick")]
-    public bool stickAimAssist = true;       // el golpe apunta a la bola si está al alcance
-    public float stickAssistFactor = 1.3f;   // alcance de la ayuda = stickReach x esto
+    [Tooltip("El clic solo golpea si la bola está a menos de stickReach x esto")]
+    public float stickClickRange = 1.1f;
 
     [Header("HUD")]
     public bool showControlsHint = true;
@@ -152,6 +159,7 @@ public class TeamManager : MonoBehaviour
             Vector2 ballPos = Ball.Instance.rb.position;
             Vector2 toTarget = mouse - ballPos;
             Vector2 shotDir = toTarget.sqrMagnitude > 0.01f ? toTarget.normalized : Controlled.AimDir;
+            shotDir = AssistShot(ballPos, shotDir);
 
             // Alcance aproximado del tiro: velocidad / rozamiento de la bola
             float range = Controlled.shootForce / Mathf.Max(Ball.Instance.rb.linearDamping, 0.01f);
@@ -177,14 +185,15 @@ public class TeamManager : MonoBehaviour
         }
         else
         {
-            // Ayuda de apuntado: si la bola está cerca, el golpe va hacia ella aunque el cursor esté en otro sitio
+            // Robo / intercepción: solo cuenta el clic. El golpe va siempre hacia la bola, el cursor no importa.
+            // Si la bola está fuera de alcance no se golpea (antes un clic lejano dejaba descolocado y gastaba el cooldown).
             Ball b = Ball.Instance;
-            if (stickAimAssist && b != null)
-            {
-                Vector2 toBall = b.rb.position - (Vector2)Controlled.transform.position;
-                if (toBall.magnitude <= Controlled.stickReach * stickAssistFactor)
-                    Controlled.AimDir = toBall.normalized;
-            }
+            if (b == null) return;
+
+            Vector2 toBall = b.rb.position - (Vector2)Controlled.transform.position;
+            if (toBall.magnitude > Controlled.stickReach * stickClickRange) return;
+
+            if (toBall.sqrMagnitude > 0.0001f) Controlled.AimDir = toBall.normalized;
             Controlled.Stick();
         }
     }
@@ -451,5 +460,28 @@ public class TeamManager : MonoBehaviour
         GUI.color = Color.white;
 
         GUI.Label(new Rect(r.xMax + 6f, r.y - 5f, 90f, 18f), label, smallStyle);
+    }
+
+        // Tiro asistido: si apuntas cerca de una esquina, el tiro va a esa esquina (como hace la IA)
+    Vector2 AssistShot(Vector2 from, Vector2 dir)
+    {
+        if (!shotAssist) return dir;
+        if (brain == null) brain = GetComponent<TeamBrain>();   // lo crea SkaterAI si falta
+        if (brain == null) return dir;
+
+        Vector2 goal = brain.OppGoalPos;
+        Vector2 lat = brain.Lateral;
+        float aimLat = Mathf.Max(0.05f, brain.OppGoalHalfWidth - brain.Profile.postMargin);
+
+        Vector2 best = dir;
+        float bestAng = shotAssistAngle;
+        for (int s = -1; s <= 1; s += 2)
+        {
+            Vector2 to = goal + lat * (s * aimLat) - from;
+            if (to.sqrMagnitude < 0.01f) continue;
+            float ang = Vector2.Angle(dir, to);
+            if (ang < bestAng) { bestAng = ang; best = to.normalized; }
+        }
+        return best;
     }
 }

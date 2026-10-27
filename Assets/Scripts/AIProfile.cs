@@ -49,4 +49,6 @@ public class AIProfile : ScriptableObject
     public float markDistance = 2.8f;
     [Tooltip("Distancia mínima y máxima del jugador de cobertura al portador (m).")]
     public float coverMin = 4f, coverMax = 7f;
+    [Range(0.1f, 1.5f), Tooltip("Multiplica la probabilidad de robo de los jugadores de este equipo (1 = normal)")]
+    public float stealChanceScale = 1f;
 }

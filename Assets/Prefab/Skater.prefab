@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 5863094306874987883}
   - component: {fileID: 6782343080617457895}
   - component: {fileID: 1734135394275785095}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Skater
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -220,6 +220,7 @@ MonoBehaviour:
   receiverPickupBonus: 1.3
   stealRating: 0.5
   ballControl: 0.5
+  stealChanceScale: 1
   stickReach: 1.4
   stickArc: 110
   stickCatchMaxSpeed: 18
@@ -227,6 +228,7 @@ MonoBehaviour:
   useStealCooldown: 1
   stealCooldown: 0.7
   stealBaseChance: 0.25
+  stealMaxChance: 0.8
   sprintStealBonus: 0.12
   interceptSuccessChance: 0.45
   missRecovery: 0.6
@@ -254,14 +256,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SkaterAI
   skill: 0.7
-  thinkTime: 0.45
   pressureDistance: 2
   ownZoneDistance: 12
-  passMargin: 0.15
-  maxHoldTime: 3.5
-  shootThreshold: 0.2
-  pressuredShootThreshold: 0.12
-  shootPreference: 0.12
   shootZone: 10
   shootPatience: 1
   jukeChance: 0.6
@@ -280,7 +276,7 @@ GameObject:
   m_Component:
   - component: {fileID: 301260413159144188}
   - component: {fileID: 155310572938323835}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Controling
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -370,7 +366,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4283531966919134296}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: HoldPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}

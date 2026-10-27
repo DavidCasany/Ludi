@@ -1,9 +1,10 @@
 using UnityEngine;
 
-// Quick Time Event del portero del humano. Lo activa Goalkeeper al detectar un tiro rival:
+// Quick Time Event del portero del humano. Lo activa Goalkeeper con cada TIRO rival (uno por tiro):
 // ralentiza el tiempo y muestra una barra con una zona verde y una línea que la recorre.
-// Pulsar la tecla con la línea dentro de la zona verde = parada segura. Fallar o no pulsar = plantado.
-// Ponlo SOLO en el portero del equipo humano.
+// Pulsar la tecla con la línea dentro de la zona verde = parada segura.
+// Fallar o no pulsar = el portero reacciona solo, pero más tarde y leyendo peor el tiro.
+// Ponlo SOLO en el portero del equipo humano (en el rival se ignora igualmente).
 [RequireComponent(typeof(Goalkeeper))]
 public class GoalkeeperQTE : MonoBehaviour
 {
@@ -11,6 +12,8 @@ public class GoalkeeperQTE : MonoBehaviour
     [SerializeField, Range(0.02f, 0.5f)] float slowTimeScale = 0.06f;   // velocidad del juego durante el QTE
     [SerializeField] float barTime = 0.9f;                              // segundos REALES que tarda la línea en cruzar
     [SerializeField] KeyCode key = KeyCode.Space;
+    [SerializeField] float inputGrace = 0.25f;                    // s reales al inicio en que se ignora la tecla
+    [SerializeField, Range(0.3f, 1f)] float arriveMargin = 0.75f; // la barra acaba antes de que llegue la bola
 
     [Header("Dificultad")]
     [SerializeField, Range(0.05f, 0.6f)] float greenWidthFar = 0.28f;   // anchura de la zona verde (fracción) en tiros lejanos
@@ -20,7 +23,11 @@ public class GoalkeeperQTE : MonoBehaviour
 
     [Header("Barra")]
     [SerializeField] Vector2 barSize = new Vector2(320f, 22f);
-    [SerializeField] float resultShowTime = 0.6f;
+    [SerializeField] float resultShowTime = 0.5f;
+
+
+    [SerializeField] bool debugLog = true;   // escribe en la consola la cámara lenta de cada QTE
+    float appliedScale = 1f, appliedFixed = 0.02f;
 
     public QTEState State { get; private set; } = QTEState.Idle;
 
@@ -38,7 +45,7 @@ public class GoalkeeperQTE : MonoBehaviour
     bool lastOk;
     GUIStyle labelStyle;
 
-    public void Begin(float shotDistance)
+    public void Begin(float shotDistance, float timeToGoal)
     {
         if (State == QTEState.Running) return;
 
@@ -55,17 +62,42 @@ public class GoalkeeperQTE : MonoBehaviour
         savedTimeScale = Time.timeScale;
         savedFixedDelta = Time.fixedDeltaTime;
         float baseFixed = savedFixedDelta / Mathf.Max(savedTimeScale, 0.01f);
-        Time.timeScale = slowTimeScale;
-        Time.fixedDeltaTime = baseFixed * slowTimeScale;   // física suave en cámara lenta
+
+        // Cámara lenta suficiente para que la barra termine ANTES de que llegue la bola
+        float needed = timeToGoal * arriveMargin / Mathf.Max(barTime, 0.1f);
+        float scale = Mathf.Clamp(Mathf.Min(slowTimeScale, needed), 0.01f, 1f);
+        appliedScale = scale;
+        appliedFixed = baseFixed * scale;
+        Time.timeScale = appliedScale;
+        Time.fixedDeltaTime = appliedFixed;
+
+        if (debugLog) Debug.Log($"QTE en {name}: la bola llega en {timeToGoal:F2}s, cámara lenta x{scale:F3}");
     }
 
     void Update()
     {
         if (State != QTEState.Running) return;
 
-        cursor = (Time.unscaledTime - startTime) / Mathf.Max(barTime, 0.1f);
-        if (Input.GetKeyDown(key)) Resolve(Mathf.Abs(cursor - greenCenter) <= greenWidth * 0.5f);
-        else if (cursor >= 1f) Resolve(false);
+        // Nadie nos quita la cámara lenta mientras dura el QTE
+        if (!Mathf.Approximately(Time.timeScale, appliedScale))
+        {
+            Time.timeScale = appliedScale;
+            Time.fixedDeltaTime = appliedFixed;
+        }
+
+        float elapsed = Time.unscaledTime - startTime;
+        cursor = elapsed / Mathf.Max(barTime, 0.1f);
+        if (elapsed >= inputGrace && Input.GetKeyDown(key))
+        {
+            bool ok = Mathf.Abs(cursor - greenCenter) <= greenWidth * 0.5f;
+            if (debugLog) Debug.Log($"QTE {(ok ? "ACIERTO" : "FALLO")}: pulsado en {cursor:P0} (zona verde {greenCenter - greenWidth * 0.5f:P0}-{greenCenter + greenWidth * 0.5f:P0})");
+            Resolve(ok);
+        }
+        else if (cursor >= 1f)
+        {
+            if (debugLog) Debug.Log("QTE FALLO: no se ha pulsado a tiempo");
+            Resolve(false);
+        }
     }
 
     void Resolve(bool ok)
@@ -107,6 +139,20 @@ public class GoalkeeperQTE : MonoBehaviour
         }
 
         Rect bar = new Rect((Screen.width - barSize.x) * 0.5f, Screen.height * 0.7f, barSize.x, barSize.y);
+
+        // Resultado: la barra desaparece y queda solo el veredicto, para que no parezca que el QTE sigue abierto
+        if (State != QTEState.Running)
+        {
+            Color resultColor = lastOk ? new Color(0.4f, 1f, 0.5f) : new Color(1f, 0.4f, 0.4f);
+            Fill(bar, new Color(resultColor.r, resultColor.g, resultColor.b, 0.85f));
+            labelStyle.fontSize = 22;
+            GUI.color = resultColor;
+            GUI.Label(new Rect(bar.x, bar.y - 34f, bar.width, 30f), lastOk ? "¡PARADÓN!" : "¡FALLO!", labelStyle);
+            GUI.color = Color.white;
+            labelStyle.fontSize = 16;
+            return;
+        }
+
         Fill(bar, new Color(0f, 0f, 0f, 0.75f));
 
         Rect inner = new Rect(bar.x + 2f, bar.y + 2f, bar.width - 4f, bar.height - 4f);

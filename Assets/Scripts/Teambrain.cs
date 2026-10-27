@@ -51,9 +51,13 @@ public class TeamBrain : MonoBehaviour
     public float teammateSpacing = 7f;
     [Tooltip("Segundos hacia el futuro con los que se anticipa la posición del portador")]
     public float supportLead = 0.6f;
+    [Tooltip("En ataque, el jugador sobrante se coloca en el campo rival en vez de quedarse atrás")]
+    public bool supportForward = false;
 
     [Header("Defensa")]
     public float sweeperDepth = 7f;
+    [Tooltip("Bola suelta a menos de esto de nuestra portería: van dos jugadores a por el rebote")]
+    public float reboundZone = 8f;
 
     [Header("Defensa en zona (si Defense Shape no es ManMarking)")]
     public DefenseShape defenseShape = DefenseShape.ManMarking;
@@ -120,6 +124,15 @@ public class TeamBrain : MonoBehaviour
     // los tiros en ángulo crucen la línea FUERA del primer palo: el "tiro en diagonal".
     public Vector2 OwnGoalPos => MouthOf(tm.ownGoal);
     public Vector2 OppGoalPos => MouthOf(tm.opponentGoal);
+
+    public float OppGoalHalfWidth
+    {
+        get
+        {
+            Goal g = Goal.Nearest(tm.opponentGoal.position);
+            return g != null ? g.HalfWidth : goalHalfWidth;
+        }
+    }
 
     static Vector2 MouthOf(Transform t)
     {
@@ -267,7 +280,7 @@ public class TeamBrain : MonoBehaviour
             gkCover = gk.HalfWidth + 0.15f;   // medio cuerpo + radio aproximado de la bola
         }
 
-        float aimLat = Mathf.Max(0.05f, goalHalfWidth - Profile.postMargin);
+        float aimLat = Mathf.Max(0.05f, OppGoalHalfWidth - Profile.postMargin);
         float best = 0f;
 
         for (int side = -1; side <= 1; side += 2)
@@ -342,7 +355,7 @@ public class TeamBrain : MonoBehaviour
 
         Vector2 ballPos = ball.rb.position;
         bool ours = ball.IsHeld && ball.Holder.team == tm.team;
-        bool attackingPosture = ours || (!ball.IsHeld && ball.LastTouchTeam == tm.team);
+        bool attackingPosture = ours || (!ball.IsHeld && LooseBallIsOurs(ball));
 
         if (ours)
         {
@@ -361,6 +374,19 @@ public class TeamBrain : MonoBehaviour
                 free.Remove(hunter);
             }
             currentHunter = hunter;
+            // Rebote cerca de nuestra portería: hasta dos jugadores de la IA van a por la bola
+            if (!ball.IsHeld && Vector2.Distance(ball.rb.position, OwnGoalPos) < M(reboundZone))
+            {
+                int chasers = hunter != null ? 1 : 0;
+                while (chasers < 2)
+                {
+                    Skater c = ClosestFree(ball);
+                    if (c == null) break;
+                    assignments[c] = new AIAssignment(AIRole.Hunter, Sanitize(InterceptPoint(c, ball), M(tightGoalExtra)));
+                    free.Remove(c);
+                    chasers++;
+                }
+            }
         }
 
         slots.Clear();
@@ -379,7 +405,12 @@ public class TeamBrain : MonoBehaviour
 
         while (slots.Count > free.Count) slots.RemoveAt(slots.Count - 1);
         while (slots.Count < free.Count)
-            slots.Add(new AIAssignment(AIRole.Safety, Sanitize(Vector2.Lerp(OwnGoalPos, Center, 0.4f))));
+        {
+            Vector2 fill = attackingPosture && supportForward
+                ? Sanitize(Vector2.Lerp(Center, OppGoalPos, 0.35f))   // "punta": línea azul rival
+                : Sanitize(Vector2.Lerp(OwnGoalPos, Center, 0.4f));
+            slots.Add(new AIAssignment(AIRole.Safety, fill));
+        }
 
         Assign(free, slots);
 
@@ -447,6 +478,39 @@ public class TeamBrain : MonoBehaviour
                 float th = Vector2.Distance(s.transform.position, InterceptPoint(s, ball)) / s.TopSpeed;
                 if (th < bestT * 0.8f) return null;
             }
+        }
+        return best;
+    }
+
+        // Bola suelta: es "nuestra" solo si llegamos claramente antes (o es un pase nuestro).
+    // Antes contaba quién la tocó el último: tras una parada, el equipo se iba al ataque
+    // con la bola suelta junto a su propia portería.
+    bool LooseBallIsOurs(Ball ball)
+    {
+        if (ball.IsPassFor(tm.team)) return true;
+        if (tm.opponent == null) return ball.LastTouchTeam == tm.team;
+        return ReachTime(tm.skaters, ball) < ReachTime(tm.opponent.skaters, ball) * 0.85f;
+    }
+
+    float ReachTime(List<Skater> list, Ball ball)
+    {
+        float best = float.MaxValue;
+        foreach (Skater s in list)
+        {
+            float t = Vector2.Distance(s.transform.position, InterceptPoint(s, ball)) / Mathf.Max(s.TopSpeed, 0.1f);
+            if (t < best) best = t;
+        }
+        return best;
+    }
+
+    Skater ClosestFree(Ball ball)
+    {
+        Skater best = null;
+        float bestT = float.MaxValue;
+        foreach (Skater s in free)
+        {
+            float t = Vector2.Distance(s.transform.position, InterceptPoint(s, ball)) / Mathf.Max(s.TopSpeed, 0.1f);
+            if (t < bestT) { bestT = t; best = s; }
         }
         return best;
     }
