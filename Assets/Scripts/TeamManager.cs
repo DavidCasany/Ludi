@@ -13,6 +13,7 @@ public enum Team { Home, Away }
 //   Clic der. ...... con bola: pase hacia el cursor (se ajusta a un compañero cercano al cursor)
 //                    sin bola (mantener): defensa asistida (DefendAssist)
 //   Espacio ........ con bola: regate | sin bola: cambiar al jugador más cercano a la bola
+//   (Conduciendo, con un rival cerca, tu jugador protege la bola con el cuerpo automáticamente)
 public class TeamManager : MonoBehaviour
 {
     public Team team;
@@ -38,6 +39,12 @@ public class TeamManager : MonoBehaviour
     public float autoSwitchLockout = 0.6f;     // mínimo entre cambios automáticos de jugador (s)
     public float manualSwitchLockout = 1.5f;   // tras cambiar con Espacio, el automático espera esto (s)
     public float defendSwitchMargin = 5f;      // defendiendo: cambia si otro está esto mejor situado (m)
+
+    [Header("Protección de la bola (conduciendo)")]
+    [Tooltip("Con un rival a menos de esto (m), tu jugador se pone entre él y la bola automáticamente")]
+    public float shieldRadius = 2.6f;
+    [Range(0f, 1f), Tooltip("Cuánto se aparta la bola del rival (0 = va hacia el cursor, 1 = protección total)")]
+    public float shieldStrength = 0.85f;
 
     [Header("Stick")]
     [Tooltip("El clic solo golpea si la bola está a menos de stickReach x esto")]
@@ -113,6 +120,7 @@ public class TeamManager : MonoBehaviour
         Vector2 mouse = cam.ScreenToWorldPoint(Input.mousePosition);
         Vector2 toMouse = mouse - (Vector2)Controlled.transform.position;
         if (toMouse.sqrMagnitude > 0.001f) Controlled.AimDir = toMouse.normalized;
+        if (Controlled.HasBall && !aiming) Controlled.AimDir = ShieldedAim(Controlled.AimDir);
 
         HandleLeftClick(mouse);
         ShowPassPreview(mouse);
@@ -196,6 +204,30 @@ public class TeamManager : MonoBehaviour
             if (toBall.sqrMagnitude > 0.0001f) Controlled.AimDir = toBall.normalized;
             Controlled.Stick();
         }
+    }
+
+    // Protección automática: con un rival cerca, la bola se lleva por el lado contrario a él (cuerpo en medio),
+    // como hace la IA. Cuanto más cerca está el rival, más se aparta. El tiro y el pase siguen yendo al cursor.
+    Vector2 ShieldedAim(Vector2 aim)
+    {
+        if (opponent == null || shieldStrength <= 0f) return aim;
+
+        Vector2 pos = Controlled.transform.position;
+        Skater near = null;
+        float best = shieldRadius;
+        foreach (Skater o in opponent.skaters)
+        {
+            float d = Vector2.Distance(pos, o.transform.position);
+            if (d < best) { best = d; near = o; }
+        }
+        if (near == null) return aim;
+
+        Vector2 away = (pos - (Vector2)near.transform.position).normalized;
+        if (Vector2.Dot(aim, away) > 0.3f) return aim;   // ya está protegida: respeta el cursor
+
+        float w = shieldStrength * (1f - best / shieldRadius * 0.5f);   // más cerca = más protección
+        Vector2 shielded = Vector2.Lerp(aim, away, w);
+        return shielded.sqrMagnitude > 0.0001f ? shielded.normalized : away;
     }
 
     // Vista previa del pase asistido: a quién irá (y por dónde) si pulsas el clic derecho ahora
