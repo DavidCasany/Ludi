@@ -449,6 +449,12 @@ public class Goalkeeper : MonoBehaviour
     {
         Ball ball = c.collider.GetComponent<Ball>();
         if (ball == null) return;
+
+        // Ya es gol (bola dentro de la red) o el juego está parado: no hay parada que hacer
+        GameManager gm = GameManager.Instance;
+        if (gm != null && gm.State != MatchState.Playing) return;
+        if (DepthOf(ball.rb.position) < 0f) return;
+
         Deflect(ball, c.relativeVelocity.magnitude);
     }
 
