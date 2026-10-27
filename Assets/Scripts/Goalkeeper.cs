@@ -4,10 +4,14 @@ using UnityEngine;
 // La posición se ajusta SOLA a la portería real (Goal): línea de gol, centro y anchura.
 // Así funciona aunque RinkResizer cambie el tamaño de la pista o de las porterías.
 //
-//  1) COLOCACIÓN: bisectriz del ángulo bola-palos, saliendo un poco hacia la bola. Recolocarse es más lento.
-//  2) TIRO: tarda 'reactionTime' en reaccionar (más si le tapan) y se estira a 'speed'.
+//  1) COLOCACIÓN (como un portero de hockey patines): se mueve dentro de un ÁREA semicircular delante de la
+//     portería, no en una línea. Se coloca sobre la bisectriz del ángulo bola-palos y SALE hacia la bola
+//     (cierra el ángulo): mucho con la bola lejos y de frente, poco con la bola cerca o en ángulo cerrado.
+//  2) TIRO: tarda 'reactionTime' en reaccionar (más si le tapan) y se estira a 'speed' hacia el punto de la
+//     trayectoria de la bola más cercano a él (dentro de su área).
 //     Portero del HUMANO (con GoalkeeperQTE): cada TIRO rival abre un QTE. Acertar = parada segura.
 //     Los desvíos, bloqueos, rebotes y bolas lentas no abren QTE: el portero reacciona solo, como el de la IA.
+//     Mientras se decide el QTE la bola NO puede entrar: si llega a la línea se congela hasta el resultado.
 //  3) REBOTE: la bola sale con parte de su velocidad y nunca recta al centro: hay segundas jugadas.
 //
 // 'speed' y 'reach' los modifican las mejoras del torneo (TeamStatApplier).
@@ -26,7 +30,14 @@ public class Goalkeeper : MonoBehaviour
     [Header("Colocación (la portería se mide sola a partir del Goal)")]
     [SerializeField, Range(0.2f, 1f)] float positioningSpeedFactor = 0.6f; // recolocarse = speed x esto
     [SerializeField] float lineOffset = 0.05f;          // separación entre el portero y la línea de gol (m)
-    [SerializeField] float maxDepth = 0.6f;             // cuánto sale de la línea hacia la bola (m)
+
+    [Header("Área del portero (semicírculo delante de la portería)")]
+    [Tooltip("Cuánto puede salir el portero desde la línea de gol hacia la pista (m)")]
+    [SerializeField] float areaDepth = 1.3f;
+    [Tooltip("Con la bola a esta distancia o más (y de frente) sale al máximo del área")]
+    [SerializeField] float farBallDistance = 10f;
+    [Tooltip("Con la bola a esta distancia o menos se queda pegado a la línea")]
+    [SerializeField] float nearBallDistance = 3f;
     [SerializeField] float fallbackGoalHalfWidth = 0.85f; // solo si no encuentra ningún Goal
 
     [Header("Reacción al tiro")]
@@ -70,6 +81,7 @@ public class Goalkeeper : MonoBehaviour
     float goalCenterY;
     float goalHalf;      // semiancho real de la boca
     Vector2 startPos;    // posición base: centrado y pegado a la línea
+    float minU;          // profundidad mínima del centro del portero respecto a la línea de gol
     float outwardX;      // +1 o -1: hacia el centro de la pista
 
     bool tracking;
@@ -77,6 +89,10 @@ public class Goalkeeper : MonoBehaviour
     float shotDelay;
     float readOffset;
     int lastQteShot = -1;   // ShotId del último tiro que abrió un QTE (un QTE por tiro)
+
+    // Seguro del QTE: si la bola llega a la línea mientras se decide, se queda congelada ahí hasta el resultado
+    bool holdingBall;
+    Vector2 heldVelocity;
 
     // Desplazamiento lateral máximo del centro: cuerpo tocando el palo + reach
     float LateralLimit => Mathf.Max(0f, goalHalf - HalfWidth) + reach;
@@ -106,6 +122,7 @@ public class Goalkeeper : MonoBehaviour
             lineX = startPos.x;
             goalCenterY = startPos.y;
             goalHalf = fallbackGoalHalfWidth;
+            minU = 0f;
             return;
         }
 
@@ -116,7 +133,8 @@ public class Goalkeeper : MonoBehaviour
         goalHalf = g.HalfWidth;
 
         float halfDepth = col.bounds.extents.x;
-        startPos = new Vector2(lineX + outwardX * (halfDepth + lineOffset), goalCenterY);
+        minU = halfDepth + lineOffset;
+        startPos = new Vector2(lineX + outwardX * minU, goalCenterY);
         rb.position = startPos;
         transform.position = startPos;
     }
@@ -135,6 +153,11 @@ public class Goalkeeper : MonoBehaviour
         Ball ball = Ball.Instance;
         Vector2 target = startPos;
         float moveSpeed = speed * positioningSpeedFactor;
+
+        if (ball != null && holdingBall)
+        {
+            if (ResolveHeldBall(ball)) return;
+        }
 
         if (ball != null)
         {
@@ -162,16 +185,23 @@ public class Goalkeeper : MonoBehaviour
                 if (q == QTEState.Running)
                 {
                     target = rb.position;                                   // decidiendo (el tiempo va casi parado)
+
+                    // Seguro: mientras se decide el QTE la bola no puede entrar. Si llega a la línea, se congela ahí.
+                    if (DepthOf(ball.rb.position) < ball.col.bounds.extents.x + 0.05f)
+                    {
+                        holdingBall = true;
+                        heldVelocity = ball.rb.linearVelocity;
+                        ball.rb.linearVelocity = Vector2.zero;
+                    }
                 }
                 else if (q == QTEState.Success)
                 {
                     // Parada garantizada: se coloca al instante y, cuando la bola llega a su altura, la despeja él
-                    float saveLim = LateralLimit;
-                    Vector2 savePos = new Vector2(rb.position.x, Mathf.Clamp(crossY, goalCenterY - saveLim, goalCenterY + saveLim));
+                    Vector2 savePos = InterceptPoint(ball);
                     rb.position = savePos;
                     target = savePos;
 
-                    if ((ball.rb.position.x - rb.position.x) * outwardX < col.bounds.extents.x + 0.6f)
+                    if (DepthOf(ball.rb.position) - DepthOf(rb.position) < col.bounds.extents.x + 0.6f)
                     {
                         Deflect(ball, ball.Speed);
                         return;
@@ -191,7 +221,7 @@ public class Goalkeeper : MonoBehaviour
                     }
                     else
                     {
-                        target = new Vector2(rb.position.x, crossY + error);
+                        target = InterceptPoint(ball) + new Vector2(0f, error);
                         moveSpeed = speed;
                     }
                 }
@@ -204,28 +234,85 @@ public class Goalkeeper : MonoBehaviour
             }
         }
 
-        // Límites: lateral según la portería real, profundidad entre la línea y maxDepth hacia fuera
-        float lim = LateralLimit;
-        target.y = Mathf.Clamp(target.y, goalCenterY - lim, goalCenterY + lim);
-        float minX = Mathf.Min(startPos.x, startPos.x + outwardX * maxDepth);
-        float maxX = Mathf.Max(startPos.x, startPos.x + outwardX * maxDepth);
-        target.x = Mathf.Clamp(target.x, minX, maxX);
+        // Límites: siempre dentro de su área
+        target = ClampToArea(target);
 
         rb.MovePosition(Vector2.MoveTowards(rb.position, target, moveSpeed * Time.fixedDeltaTime));
 
         if (sr != null && Time.time > flashUntil) sr.color = baseColor;
     }
 
-    // Bisectriz del ángulo bola-palos: corta la línea de gol en Y = (d2·P1 + d1·P2) / (d1 + d2)
+    // Bola congelada en la línea esperando el QTE. Devuelve true si este frame ya está resuelto.
+    bool ResolveHeldBall(Ball ball)
+    {
+        QTEState q = qte != null ? qte.State : QTEState.Idle;
+
+        if (q == QTEState.Running && !ball.IsHeld)
+        {
+            ball.rb.linearVelocity = Vector2.zero;   // sigue esperando
+            return true;
+        }
+
+        holdingBall = false;
+        if (ball.IsHeld) return false;               // alguien la ha cogido: se acabó el seguro
+
+        if (q == QTEState.Success)
+        {
+            // Parada sobre la línea: el portero llega a la bola y la despeja
+            rb.position = ClampToArea(new Vector2(rb.position.x, ball.rb.position.y));
+            Deflect(ball, heldVelocity.magnitude);
+            return true;
+        }
+
+        ball.rb.linearVelocity = heldVelocity;        // fallado (o cancelado): la bola sigue su camino
+        return false;
+    }
+
+    // ---------- Área ----------
+    // Coordenadas locales: u = profundidad desde la línea de gol hacia la pista, v = lateral desde el centro.
+    float DepthOf(Vector2 p) => (p.x - lineX) * outwardX;
+    Vector2 FromLocal(float u, float v) => new Vector2(lineX + outwardX * u, goalCenterY + v);
+
+    // El área es medio óvalo apoyado en la línea: ancho = de palo a palo (+ reach), fondo = areaDepth.
+    // Pegado a la línea puede llegar a los palos; cuanto más sale, menos se puede abrir hacia los lados.
+    Vector2 ClampToArea(Vector2 p)
+    {
+        float u = DepthOf(p);
+        float v = p.y - goalCenterY;
+        float depthRange = Mathf.Max(0.01f, areaDepth - minU);
+        float B = Mathf.Max(0.01f, LateralLimit);
+
+        float du = Mathf.Max(0f, u - minU);
+        float k = (du * du) / (depthRange * depthRange) + (v * v) / (B * B);
+        if (k > 1f)
+        {
+            float s = 1f / Mathf.Sqrt(k);
+            du *= s;
+            v *= s;
+        }
+        return FromLocal(minU + du, Mathf.Clamp(v, -B, B));
+    }
+
+    // Punto de la trayectoria de la bola más cercano al portero (dentro de su área): hacia ahí se estira
+    Vector2 InterceptPoint(Ball ball)
+    {
+        Vector2 bp = ball.rb.position;
+        Vector2 d = ball.rb.linearVelocity.normalized;
+        float t = Mathf.Max(0f, Vector2.Dot(rb.position - bp, d));
+        return ClampToArea(bp + d * t);
+    }
+
+    // Colocación sin tiro: sobre la bisectriz del ángulo bola-palos, saliendo hacia la bola para cerrar el ángulo.
+    // La bisectriz corta la línea de gol en Y = (d2·P1 + d1·P2) / (d1 + d2).
     Vector2 PositionTarget(Vector2 bp)
     {
-        float along = (bp.x - lineX) * outwardX;   // distancia de la bola por delante de la línea
+        float along = DepthOf(bp);   // distancia de la bola por delante de la línea
 
         // Bola casi en la línea de fondo o detrás: pegado al primer palo
         if (along < 0.5f)
         {
             float side = Mathf.Sign(bp.y - goalCenterY);
-            return new Vector2(startPos.x, goalCenterY + side * (goalHalf - HalfWidth * 0.9f));
+            return FromLocal(minU, side * (goalHalf - HalfWidth * 0.9f));
         }
 
         Vector2 p1 = new Vector2(lineX, goalCenterY - goalHalf);
@@ -234,10 +321,13 @@ public class Goalkeeper : MonoBehaviour
         float d2 = Vector2.Distance(bp, p2);
         Vector2 y = (d2 * p1 + d1 * p2) / (d1 + d2);
 
-        // Sale hacia la bola (reduce el ángulo), menos cuanto más cerrado es el ángulo
         Vector2 dir = (bp - y).normalized;
-        float depth = maxDepth * Mathf.Clamp01(Mathf.Abs(dir.x));
-        return y + dir * depth;
+        float facing = Mathf.Clamp01(dir.x * outwardX);                     // 1 = bola de frente, 0 = en la línea de fondo
+        float far01 = Mathf.InverseLerp(nearBallDistance, farBallDistance, Vector2.Distance(bp, y));
+        float depth = Mathf.Lerp(minU, areaDepth, far01 * facing);          // lejos y de frente: sale más
+
+        float t = facing > 0.01f ? depth / facing : 0f;                     // punto de la bisectriz a esa profundidad
+        return ClampToArea(y + dir * t);
     }
 
     // ¿Viene la bola a PUERTA? Devuelve por dónde cruzará la línea del portero y cuánto le falta.
@@ -344,6 +434,7 @@ public class Goalkeeper : MonoBehaviour
         EnsureFit();
         rb.position = startPos;
         tracking = false;
+        holdingBall = false;
         if (qte != null) qte.Cancel();
     }
 
@@ -359,9 +450,17 @@ public class Goalkeeper : MonoBehaviour
     void OnDrawGizmosSelected()
     {
         if (!Application.isPlaying) return;
+
+        // Área del portero (cian) y boca de la portería (rojo)
         Gizmos.color = Color.cyan;
-        float lim = LateralLimit;
-        Gizmos.DrawLine(new Vector3(startPos.x, goalCenterY - lim), new Vector3(startPos.x, goalCenterY + lim));
+        Vector2 prev = FromLocal(minU, -LateralLimit);
+        for (int i = 1; i <= 24; i++)
+        {
+            float a = Mathf.Lerp(-90f, 90f, i / 24f) * Mathf.Deg2Rad;
+            Vector2 p = FromLocal(minU + Mathf.Cos(a) * (areaDepth - minU), Mathf.Sin(a) * LateralLimit);
+            Gizmos.DrawLine(prev, p);
+            prev = p;
+        }
         Gizmos.color = Color.red;
         Gizmos.DrawLine(new Vector3(lineX, goalCenterY - goalHalf), new Vector3(lineX, goalCenterY + goalHalf));
     }

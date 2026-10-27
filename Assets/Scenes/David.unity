@@ -297,14 +297,14 @@ MonoBehaviour:
   slowTimeScale: 0.06
   barTime: 0.9
   key: 32
-  inputGrace: 0.15
+  inputGrace: 0.25
   arriveMargin: 0.75
   greenWidthFar: 0.28
   greenWidthNear: 0.14
   nearDistance: 3
   farDistance: 12
   barSize: {x: 320, y: 22}
-  resultShowTime: 0.6
+  resultShowTime: 0.5
   debugLog: 1
 --- !u!1 &163244663
 GameObject:
@@ -468,6 +468,14 @@ PrefabInstance:
     - target: {fileID: 3386077717508655842, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
       propertyPath: anticipation
       value: 0.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3386077717508655842, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
+      propertyPath: qteFailExtraDelay
+      value: 0.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3386077717508655842, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
+      propertyPath: qteFailReadMultiplier
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 6432086141029467960, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
       propertyPath: m_LocalPosition.x
@@ -821,7 +829,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1224e5fc030266b4e9fe7b0f3a74235f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TeamBrain
-  profile: {fileID: 11400000, guid: 9a91afcc50d81f144bc9ccd95dffa7c6, type: 2}
+  profile: {fileID: 0}
   referenceRinkLength: 40
   scaleWithRink: 0
   updateInterval: 0.15
@@ -831,10 +839,10 @@ MonoBehaviour:
   spotStep: 3
   teammateSpacing: 7
   supportLead: 0.6
-  supportForward: 1
+  supportForward: 0
   sweeperDepth: 7
   reboundZone: 8
-  defenseShape: 2
+  defenseShape: 0
   zoneFollow: 0.4
   zoneDepthMin: 4.5
   zoneDepthMax: 11
@@ -1519,7 +1527,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1224e5fc030266b4e9fe7b0f3a74235f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TeamBrain
-  profile: {fileID: 11400000, guid: c2504dfe05068f443a24937e77175369, type: 2}
+  profile: {fileID: 0}
   referenceRinkLength: 40
   scaleWithRink: 0
   updateInterval: 0.15
@@ -1532,7 +1540,7 @@ MonoBehaviour:
   supportForward: 0
   sweeperDepth: 7
   reboundZone: 8
-  defenseShape: 2
+  defenseShape: 0
   zoneFollow: 0.4
   zoneDepthMin: 4.5
   zoneDepthMax: 11
