@@ -49,7 +49,8 @@ public class MatchBootstrapper : MonoBehaviour
             setup = debugSetup;
         }
 
-        if (setup == null || !setup.IsValid(out string error))
+        string error = null;
+        if (setup == null || !setup.IsValid(out error))
         {
             if (setup != null) Debug.LogWarning("MatchBootstrapper: " + error, this);
             enabled = false;

@@ -25,9 +25,10 @@ public static class MatchLauncher
 
     public static bool Launch(MatchSetup setup, string sceneName = DefaultMatchScene)
     {
-        if (setup == null || !setup.IsValid(out string error))
+        string error = "El setup es null";
+        if (setup == null || !setup.IsValid(out error))
         {
-            Debug.LogError("MatchLauncher: setup no válido. " + (setup == null ? "Es null" : error));
+            Debug.LogError("MatchLauncher: setup no válido. " + error);
             return false;
         }
 
