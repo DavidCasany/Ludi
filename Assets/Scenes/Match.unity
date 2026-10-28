@@ -1329,6 +1329,7 @@ GameObject:
   - component: {fileID: 1119589249}
   - component: {fileID: 1119589248}
   - component: {fileID: 1119589250}
+  - component: {fileID: 1119589251}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -1390,7 +1391,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b7c2d70317c29c4a87d0e0fcb97eaa7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TournamentMatchBridge
-  gameManager: {fileID: 0}
+  gameManager: {fileID: 1119589248}
+--- !u!114 &1119589251
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1119589247}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b26398f7979482548a202a1761b11325, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MatchBootstrapper
+  gameManager: {fileID: 1119589248}
+  debugSetup:
+    homeTeam: {fileID: 11400000, guid: 1c20eb68f6fff0f41bb6f6817f10f646, type: 2}
+    awayTeam: {fileID: 11400000, guid: 930df219e5b54fe40a31958332587ede, type: 2}
+    homeController: 1
+    awayController: 0
+    requireWinner: 0
+    homeUpgrades: []
+    awayUpgrades: []
 --- !u!1001 &1251734759
 PrefabInstance:
   m_ObjectHideFlags: 0
