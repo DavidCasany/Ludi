@@ -95,6 +95,7 @@ public class TeamManager : MonoBehaviour
 
     void Update()
     {
+        if (PauseController.IsPaused) { CancelAim(); return; }
         if (!humanControlled || Controlled == null) return;
 
         AutoSelect();
@@ -446,6 +447,7 @@ public class TeamManager : MonoBehaviour
 
     void OnGUI()
     {
+        if (PauseController.IsPaused) return;
         if (!humanControlled || Controlled == null) return;
 
         if (smallStyle == null)
