@@ -197,6 +197,14 @@ public class Goalkeeper : MonoBehaviour
             if (ResolveHeldBall(ball)) return;
         }
 
+        // Red de seguridad: QTE acertado pero la bola ya pisa la línea (tiro a bocajarro): la para igual
+        if (ball != null && !ball.IsHeld && qte != null && qte.State == QTEState.Success && !deflected
+            && ball.ShotId == lastQteShot && DepthOf(ball.rb.position) < ball.col.bounds.extents.x + 0.05f)
+        {
+            SaveOnLine(ball, ball.Speed);
+            return;
+        }
+
         if (ball != null)
         {
             float crossY, timeToLine;
@@ -236,12 +244,19 @@ public class Goalkeeper : MonoBehaviour
                 {
                     target = rb.position;                                   // decidiendo (el tiempo va casi parado)
 
-                    // Seguro: mientras se decide el QTE la bola no puede entrar. Si llega a la línea, se congela ahí.
-                    if (DepthOf(ball.rb.position) < ball.col.bounds.extents.x + 0.05f)
+                    // Seguro: mientras se decide el QTE la bola no puede entrar.
+                    // Se congela ANTES de la línea, mirando dónde estará en el próximo paso a velocidad NORMAL
+                    // (el gol cuenta en cuanto el BORDE de la bola toca la red, y un paso normal avanza ~0.5 m).
+                    float ballR = ball.col.bounds.extents.x;
+                    float approach = Mathf.Max(0f, -ball.rb.linearVelocity.x * outwardX);
+                    float baseStep = Time.fixedDeltaTime / Mathf.Max(Time.timeScale, 0.01f);
+                    float safeDepth = ballR + 0.05f + approach * baseStep * 1.5f;
+                    if (DepthOf(ball.rb.position) < safeDepth)
                     {
                         holdingBall = true;
                         heldVelocity = ball.rb.linearVelocity;
                         ball.rb.linearVelocity = Vector2.zero;
+                        KeepInFront(ball);
                     }
                 }
                 else if (q == QTEState.Success && !deflected)
@@ -311,14 +326,31 @@ public class Goalkeeper : MonoBehaviour
 
         if (q == QTEState.Success && !deflected)
         {
-            // Parada sobre la línea: el portero llega a la bola y la despeja
-            rb.position = ClampToArea(new Vector2(rb.position.x, ball.rb.position.y));
-            Deflect(ball, heldVelocity.magnitude);
+            SaveOnLine(ball, heldVelocity.magnitude);
             return true;
         }
 
         ball.rb.linearVelocity = heldVelocity;        // fallado (o cancelado): la bola sigue su camino
         return false;
+    }
+
+    // Si la bola ya toca la línea, la devuelve justo delante (el gol cuenta con el borde de la bola)
+    void KeepInFront(Ball ball)
+    {
+        float minDepth = ball.col.bounds.extents.x + 0.05f;
+        Vector2 bp = ball.rb.position;
+        if (DepthOf(bp) >= minDepth) return;
+        float v = Mathf.Clamp(bp.y - goalCenterY, -goalHalf, goalHalf);
+        ball.rb.position = FromLocal(minDepth, v);
+        ball.transform.position = ball.rb.position;   // que el trigger de la red la vea fuera ya en este paso
+    }
+
+    // QTE acertado con la bola sobre la línea: el portero llega a ella y la despeja
+    void SaveOnLine(Ball ball, float speed)
+    {
+        KeepInFront(ball);
+        rb.position = ClampToArea(new Vector2(rb.position.x, ball.rb.position.y));
+        Deflect(ball, speed);
     }
 
     // ---------- Área ----------

@@ -29,9 +29,17 @@ public class Goal : MonoBehaviour
     void OnEnable() { if (!All.Contains(this)) All.Add(this); }
     void OnDisable() { All.Remove(this); }
 
-    void OnTriggerEnter2D(Collider2D other)
+    void OnTriggerEnter2D(Collider2D other) { TryScore(other); }
+
+    // También mientras la bola sigue dentro: si entró durante un QTE (gol bloqueado) y el QTE se falla, cuenta igual.
+    // GoalScored ignora las llamadas repetidas (solo cuenta con el juego en Playing).
+    void OnTriggerStay2D(Collider2D other) { TryScore(other); }
+
+    void TryScore(Collider2D other)
     {
-        if (other.GetComponent<Ball>() == null) return;
+        if (GoalkeeperQTE.ProtectsGoal) return;   // QTE abierto: todavía no se sabe si el portero llega
+        if (GameManager.Instance == null || GameManager.Instance.State != MatchState.Playing) return;
+        if (Ball.Instance == null || other.gameObject != Ball.Instance.gameObject) return;
 
         Team scorer = defendingTeam == Team.Home ? Team.Away : Team.Home;
         if (GameManager.Instance.State == MatchState.Playing) GameCamera.Shake(0.5f, 0.45f);   // el gol cuenta: sacudida

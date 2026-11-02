@@ -525,6 +525,11 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 129474552}
   m_SourcePrefab: {fileID: 100100000, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
+--- !u!1 &272020953 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 178672772309614791, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
+  m_PrefabInstance: {fileID: 880688041}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &275472249 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5175665479086675304, guid: 25c73d4cceb9c4d43b877821ccec285b, type: 3}
@@ -1165,7 +1170,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 178672772309614791, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1951666718}
   m_SourcePrefab: {fileID: 100100000, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
 --- !u!1001 &906669154
 PrefabInstance:
@@ -1354,7 +1362,7 @@ MonoBehaviour:
   ball: {fileID: 488294942}
   ballStart: {x: 0, y: 0}
   rinkWalls: {fileID: 163244665}
-  halfDuration: 90
+  halfDuration: 10
   resetDelay: 2
   halfTimeBreak: 4
   overtimeBreak: 3
@@ -1408,9 +1416,9 @@ MonoBehaviour:
   debugSetup:
     homeTeam: {fileID: 11400000, guid: 1c20eb68f6fff0f41bb6f6817f10f646, type: 2}
     awayTeam: {fileID: 11400000, guid: 930df219e5b54fe40a31958332587ede, type: 2}
-    homeController: 1
-    awayController: 0
-    requireWinner: 0
+    homeController: 0
+    awayController: 1
+    requireWinner: 1
     homeUpgrades: []
     awayUpgrades: []
 --- !u!1001 &1251734759
@@ -1890,7 +1898,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 3386077717508655842, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
   m_PrefabInstance: {fileID: 880688041}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 272020953}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 95c08426a3a7e724bbb49c46b17e7a8a, type: 3}
@@ -1901,6 +1909,30 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 6432086141029467960, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
   m_PrefabInstance: {fileID: 880688041}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1951666718
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 272020953}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5906c4c94d3a91945b486aefd01a1f64, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GoalkeeperQTE
+  slowTimeScale: 0.06
+  barTime: 0.9
+  key: 32
+  inputGrace: 0.25
+  arriveMargin: 0.75
+  greenWidthFar: 0.28
+  greenWidthNear: 0.14
+  nearDistance: 3
+  farDistance: 12
+  barSize: {x: 320, y: 22}
+  resultShowTime: 0.5
+  debugLog: 1
 --- !u!4 &1997207004 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5175665479086675304, guid: 25c73d4cceb9c4d43b877821ccec285b, type: 3}

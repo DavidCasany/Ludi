@@ -36,6 +36,9 @@ public class GoalkeeperQTE : MonoBehaviour
     static int resolvedFrame = -1;
     public static bool BlocksInput => running != null || resolvedFrame == Time.frameCount;
 
+    // Goal lo usa: con un QTE abierto no puede haber gol (la bola espera en la línea)
+    public static bool ProtectsGoal => running != null;
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetStatics() { running = null; resolvedFrame = -1; }
 
