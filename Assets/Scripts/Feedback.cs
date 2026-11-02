@@ -116,8 +116,11 @@ public class Feedback : MonoBehaviour
 
     // Dibuja hacia dónde irá el pase: una línea (con el rebote en la banda si lo hay) y un anillo sobre el receptor.
     // Verde = pase directo, celeste = pase con rebote. Hay que llamarlo cada frame mientras se quiere ver.
+    // Se puede ocultar en Ajustes > "Mostrar flechas de pase" (GameSettings.PassArrows). Solo afecta al dibujo:
+    // el pase asistido funciona igual. Si se apaga en plena partida, LateUpdate esconde la línea ese mismo frame.
     public static void ShowPassPreview(Vector2 from, bool bank, Vector2 waypoint, Vector2 matePos)
     {
+        if (!GameSettings.PassArrows) return;
         Get().DrawPreview(from, bank, waypoint, matePos);
     }
 

@@ -43,7 +43,7 @@ public class SettingsMenuUI : MonoBehaviour
         if (overlay) RemoveDuplicatesForOverlay();
 
         resolutionDropdown.onValueChanged.AddListener(OnResolutionChanged);
-        fullscreenToggle.onValueChanged.AddListener(GameSettings.SetFullscreen);
+        fullscreenToggle.onValueChanged.AddListener(OnFullscreenChanged);
         musicSlider.onValueChanged.AddListener(OnMusicChanged);
         sfxSlider.onValueChanged.AddListener(OnSfxChanged);
         passArrowsToggle.onValueChanged.AddListener(GameSettings.SetPassArrows);
@@ -110,6 +110,13 @@ public class SettingsMenuUI : MonoBehaviour
     {
         if (index < 0 || index >= resolutions.Count) return;
         GameSettings.SetResolution(resolutions[index].x, resolutions[index].y);
+    }
+
+    // La lista de resoluciones cambia con el modo (en ventana no se ofrece la nativa), así que se rehace
+    void OnFullscreenChanged(bool on)
+    {
+        GameSettings.SetFullscreen(on);
+        Refresh();
     }
 
     void OnMusicChanged(float v)
