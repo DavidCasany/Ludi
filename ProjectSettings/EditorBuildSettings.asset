@@ -9,8 +9,17 @@ EditorBuildSettings:
     path: Assets/Scenes/MainMenu.unity
     guid: 21b8d4c759025ce499a9115029107085
   - enabled: 1
+    path: Assets/Scenes/TeamSelection.unity
+    guid: 7a3ccb538398a534bba8f84826773c28
+  - enabled: 1
     path: Assets/Scenes/Match.unity
     guid: fe5134cb47111684581ddc9dfba4ed3a
+  - enabled: 1
+    path: "Assets/Scenes/Configuraci\xF3.unity"
+    guid: ccc98c523f960b94083145b06894f96e
+  - enabled: 1
+    path: "Assets/Scenes/Cr\xE8dits.unity"
+    guid: 1364b08ad67e7e54caf429a0d14539a0
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   m_UseUCBPForAssetBundles: 0

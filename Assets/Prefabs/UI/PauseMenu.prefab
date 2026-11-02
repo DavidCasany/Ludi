@@ -2698,7 +2698,7 @@ MonoBehaviour:
   confirmYesButton: {fileID: 3506468314474241611}
   confirmNoButton: {fileID: 4199181011923901378}
   mainMenuScene: MainMenu
-  settingsScene: 
+  settingsScene: "Configuraci\xF3"
 --- !u!1 &9031413342134452885
 GameObject:
   m_ObjectHideFlags: 0
