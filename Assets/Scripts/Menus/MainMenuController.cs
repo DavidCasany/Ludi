@@ -26,6 +26,16 @@ public class MainMenuController : MonoBehaviour
     [Header("Torneo")]
     [SerializeField] TournamentConfig tournamentConfig;
 
+    [Header("Demo (lo cambia Tools > Ludi > Configurar flujo de la demo)")]
+    [SerializeField] bool tournamentEnabled = true;
+    [SerializeField] bool pvpEnabled = true;
+
+    [Header("Botones desactivados")]
+    [Tooltip("Sello de los botones que no se pueden usar (modo apagado para la demo o escena sin asignar)")]
+    [SerializeField] string unavailableLabel = "NO DISPONIBLE";
+    [Tooltip("Sello de Continuar cuando no hay ningún torneo guardado")]
+    [SerializeField] string noSaveLabel = "SIN PARTIDA";
+
     [Header("Botones")]
     [SerializeField] Button continueTournamentButton;
     [SerializeField] Button newTournamentButton;
@@ -57,8 +67,8 @@ public class MainMenuController : MonoBehaviour
     void Start()
     {
         Time.timeScale = 1f;   // por si llegamos desde el menú de pausa con el juego parado
-        RefreshContinueButton();
-        BuildNavigation();     // después de RefreshContinueButton: un botón desactivado no entra en la navegación
+        RefreshAvailability();
+        BuildNavigation();     // después de RefreshAvailability: un botón desactivado no entra en la navegación
     }
 
     void Update()
@@ -78,11 +88,13 @@ public class MainMenuController : MonoBehaviour
 
     public void ContinueTournament()
     {
+        if (!tournamentEnabled) return;
         TryLoad(tournamentScene, "Continuar torneo", () => TournamentSession.TryResume(tournamentConfig));
     }
 
     public void NewTournament()
     {
+        if (!tournamentEnabled) return;
         TryLoad(tournamentScene, "Nuevo torneo", () =>
         {
             if (tournamentConfig == null)
@@ -95,7 +107,10 @@ public class MainMenuController : MonoBehaviour
         });
     }
 
-    public void PlayPvP() => TryLoad(pvpScene, "1 VS 1 · PvP", () => { MatchLaunch.Mode = MatchMode.PvP; return true; });
+    public void PlayPvP()
+    {
+        if (pvpEnabled) TryLoad(pvpScene, "1 VS 1 · PvP", () => { MatchLaunch.Mode = MatchMode.PvP; return true; });
+    }
     public void PlayPvE() => TryLoad(pveScene, "1 VS 1 · PvE", () => { MatchLaunch.Mode = MatchMode.PvE; return true; });
     public void OpenSettings() => TryLoad(settingsScene, "Ajustes", null);
     public void OpenCredits() => TryLoad(creditsScene, "Créditos", null);
@@ -135,12 +150,44 @@ public class MainMenuController : MonoBehaviour
 
     // ---------- Estado ----------
 
-    public void RefreshContinueButton()
+    // Decide qué botones se pueden usar y les pone el aspecto de desactivado (DisabledButtonLook):
+    //  - Torneo y PvP se pueden apagar para la demo,
+    //  - un botón cuya escena no está asignada o no está en Build Profiles también se apaga,
+    //  - Continuar, además, necesita un torneo guardado.
+    public void RefreshAvailability()
     {
-        if (continueTournamentButton == null) return;
-        bool hasSave = tournamentConfig != null && TournamentSession.HasSave(tournamentConfig);
-        continueTournamentButton.interactable = hasSave;
+        bool tournamentReady = tournamentEnabled && tournamentConfig != null && SceneReady(tournamentScene);
+        bool hasSave = tournamentReady && TournamentSession.HasSave(tournamentConfig);
+
+        SetAvailable(newTournamentButton, tournamentReady, unavailableLabel);
+        SetAvailable(continueTournamentButton, hasSave, tournamentReady ? noSaveLabel : unavailableLabel);
+        SetAvailable(pvpButton, pvpEnabled && SceneReady(pvpScene), unavailableLabel);
+        SetAvailable(pveButton, SceneReady(pveScene), unavailableLabel);
+        SetAvailable(creditsButton, SceneReady(creditsScene), unavailableLabel);
+        SetAvailable(settingsButton, SceneReady(settingsScene), null);   // icono pequeño: sin sello
+
+        // Filas divididas: si no queda ningún sub-botón usable, el principal también se apaga
+        foreach (GameObject row in rows)
+        {
+            if (row == null) continue;
+            SplitMenuButton split = row.GetComponent<SplitMenuButton>();
+            if (split == null) continue;
+            split.RefreshAvailability();
+            DisabledButtonLook.Ensure(split.MainButton, unavailableLabel);
+        }
     }
+
+    // Se mantiene por compatibilidad (antes solo miraba el botón Continuar)
+    public void RefreshContinueButton() => RefreshAvailability();
+
+    static void SetAvailable(Button b, bool available, string disabledLabel)
+    {
+        if (b == null) return;
+        b.interactable = available;
+        DisabledButtonLook.Ensure(b, disabledLabel);
+    }
+
+    static bool SceneReady(string scene) => !string.IsNullOrEmpty(scene) && Application.CanStreamedLevelBeLoaded(scene);
 
     // ---------- Navegación ----------
 
@@ -159,6 +206,7 @@ public class MainMenuController : MonoBehaviour
                 Debug.LogWarning($"[MainMenu] La fila '{row.name}' no tiene ni SplitMenuButton ni Button.", row);
                 continue;
             }
+            if (!sel.interactable) continue;   // fila apagada (NO DISPONIBLE): el teclado/mando la salta
             rowSelectables.Add(sel);
             splits.Add(split);
         }
@@ -168,7 +216,7 @@ public class MainMenuController : MonoBehaviour
 
         // Botón de Ajustes fuera de la columna (engranaje en la esquina superior derecha):
         // se llega a él pulsando ↑ desde la primera fila, y con ↓ o ← se vuelve a la columna.
-        Selectable corner = settingsButton != null && !rowSelectables.Contains(settingsButton) ? settingsButton : null;
+        Selectable corner = settingsButton != null && settingsButton.interactable && !rowSelectables.Contains(settingsButton) ? settingsButton : null;
         Selectable first = rowSelectables[0];
         Selectable last = rowSelectables[n - 1];
 

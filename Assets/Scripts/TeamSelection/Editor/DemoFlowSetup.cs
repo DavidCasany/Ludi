@@ -17,7 +17,7 @@ using UnityEngine.UI;
 //  1. Si la escena de inicio no se llama MainMenu (p. ej. "Inici"), ofrece renombrarla.
 //  2. Build Profiles: MainMenu primera, luego TeamSelection, Match, Ajustes, Créditos y el resto que ya hubiera.
 //  3. MainMenu  -> MainMenuController: pveScene y pvpScene = TeamSelection, settingsScene, creditsScene;
-//                  y el botón PvP activado o desactivado para la demo.
+//                  y PvP / Torneo disponibles o no para la demo (salen con el sello NO DISPONIBLE).
 //  4. TeamSelection -> TeamSelectionUI: mainMenuScene y matchScene.
 //  5. Ajustes   -> SettingsMenuUI: fallbackScene = MainMenu.
 //  6. Prefab de pausa (Assets/Prefabs/UI/PauseMenu.prefab) -> mainMenuScene y settingsScene.
@@ -37,8 +37,10 @@ public class DemoFlowSetup : EditorWindow
     [Tooltip("Vacío = el botón Créditos solo escribe un aviso")]
     [SerializeField] SceneAsset credits;
 
-    [Tooltip("Desmárcalo si el PvP no llega a la demo: el botón PvP queda desactivado en el menú")]
+    [Tooltip("Desmárcalo si el PvP no llega a la demo: el botón PvP sale como NO DISPONIBLE en el menú")]
     [SerializeField] bool pvpEnabled = true;
+    [Tooltip("Desmárcalo para la demo: Continuar y Nuevo torneo salen como NO DISPONIBLE en el menú")]
+    [SerializeField] bool tournamentEnabled = true;
 
     readonly List<string> report = new List<string>();
     Vector2 scroll;
@@ -56,7 +58,7 @@ public class DemoFlowSetup : EditorWindow
         if (teamSelection == null) teamSelection = FindScene(TeamSelectionBuilder.SceneName, "SeleccionEquipos");
         if (match == null) match = FindScene(MatchLauncher.DefaultMatchScene);
         if (settings == null) settings = FindScene("Settings", "Ajustes", "SettingsMenu");
-        if (credits == null) credits = FindScene("Credits", "Creditos", "Créditos");
+        if (credits == null) credits = FindScene(CreditsBuilder.SceneName, "Credits", "Creditos", "Créditos");
     }
 
     void OnGUI()
@@ -70,7 +72,9 @@ public class DemoFlowSetup : EditorWindow
         EditorGUILayout.PropertyField(so.FindProperty("settings"), new GUIContent("Ajustes"));
         EditorGUILayout.PropertyField(so.FindProperty("credits"), new GUIContent("Créditos"));
         EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Modos en el menú de inicio", EditorStyles.boldLabel);
         EditorGUILayout.PropertyField(so.FindProperty("pvpEnabled"), new GUIContent("PvP disponible"));
+        EditorGUILayout.PropertyField(so.FindProperty("tournamentEnabled"), new GUIContent("Torneo disponible"));
         so.ApplyModifiedProperties();
 
         EditorGUILayout.Space();
@@ -123,15 +127,20 @@ public class DemoFlowSetup : EditorWindow
             SetString(menu, "settingsScene", settingsName);
             SetString(menu, "creditsScene", creditsName);
 
+            // El controlador decide en Start qué botones se pueden usar (y les pone el sello NO DISPONIBLE)
+            SetBool(menu, "pvpEnabled", pvpEnabled);
+            SetBool(menu, "tournamentEnabled", tournamentEnabled);
+
+            // Una versión anterior de esta herramienta apagaba el botón PvP directamente: se deshace
             Button pvp = GetObject<Button>(menu, "pvpButton");
             if (pvp != null)
             {
                 SerializedObject b = new SerializedObject(pvp);
-                b.FindProperty("m_Interactable").boolValue = pvpEnabled;
+                b.FindProperty("m_Interactable").boolValue = true;
                 b.ApplyModifiedPropertiesWithoutUndo();
             }
             return $"PvE/PvP → {selectionName}, Ajustes → {Show(settingsName)}, Créditos → {Show(creditsName)}, " +
-                   $"PvP {(pvpEnabled ? "activado" : "desactivado")}";
+                   $"PvP {(pvpEnabled ? "activado" : "desactivado")}, Torneo {(tournamentEnabled ? "activado" : "desactivado")}";
         });
 
         EditScene(teamSelection, scene =>
@@ -265,6 +274,20 @@ public class DemoFlowSetup : EditorWindow
             return;
         }
         p.stringValue = value;
+        so.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    static void SetBool(Object target, string field, bool value)
+    {
+        SerializedObject so = new SerializedObject(target);
+        SerializedProperty p = so.FindProperty(field);
+        if (p == null)
+        {
+            Debug.LogError($"[DemoFlowSetup] No existe el campo '{field}' en {target.GetType().Name}. " +
+                           "¿Está actualizado MainMenuController.cs?");
+            return;
+        }
+        p.boolValue = value;
         so.ApplyModifiedPropertiesWithoutUndo();
     }
 

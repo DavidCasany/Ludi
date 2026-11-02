@@ -92,7 +92,8 @@ public class SplitMenuButton : MonoBehaviour, IPointerEnterHandler, IPointerExit
         }
         wasHovered = hovered;
 
-        bool wantExpanded = hovered || selectionInside;
+        // Si ningún sub-botón se puede usar, la fila no se abre: se queda el botón principal con su aspecto apagado
+        bool wantExpanded = (hovered || selectionInside) && FirstInteractableSub() != null;
         if (wantExpanded != expanded)
         {
             expanded = wantExpanded;
@@ -137,6 +138,14 @@ public class SplitMenuButton : MonoBehaviour, IPointerEnterHandler, IPointerExit
     {
         navUp = up;
         navDown = down;
+        RefreshNavigation();
+    }
+
+    // Llamar después de cambiar el interactable de los sub-botones: el principal queda desactivado
+    // cuando no se puede usar ninguno de ellos, y se rehace la navegación
+    public void RefreshAvailability()
+    {
+        mainButton.interactable = FirstInteractableSub() != null;
         RefreshNavigation();
     }
 

@@ -65,6 +65,10 @@ public class TeamSelectionUI : MonoBehaviour
     void Awake()
     {
         playButton.onClick.AddListener(Play);
+        // JUGAR se ve apagado hasta que hay dos equipos; sin sello porque es "todavía no", no "no disponible"
+        DisabledButtonLook.Ensure(playButton, null);
+        DisabledButtonLook.Ensure(randomButton, null);
+        DisabledButtonLook.Ensure(backButton, null);
         if (randomButton != null) randomButton.onClick.AddListener(PickRandom);
         backButton.onClick.AddListener(BackToMenu);
         homePanel.Button.onClick.AddListener(() => SetActiveSide(Side.Home));
@@ -122,6 +126,7 @@ public class TeamSelectionUI : MonoBehaviour
             TeamCard card = Instantiate(cardTemplate, grid);
             card.gameObject.SetActive(true);
             card.Setup(t);
+            DisabledButtonLook.Ensure(card.Button, null);   // equipo del otro lado: tarjeta gris
             card.Clicked += OnCardClicked;
             card.Focused += OnCardFocused;
             card.Unfocused += OnCardUnfocused;
