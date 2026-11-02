@@ -164,14 +164,27 @@ public class MainMenuController : MonoBehaviour
         }
 
         int n = rowSelectables.Count;
+        if (n == 0) return;
+
+        // Botón de Ajustes fuera de la columna (engranaje en la esquina superior derecha):
+        // se llega a él pulsando ↑ desde la primera fila, y con ↓ o ← se vuelve a la columna.
+        Selectable corner = settingsButton != null && !rowSelectables.Contains(settingsButton) ? settingsButton : null;
+        Selectable first = rowSelectables[0];
+        Selectable last = rowSelectables[n - 1];
+
         for (int i = 0; i < n; i++)
         {
-            Selectable up = i > 0 ? rowSelectables[i - 1] : (wrapNavigation ? rowSelectables[n - 1] : null);
-            Selectable down = i < n - 1 ? rowSelectables[i + 1] : (wrapNavigation ? rowSelectables[0] : null);
+            Selectable up = i > 0 ? rowSelectables[i - 1]
+                          : corner != null ? corner
+                          : (wrapNavigation ? last : null);
+            Selectable down = i < n - 1 ? rowSelectables[i + 1] : (wrapNavigation ? first : null);
 
             if (splits[i] != null) splits[i].SetVerticalNeighbours(up, down);
             else rowSelectables[i].navigation = SplitMenuButton.ExplicitNav(up, down, null, null);
         }
+
+        if (corner != null)
+            corner.navigation = SplitMenuButton.ExplicitNav(wrapNavigation ? last : null, first, first, null);
     }
 
     static bool NavigationPressed()

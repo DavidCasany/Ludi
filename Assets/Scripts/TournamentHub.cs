@@ -272,7 +272,11 @@ public class TournamentHub : MonoBehaviour
         GUI.Label(new Rect(text.x, text.y + 32, text.width, 50),
                   TournamentSession.Team(TournamentSession.PlayerTeam).TeamName + "  vs  " + rival.TeamName, header);
 
-        if (GUI.Button(button, "JUGAR", bigButton)) SceneManager.LoadScene(config.MatchScene);
+        if (GUI.Button(button, "JUGAR", bigButton))
+        {
+            MatchLaunch.Mode = MatchMode.Tournament;
+            SceneManager.LoadScene(config.MatchScene);
+        }
     }
 
     // ---------- Elección de mejora ----------

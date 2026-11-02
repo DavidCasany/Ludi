@@ -17,6 +17,7 @@ public class TournamentMatchBridge : MonoBehaviour
 
     void Awake()
     {
+        if (gameManager == null || match == null || MatchLaunch.Mode != MatchMode.Tournament) enabled = false;
         if (gameManager == null) gameManager = GetComponent<GameManager>();
 
         match = TournamentSession.PendingPlayerMatch();

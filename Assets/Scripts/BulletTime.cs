@@ -87,6 +87,7 @@ public class BulletTime : MonoBehaviour
 
     void Update()
     {
+        if (PauseController.IsPaused) return;
         float dt = Time.unscaledDeltaTime;
 
         if (Active)
@@ -153,6 +154,7 @@ public class BulletTime : MonoBehaviour
 
     void OnGUI()
     {
+        if (PauseController.IsPaused) return;
         if (!Active && energy >= maxAimTime - 0.01f) return;   // barra llena y sin usar: oculta
 
         float w = 220f, h = 14f;
