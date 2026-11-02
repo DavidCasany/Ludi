@@ -836,6 +836,32 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1224e5fc030266b4e9fe7b0f3a74235f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TeamBrain
+  profile: {fileID: 0}
+  referenceRinkLength: 40
+  scaleWithRink: 0
+  updateInterval: 0.15
+  roleStickiness: 2
+  hunterStickiness: 0.8
+  humanPressRadius: 4
+  spotStep: 3
+  teammateSpacing: 7
+  supportLead: 0.6
+  supportForward: 0
+  sweeperDepth: 7
+  reboundZone: 8
+  defenseShape: 0
+  zoneFollow: 0.4
+  zoneDepthMin: 4.5
+  zoneDepthMax: 11
+  zoneHalfWidth: 2.8
+  zoneHalfLength: 2.2
+  humanFillRadius: 2.5
+  goalHalfWidth: 0.85
+  goalAvoidExtra: 1.2
+  tightGoalExtra: 0.1
+  rinkMargin: 1.2
+  fallbackRinkHalfSize: {x: 19, y: 9}
+  drawGizmos: 1
 --- !u!114 &488294942 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6003093541081876334, guid: a2b9cbc9fbae69b4eb80979204bc21aa, type: 3}
@@ -1312,6 +1338,7 @@ GameObject:
   - component: {fileID: 1119589248}
   - component: {fileID: 1119589250}
   - component: {fileID: 1119589251}
+  - component: {fileID: 1119589252}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -1395,6 +1422,22 @@ MonoBehaviour:
     requireWinner: 1
     homeUpgrades: []
     awayUpgrades: []
+--- !u!114 &1119589252
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1119589247}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 641701d90024b984abf93a68c169bd38, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FriendlyMatchEndScreen
+  gameManager: {fileID: 1119589248}
+  bootstrapper: {fileID: 1119589251}
+  mainMenuScene: MainMenu
+  inputDelay: 1
 --- !u!1001 &1251734759
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1535,6 +1578,32 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1224e5fc030266b4e9fe7b0f3a74235f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TeamBrain
+  profile: {fileID: 0}
+  referenceRinkLength: 40
+  scaleWithRink: 0
+  updateInterval: 0.15
+  roleStickiness: 2
+  hunterStickiness: 0.8
+  humanPressRadius: 4
+  spotStep: 3
+  teammateSpacing: 7
+  supportLead: 0.6
+  supportForward: 0
+  sweeperDepth: 7
+  reboundZone: 8
+  defenseShape: 0
+  zoneFollow: 0.4
+  zoneDepthMin: 4.5
+  zoneDepthMax: 11
+  zoneHalfWidth: 2.8
+  zoneHalfLength: 2.2
+  humanFillRadius: 2.5
+  goalHalfWidth: 0.85
+  goalAvoidExtra: 1.2
+  tightGoalExtra: 0.1
+  rinkMargin: 1.2
+  fallbackRinkHalfSize: {x: 19, y: 9}
+  drawGizmos: 1
 --- !u!4 &1314960895 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5175665479086675304, guid: 25c73d4cceb9c4d43b877821ccec285b, type: 3}
