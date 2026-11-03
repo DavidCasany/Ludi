@@ -15,6 +15,9 @@ EditorBuildSettings:
     path: Assets/Scenes/Match.unity
     guid: fe5134cb47111684581ddc9dfba4ed3a
   - enabled: 1
+    path: Assets/Scenes/Tournament.unity
+    guid: 1dedf40815a8b424c8a537fb598f281a
+  - enabled: 1
     path: "Assets/Scenes/Configuraci\xF3.unity"
     guid: ccc98c523f960b94083145b06894f96e
   - enabled: 1

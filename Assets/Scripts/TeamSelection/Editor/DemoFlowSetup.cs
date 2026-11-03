@@ -37,6 +37,11 @@ public class DemoFlowSetup : EditorWindow
     [Tooltip("Vacío = el botón Créditos solo escribe un aviso")]
     [SerializeField] SceneAsset credits;
 
+    [Tooltip("Configuración del torneo (equipos, mejoras, escena del cuadro)")]
+    [SerializeField] TournamentConfig tournamentConfig;
+    [Tooltip("Escena del cuadro del torneo (TournamentHub). Debe llamarse como el HubScene del TournamentConfig")]
+    [SerializeField] SceneAsset tournamentHub;
+
     [Tooltip("Desmárcalo si el PvP no llega a la demo: el botón PvP sale como NO DISPONIBLE en el menú")]
     [SerializeField] bool pvpEnabled = true;
     [Tooltip("Desmárcalo para la demo: Continuar y Nuevo torneo salen como NO DISPONIBLE en el menú")]
@@ -57,8 +62,16 @@ public class DemoFlowSetup : EditorWindow
         if (mainMenu == null) mainMenu = FindScene(MainMenuName, "Inici", "Inicio", "Menu");
         if (teamSelection == null) teamSelection = FindScene(TeamSelectionBuilder.SceneName, "SeleccionEquipos");
         if (match == null) match = FindScene(MatchLauncher.DefaultMatchScene);
-        if (settings == null) settings = FindScene("Settings", "Ajustes", "SettingsMenu");
+        if (settings == null) settings = FindScene("Configuració", "Settings", "Ajustes", "SettingsMenu");
         if (credits == null) credits = FindScene(CreditsBuilder.SceneName, "Credits", "Creditos", "Créditos");
+        if (tournamentConfig == null)
+        {
+            string[] guids = AssetDatabase.FindAssets("t:TournamentConfig");
+            if (guids.Length > 0)
+                tournamentConfig = AssetDatabase.LoadAssetAtPath<TournamentConfig>(AssetDatabase.GUIDToAssetPath(guids[0]));
+        }
+        if (tournamentHub == null)
+            tournamentHub = FindScene(tournamentConfig != null ? tournamentConfig.HubScene : "Tournament", "Tournament", "Torneo");
     }
 
     void OnGUI()
@@ -71,6 +84,10 @@ public class DemoFlowSetup : EditorWindow
         EditorGUILayout.PropertyField(so.FindProperty("match"), new GUIContent("Partido"));
         EditorGUILayout.PropertyField(so.FindProperty("settings"), new GUIContent("Ajustes"));
         EditorGUILayout.PropertyField(so.FindProperty("credits"), new GUIContent("Créditos"));
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Torneo", EditorStyles.boldLabel);
+        EditorGUILayout.PropertyField(so.FindProperty("tournamentConfig"), new GUIContent("Configuración"));
+        EditorGUILayout.PropertyField(so.FindProperty("tournamentHub"), new GUIContent("Escena del cuadro"));
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Modos en el menú de inicio", EditorStyles.boldLabel);
         EditorGUILayout.PropertyField(so.FindProperty("pvpEnabled"), new GUIContent("PvP disponible"));
@@ -130,6 +147,8 @@ public class DemoFlowSetup : EditorWindow
             // El controlador decide en Start qué botones se pueden usar (y les pone el sello NO DISPONIBLE)
             SetBool(menu, "pvpEnabled", pvpEnabled);
             SetBool(menu, "tournamentEnabled", tournamentEnabled);
+            SetObject(menu, "tournamentConfig", tournamentConfig);
+            SetString(menu, "tournamentScene", tournamentHub != null ? tournamentHub.name : "");
 
             // Una versión anterior de esta herramienta apagaba el botón PvP directamente: se deshace
             Button pvp = GetObject<Button>(menu, "pvpButton");
@@ -162,6 +181,25 @@ public class DemoFlowSetup : EditorWindow
                 return $"Volver (sin escena anterior) → {MainMenuName}";
             });
         }
+
+        if (tournamentHub != null)
+        {
+            EditScene(tournamentHub, scene =>
+            {
+                TournamentHub hub = Find<TournamentHub>(scene);
+                if (hub == null) return "no hay TournamentHub";
+                if (tournamentConfig != null) SetObject(hub, "config", tournamentConfig);
+                SetString(hub, "mainMenuScene", MainMenuName);
+                return $"Configuración → {(tournamentConfig != null ? tournamentConfig.name : "(sin asignar)")}, " +
+                       $"Menú → {MainMenuName}";
+            });
+        }
+        if (tournamentEnabled && (tournamentConfig == null || tournamentHub == null))
+            report.Add("AVISO: el torneo está activado pero falta la configuración o la escena del cuadro: " +
+                       "en el menú saldrá como NO DISPONIBLE.");
+        if (tournamentConfig != null && tournamentHub != null && tournamentConfig.HubScene != tournamentHub.name)
+            report.Add($"AVISO: el TournamentConfig busca la escena '{tournamentConfig.HubScene}' pero la del cuadro " +
+                       $"se llama '{tournamentHub.name}'. Cambia HubScene en {tournamentConfig.name}.");
 
         UpdatePausePrefab(settingsName);
 
@@ -197,7 +235,7 @@ public class DemoFlowSetup : EditorWindow
     void UpdateBuildProfiles()
     {
         List<string> ordered = new List<string>();
-        foreach (SceneAsset s in new[] { mainMenu, teamSelection, match, settings, credits })
+        foreach (SceneAsset s in new[] { mainMenu, teamSelection, match, tournamentHub, settings, credits })
         {
             if (s == null) continue;
             string p = AssetDatabase.GetAssetPath(s);
@@ -274,6 +312,19 @@ public class DemoFlowSetup : EditorWindow
             return;
         }
         p.stringValue = value;
+        so.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    static void SetObject(Object target, string field, Object value)
+    {
+        SerializedObject so = new SerializedObject(target);
+        SerializedProperty p = so.FindProperty(field);
+        if (p == null)
+        {
+            Debug.LogError($"[DemoFlowSetup] No existe el campo '{field}' en {target.GetType().Name}.");
+            return;
+        }
+        p.objectReferenceValue = value;
         so.ApplyModifiedPropertiesWithoutUndo();
     }
 

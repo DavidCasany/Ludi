@@ -447,7 +447,7 @@ public class TeamManager : MonoBehaviour
 
     void OnGUI()
     {
-        if (PauseController.IsPaused) return;
+        if (PauseController.IsPaused || HudVisibility.Hidden) return;
         if (!humanControlled || Controlled == null) return;
 
         if (smallStyle == null)

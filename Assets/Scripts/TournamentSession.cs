@@ -39,6 +39,9 @@ public static class TournamentSession
     public static DoubleEliminationBracket Bracket { get; private set; }
     public static int PlayerTeam { get; private set; } = -1;
 
+    // Qué hay guardado para un torneo: nada, uno a medias (se puede continuar) o uno ya terminado
+    public enum SaveState { None, InProgress, Finished }
+
     public static bool IsActive => Config != null && Bracket != null;
     public static bool PlayerEliminated => IsActive && Bracket.IsEliminated(PlayerTeam);
     public static bool IsChampion => IsActive && Bracket.championTeam == PlayerTeam;
@@ -53,7 +56,11 @@ public static class TournamentSession
     static List<int> playerOffer = new List<int>();   // se guarda para que recargar no cambie la oferta
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void ResetStatics()
+    static void ResetStatics() => ForgetInMemory();
+
+    // Olvida el torneo en memoria (como al cerrar el juego). El guardado no se toca.
+    // Lo usa la prueba de guardado/carga del editor para comprobar que TryResume lo recupera todo.
+    public static void ForgetInMemory()
     {
         Config = null;
         Bracket = null;
@@ -62,6 +69,7 @@ public static class TournamentSession
         progress = new List<TeamProgress>();
         playerOffer = new List<int>();
         LastSimulated.Clear();
+        PlayerPicksThisRound = 0;
     }
 
     // ---------- Inicio ----------
@@ -149,19 +157,34 @@ public static class TournamentSession
         return next != null && next.Involves(PlayerTeam) ? next : null;
     }
 
-    // Lo llama el partido al terminar
-    public static void ReportPlayerMatch(int playerGoals, int rivalGoals)
+    // Lo llama el partido al terminar. Devuelve false si no había partido del jugador pendiente.
+    public static bool ReportPlayerMatch(int playerGoals, int rivalGoals)
     {
         BracketMatch m = PendingPlayerMatch();
         if (m == null)
         {
             Debug.LogWarning("TournamentSession: no hay partido del jugador pendiente");
-            return;
+            return false;
+        }
+        if (playerGoals == rivalGoals)
+        {
+            Debug.LogError("TournamentSession: en el torneo no hay empates (falta el gol de oro)");
+            return false;
         }
 
         bool playerIsA = m.teamA == PlayerTeam;
         Bracket.RecordResult(m.id, playerIsA ? playerGoals : rivalGoals, playerIsA ? rivalGoals : playerGoals);
+        playerOffer.Clear();   // la oferta se genera para el siguiente partido
         Save();
+        return true;
+    }
+
+    // Próximo partido del jugador aunque todavía no esté listo (p. ej. aún no se sabe el rival).
+    // Sirve para saber, nada más acabar un partido, qué jornada juega después y cuántas mejoras le tocan.
+    public static BracketMatch PlayerNextMatch()
+    {
+        if (!IsActive || Bracket.IsFinished || PlayerEliminated) return null;
+        return Bracket.NextMatchFor(PlayerTeam);
     }
 
     // ---------- Mejoras ----------
@@ -215,13 +238,15 @@ public static class TournamentSession
         }
     }
 
-    // Elecciones que le quedan al jugador antes de su próximo partido
+    // Elecciones que le quedan al jugador antes de su próximo partido.
+    // Se mira su próximo partido aunque el rival esté por decidir: así las mejoras se eligen nada más
+    // terminar el partido anterior, en la pantalla de resultado (y no en el cuadro).
     public static int PlayerPicksPending
     {
         get
         {
             if (!UpgradesEnabled) return 0;
-            BracketMatch m = PendingPlayerMatch();
+            BracketMatch m = PlayerNextMatch();
             if (m == null) return 0;
             return Mathf.Max(0, PicksDueBefore(m.Stage) - progress[PlayerTeam].picksTaken);
         }
@@ -286,16 +311,32 @@ public static class TournamentSession
 
     // ---------- Guardado ----------
 
-    public static bool HasSave(TournamentConfig config)
+    public static bool HasSave(TournamentConfig config) => GetSaveState(config) == SaveState.InProgress;
+
+    public static SaveState GetSaveState(TournamentConfig config)
     {
         SaveData d = LoadData();
-        return d != null && config != null && d.configName == config.name && d.bracket != null &&
-               d.bracket.teamCount == config.Teams.Count && !d.bracket.IsFinished;
+        if (d == null || config == null || d.configName != config.name || d.bracket == null ||
+            d.bracket.teamCount != config.Teams.Count || d.bracket.matches == null || d.bracket.matches.Count == 0)
+            return SaveState.None;
+        return d.bracket.IsFinished ? SaveState.Finished : SaveState.InProgress;
     }
 
-    public static bool TryResume(TournamentConfig config)
+    // El guardado tal cual (JSON). Solo para la prueba de guardado/carga del editor.
+    public static string RawSave => PlayerPrefs.GetString(SaveKey, "");
+    public static string SaveKeyName => SaveKey;
+
+    // Continúa el torneo guardado (solo si está a medias)
+    public static bool TryResume(TournamentConfig config) => Resume(config, false);
+
+    // Solo para la prueba de guardado/carga del editor: carga también un torneo ya terminado
+    public static bool LoadFinishedForTests(TournamentConfig config) =>
+        GetSaveState(config) == SaveState.Finished && Resume(config, true);
+
+    static bool Resume(TournamentConfig config, bool allowFinished)
     {
-        if (!HasSave(config)) return false;
+        SaveState state = GetSaveState(config);
+        if (state == SaveState.None || (state == SaveState.Finished && !allowFinished)) return false;
         SaveData d = LoadData();
 
         Config = config;
@@ -315,7 +356,8 @@ public static class TournamentSession
         // Semilla derivada para que, al continuar, no se repitan los mismos resultados aleatorios
         rng = new System.Random(rngSeed + simulatedCount + 7919 * TotalPicks());
         LastSimulated.Clear();
-        return true;
+        PlayerPicksThisRound = 0;
+        return PlayerTeam >= 0 && PlayerTeam < config.Teams.Count;
     }
 
     static int TotalPicks()
@@ -352,6 +394,10 @@ public static class TournamentSession
     {
         if (!PlayerPrefs.HasKey(SaveKey)) return null;
         try { return JsonUtility.FromJson<SaveData>(PlayerPrefs.GetString(SaveKey)); }
-        catch (Exception) { return null; }
+        catch (Exception e)
+        {
+            Debug.LogWarning("TournamentSession: guardado ilegible, se ignora. " + e.Message);
+            return null;
+        }
     }
 }
