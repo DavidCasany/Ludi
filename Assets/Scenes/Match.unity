@@ -1363,7 +1363,7 @@ MonoBehaviour:
   ball: {fileID: 488294942}
   ballStart: {x: 0, y: 0}
   rinkWalls: {fileID: 163244665}
-  halfDuration: 10
+  halfDuration: 120
   resetDelay: 2
   halfTimeBreak: 4
   overtimeBreak: 3
