@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 // Pone el marco metálico (UIArt.ButtonFrame) a un botón y lo mantiene proporcionado a su altura:
 //  - el 9-slice se escala para que el marco entero quepa en la altura del botón (tornillos sin deformar),
-//  - el texto se aparta de la decoración de la derecha para quedar centrado en la zona gris.
+//  - el texto queda centrado en la zona gris (márgenes medidos en el dibujo, casi simétricos).
 // Funciona también en el editor (ExecuteAlways), así se ve bien al retocar tamaños a mano.
 [ExecuteAlways]
 [DisallowMultipleComponent]
@@ -15,6 +15,10 @@ public class ButtonFrameFitter : MonoBehaviour
     [SerializeField] TMP_Text label;
     [Tooltip("Margen extra del texto dentro de la zona gris, en píxeles del botón")]
     [SerializeField] float textPadding = 6f;
+    [Tooltip("Píxeles del SPRITE entre el borde izquierdo y el inicio de la zona gris (a la altura del texto)")]
+    [SerializeField] float grayLeft = 67f;
+    [Tooltip("Píxeles del SPRITE entre el final de la zona gris y el borde derecho (a la altura del texto)")]
+    [SerializeField] float grayRight = 75f;
 
     Image image;
     RectTransform rt;
@@ -59,11 +63,14 @@ public class ButtonFrameFitter : MonoBehaviour
 
         if (label == null) label = GetComponentInChildren<TMP_Text>(true);
         if (label == null) return;
-        Vector4 b = s.border;                                   // izquierda, abajo, derecha, arriba
+        // Márgenes = lo que mide el marco en el dibujo a la altura del texto, NO el border del 9-slice:
+        // el border derecho (370 px) es enorme porque guarda la decoración de la esquina, pero el gris llega
+        // casi hasta el borde. Usar el border desplazaba todos los textos a la izquierda.
+        // Los bordes del 9-slice se escalan igual (1/mult), así que estos píxeles también.
         RectTransform lt = label.rectTransform;
         // Solo se escribe si cambia: en el editor, reescribir lo mismo marcaría la escena como modificada
-        Vector2 min = new Vector2(b.x / mult * 0.6f + textPadding, lt.offsetMin.y);
-        Vector2 max = new Vector2(-(b.z / mult * 0.75f + textPadding), lt.offsetMax.y);
+        Vector2 min = new Vector2(grayLeft / mult + textPadding, lt.offsetMin.y);
+        Vector2 max = new Vector2(-(grayRight / mult + textPadding), lt.offsetMax.y);
         if (lt.anchorMin != Vector2.zero) lt.anchorMin = Vector2.zero;
         if (lt.anchorMax != Vector2.one) lt.anchorMax = Vector2.one;
         if ((lt.offsetMin - min).sqrMagnitude > 0.01f) lt.offsetMin = min;
