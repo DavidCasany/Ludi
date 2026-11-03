@@ -147,7 +147,7 @@ public class PauseMenuUI : MonoBehaviour
     static string TournamentLine()
     {
         BracketMatch m = TournamentSession.PendingPlayerMatch();
-        if (m == null) return "Torneo";
+        if (m == null) return "Torneig";
         return $"{TournamentSession.Config.TournamentName} · {TournamentSession.Bracket.RoundName(m)}";
     }
 
@@ -156,16 +156,16 @@ public class PauseMenuUI : MonoBehaviour
     void AskQuit()
     {
         string msg = tournament
-            ? "¿Salir al menú principal?\nEste partido no cuenta: lo volverás a jugar al continuar el torneo."
-            : "¿Salir al menú principal?\nSe perderá el partido.";
-        OpenConfirm(msg, "SALIR", quitButton, () => LoadScene(mainMenuScene));
+            ? "Vols sortir al menú principal?\nAquest partit no compta: el tornaràs a jugar quan continuïs el torneig."
+            : "Vols sortir al menú principal?\nEs perdrà el partit.";
+        OpenConfirm(msg, "SORTIR", quitButton, () => LoadScene(mainMenuScene));
     }
 
     void AskBracket()
     {
         string hub = TournamentSession.Config != null ? TournamentSession.Config.HubScene : "";
-        OpenConfirm("¿Volver al cuadro del torneo?\nEste partido no cuenta: lo volverás a jugar.",
-                    "IR AL CUADRO", bracketButton, () => LoadScene(hub));
+        OpenConfirm("Vols tornar al quadre del torneig?\nAquest partit no compta: el tornaràs a jugar.",
+                    "ANAR AL QUADRE", bracketButton, () => LoadScene(hub));
     }
 
     void OpenSettings()

@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 949cd4ce9daa6ed4db43b0a3c9fdcd4d, type: 3}
   m_Name: Upgrade_Pulmones_de_acero
   m_EditorClassIdentifier: Assembly-CSharp::UpgradeData
-  displayName: Pulmones de acero
-  flavorText: "Sprint m\xE1s largo."
+  displayName: "Pulmons d'acer"
+  flavorText: "Sprint m\xE9s llarg."
   icon: {fileID: 0}
   rarity: 0
   maxStacks: 3

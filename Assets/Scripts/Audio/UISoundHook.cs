@@ -26,9 +26,9 @@ public class UISoundHook : MonoBehaviour, IPointerEnterHandler, IPointerClickHan
     Selectable selectable;
     float enabledAt;
 
-    static readonly string[] BackWords = { "VOLVER", "ATRAS", "CANCELAR", "CERRAR", "SALIR", "MENU", "BACK" };
-    static readonly string[] PlayWords = { "JUGAR", "REVANCHA" };
-    static readonly string[] ResumeWords = { "CONTINUAR", "REANUDAR" };
+    static readonly string[] BackWords = { "VOLVER", "ATRAS", "CANCELAR", "CERRAR", "SALIR", "MENU", "BACK", "TORNAR", "CANCEL", "TANCAR", "SORTIR" };
+    static readonly string[] PlayWords = { "JUGAR", "REVANCHA", "REVENJA" };
+    static readonly string[] ResumeWords = { "CONTINUAR", "REANUDAR", "REPRENDRE" };
 
     public void Init(Selectable s)
     {

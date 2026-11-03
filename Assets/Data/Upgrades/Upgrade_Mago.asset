@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 949cd4ce9daa6ed4db43b0a3c9fdcd4d, type: 3}
   m_Name: Upgrade_Mago
   m_EditorClassIdentifier: Assembly-CSharp::UpgradeData
-  displayName: Mago de la bola
-  flavorText: Nadie te la quita, pero te olvidas de defender.
+  displayName: Mag de la bola
+  flavorText: "Ning\xFA te la pren, per\xF2 t'oblides de defensar."
   icon: {fileID: 0}
   rarity: 2
   maxStacks: 1

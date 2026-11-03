@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 949cd4ce9daa6ed4db43b0a3c9fdcd4d, type: 3}
   m_Name: Upgrade_Muneca_fuerte
   m_EditorClassIdentifier: Assembly-CSharp::UpgradeData
-  displayName: "Mu\xF1eca fuerte"
-  flavorText: "Tiros que pican m\xE1s."
+  displayName: Canell fort
+  flavorText: "Xuts que piquen m\xE9s."
   icon: {fileID: 0}
   rarity: 0
   maxStacks: 3

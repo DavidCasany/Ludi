@@ -467,7 +467,7 @@ public class TeamManager : MonoBehaviour
         float y = Screen.height - 76f;
         if (Controlled.JukeCooldown01 > 0f)
         {
-            DrawBar(new Rect(x, y, w, 6f), 1f - Controlled.JukeCooldown01, new Color(1f, 0.9f, 0.3f), "REGATE");
+            DrawBar(new Rect(x, y, w, 6f), 1f - Controlled.JukeCooldown01, new Color(1f, 0.9f, 0.3f), "REGAT");
             y -= 12f;
         }
         if (Controlled.StickCooldown01 > 0f)
@@ -478,7 +478,7 @@ public class TeamManager : MonoBehaviour
         if (showControlsHint)
         {
             GUI.Label(new Rect(10f, Screen.height - 24f, 900f, 20f),
-                "WASD mover · Shift sprint · Clic izq: tirar (mantener) / stick · Clic der: pase / defender (mantener sin bola) · Espacio: regate / cambiar",
+                "WASD moure · Shift sprint · Clic esq: xutar (mantenir) / stick · Clic dret: passada / defensar (mantenir sense bola) · Espai: regat / canviar",
                 smallStyle);
         }
     }

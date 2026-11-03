@@ -78,7 +78,7 @@ public class TournamentHubUI : MonoBehaviour
         UIKit.Place(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -18f), new Vector2(1000f, 62f));
 
         TextMeshProUGUI sub = UIKit.Text(screen, "Subtitle",
-            "DOBLE ELIMINACIÓN  ·  " + config.Teams.Count + " EQUIPOS  ·  DOS DERROTAS Y FUERA",
+            "DOBLE ELIMINACIÓ  ·  " + config.Teams.Count + " EQUIPS  ·  DUES DERROTES I FORA",
             17f, UIKit.Accent, FontStyles.Bold);
         sub.characterSpacing = 6f;
         UIKit.Place(sub.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -82f), new Vector2(1000f, 26f));
@@ -144,7 +144,7 @@ public class TournamentHubUI : MonoBehaviour
         DoubleEliminationBracket b = TournamentSession.Bracket;
         TeamData team = TournamentSession.Team(player);
 
-        Label(panel.transform, "TU EQUIPO", UIKit.Accent);
+        Label(panel.transform, "EL TEU EQUIP", UIKit.Accent);
 
         // Escudo + nombre + balance
         RectTransform teamRow = Row(panel.transform, 84f, 18f);
@@ -157,13 +157,13 @@ public class TournamentHubUI : MonoBehaviour
         UIKit.Stretch(teamName.rectTransform, 0f, 34f, 0f, 0f);
         int wins = 0, losses = b.Losses(player);
         foreach (BracketMatch m in b.matches) if (m.winner == player) wins++;
-        TextMeshProUGUI record = UIKit.Text(names, "Record", wins + " victorias  ·  " + losses + " derrotas", 20f,
+        TextMeshProUGUI record = UIKit.Text(names, "Record", wins + " victòries  ·  " + losses + " derrotes", 20f,
                                             UIKit.TextSoft, FontStyles.Normal, TextAlignmentOptions.TopLeft);
         UIKit.Stretch(record.rectTransform, 0f, 0f, 0f, 46f);
 
         // Vidas: dos derrotas y fuera
         RectTransform lives = Row(panel.transform, 30f, 10f);
-        TextMeshProUGUI livesLabel = UIKit.Text(lives, "Label", "VIDAS", 17f, UIKit.TextSoft, FontStyles.Bold,
+        TextMeshProUGUI livesLabel = UIKit.Text(lives, "Label", "VIDES", 17f, UIKit.TextSoft, FontStyles.Bold,
                                                 TextAlignmentOptions.Left);
         livesLabel.characterSpacing = 6f;
         UIKit.Size(livesLabel, 80f, 30f);
@@ -173,8 +173,8 @@ public class TournamentHubUI : MonoBehaviour
             Image pip = UIKit.CircleImage(lives, "Life", alive ? UIKit.Good : UIKit.Alpha(Color.white, 0.12f), 22f);
             UIKit.Size(pip, 22f, 22f);
         }
-        string livesText = TournamentSession.PlayerEliminated ? "Eliminado"
-                         : losses == 0 ? "Invicto" : "Una derrota más y fuera";
+        string livesText = TournamentSession.PlayerEliminated ? "Eliminat"
+                         : losses == 0 ? "Invicte" : "Una derrota més i fora";
         TextMeshProUGUI livesInfo = UIKit.Text(lives, "Info", livesText, 18f, losses == 0 ? UIKit.TextSoft : UIKit.Bad,
                                                FontStyles.Normal, TextAlignmentOptions.Left);
         UIKit.Size(livesInfo, -1f, 30f, 1f);
@@ -185,19 +185,19 @@ public class TournamentHubUI : MonoBehaviour
         if (TournamentSession.UpgradesEnabled)
         {
             IReadOnlyList<int> ids = TournamentSession.UpgradeIdsOf(player);
-            Label(panel.transform, "TUS MEJORAS  (" + ids.Count + ")", UIKit.Accent);
-            if (ids.Count == 0) Small(panel.transform, "Las eliges al terminar cada partido");
+            Label(panel.transform, "LES TEVES MILLORES  (" + ids.Count + ")", UIKit.Accent);
+            if (ids.Count == 0) Small(panel.transform, "Les tries en acabar cada partit");
             else BuildUpgradeList(panel.transform, ids);
             Divider(panel.transform);
         }
 
         // Resultados simulados desde tu último partido
-        Label(panel.transform, "RESULTADOS DE LA JORNADA", UIKit.Accent);
+        Label(panel.transform, "RESULTATS DE LA JORNADA", UIKit.Accent);
         List<BracketMatch> recent = TournamentSession.LastSimulated;
-        if (recent.Count == 0) Small(panel.transform, "Nada nuevo desde tu último partido");
+        if (recent.Count == 0) Small(panel.transform, "Res de nou des del teu últim partit");
         int shown = 0;
         for (int i = recent.Count - 1; i >= 0 && shown < 4; i--, shown++) ResultRow(panel.transform, b, recent[i]);
-        if (recent.Count > 4) Small(panel.transform, "+" + (recent.Count - 4) + " partidos más en el cuadro");
+        if (recent.Count > 4) Small(panel.transform, "+" + (recent.Count - 4) + " partits més al quadre");
 
         // Relleno flexible para que todo quede arriba
         RectTransform filler = UIKit.Rect(panel.transform, "Filler");
@@ -236,7 +236,7 @@ public class TournamentHubUI : MonoBehaviour
             fx.richText = true;
             UIKit.Stretch(fx.rectTransform, 24f, 0f, 0f, 26f);
         }
-        if (order.Count > max) Small(parent, "+" + (order.Count - max) + " más");
+        if (order.Count > max) Small(parent, "+" + (order.Count - max) + " més");
     }
 
     void ResultRow(Transform parent, DoubleEliminationBracket b, BracketMatch m)
@@ -282,15 +282,15 @@ public class TournamentHubUI : MonoBehaviour
         {
             playButton.interactable = false;
             TeamData champ = b.IsFinished ? TournamentSession.Team(b.championTeam) : null;
-            TextMeshProUGUI label = UIKit.Text(bar.transform, "Label", "TORNEO TERMINADO", 18f, UIKit.Accent,
+            TextMeshProUGUI label = UIKit.Text(bar.transform, "Label", "TORNEIG ACABAT", 18f, UIKit.Accent,
                                                FontStyles.Bold, TextAlignmentOptions.Left);
             label.characterSpacing = 6f;
             UIKit.PlaceTopLeft(label.rectTransform, 32f, 22f, 900f, 28f);
             TextMeshProUGUI line = UIKit.Text(bar.transform, "Champion",
-                champ != null ? "Campeón: " + champ.TeamName : "", 40f, UIKit.Gold, FontStyles.Bold, TextAlignmentOptions.Left);
+                champ != null ? "Campió: " + champ.TeamName : "", 40f, UIKit.Gold, FontStyles.Bold, TextAlignmentOptions.Left);
             UIKit.PlaceTopLeft(line.rectTransform, 32f, 58f, 1100f, 60f);
 
-            Button again = UIKit.Button(bar.transform, "Nuevo", "NUEVO TORNEO", false, 28f);
+            Button again = UIKit.Button(bar.transform, "Nuevo", "NOU TORNEIG", false, 28f);
             UIKit.Place((RectTransform)again.transform, new Vector2(1f, 0.5f), new Vector2(-28f, 0f), new Vector2(360f, 104f));
             again.onClick.AddListener(() => NewTournamentClicked?.Invoke());
             playButton.gameObject.SetActive(false);
@@ -298,7 +298,7 @@ public class TournamentHubUI : MonoBehaviour
         }
 
         int rival = next.OpponentOf(player);
-        TextMeshProUGUI head = UIKit.Text(bar.transform, "Label", "PRÓXIMO PARTIDO  ·  " + b.RoundName(next).ToUpper(),
+        TextMeshProUGUI head = UIKit.Text(bar.transform, "Label", "PROPER PARTIT  ·  " + b.RoundName(next).ToUpper(),
                                           18f, UIKit.Accent, FontStyles.Bold, TextAlignmentOptions.Left);
         head.characterSpacing = 6f;
         UIKit.PlaceTopLeft(head.rectTransform, 32f, 18f, 1100f, 28f);
@@ -320,7 +320,7 @@ public class TournamentHubUI : MonoBehaviour
         {
             int n = TournamentSession.UpgradeIdsOf(rival).Count;
             TextMeshProUGUI info = UIKit.Text(bar.transform, "RivalInfo",
-                "El rival lleva " + n + (n == 1 ? " mejora" : " mejoras") + "  ·  Enter para jugar",
+                "El rival porta " + n + (n == 1 ? " millora" : " millores") + "  ·  Enter per jugar",
                 17f, UIKit.TextFaint, FontStyles.Normal, TextAlignmentOptions.Left);
             UIKit.PlaceTopLeft(info.rectTransform, 32f, 126f, 1100f, 24f);
         }
@@ -379,7 +379,7 @@ public class TournamentHubUI : MonoBehaviour
 
         RectTransform card = Card(OpenOverlay(0.8f), 900f, 560f);
 
-        TextMeshProUGUI title = UIKit.Text(card, "Title", champion ? "¡CAMPEONES!" : "TORNEO TERMINADO", 64f,
+        TextMeshProUGUI title = UIKit.Text(card, "Title", champion ? "CAMPIONS!" : "TORNEIG ACABAT", 64f,
                                            champion ? UIKit.Gold : UIKit.TextMain, FontStyles.Bold);
         title.characterSpacing = 8f;
         UIKit.Place(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -40f), new Vector2(820f, 80f));
@@ -387,20 +387,20 @@ public class TournamentHubUI : MonoBehaviour
         RectTransform badge = UIKit.TeamBadge(card, champ, 130f);
         UIKit.Place(badge, new Vector2(0.5f, 1f), new Vector2(0f, -136f), new Vector2(130f, 130f));
 
-        TextMeshProUGUI name = UIKit.Text(card, "Champion", "Campeón de la " + config.TournamentName + ": " + champ.TeamName,
+        TextMeshProUGUI name = UIKit.Text(card, "Champion", "Campió de la " + config.TournamentName + ": " + champ.TeamName,
                                           30f, UIKit.TextMain, FontStyles.Bold);
         UIKit.Place(name.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -284f), new Vector2(840f, 44f));
 
-        string mine = champion ? "Has ganado el torneo con " + b.Losses(TournamentSession.PlayerTeam) + " derrotas"
-                               : "Tu equipo quedó eliminado. ¡A por la revancha!";
+        string mine = champion ? "Has guanyat el torneig amb " + b.Losses(TournamentSession.PlayerTeam) + " derrotes"
+                               : "El teu equip ha quedat eliminat. A per la revenja!";
         TextMeshProUGUI sub = UIKit.Text(card, "Mine", mine, 22f, UIKit.TextSoft);
         UIKit.Place(sub.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -334f), new Vector2(840f, 34f));
 
-        Button again = UIKit.Button(card, "Nuevo", "NUEVO TORNEO", true, 28f);
+        Button again = UIKit.Button(card, "Nuevo", "NOU TORNEIG", true, 28f);
         UIKit.Place((RectTransform)again.transform, new Vector2(0.5f, 0f), new Vector2(-150f, 40f), new Vector2(280f, 84f));
         again.onClick.AddListener(() => NewTournamentClicked?.Invoke());
 
-        Button view = UIKit.Button(card, "VerCuadro", "VER CUADRO", false, 28f);
+        Button view = UIKit.Button(card, "VerCuadro", "VEURE QUADRE", false, 28f);
         UIKit.Place((RectTransform)view.transform, new Vector2(0.5f, 0f), new Vector2(150f, 40f), new Vector2(280f, 84f));
         view.onClick.AddListener(CloseOverlay);
 
@@ -412,20 +412,20 @@ public class TournamentHubUI : MonoBehaviour
         if (screen != null) Destroy(screen.gameObject);
         RectTransform card = Card(OpenOverlay(0f), 900f, 420f);
 
-        TextMeshProUGUI title = UIKit.Text(card, "Title", config != null ? config.TournamentName.ToUpper() : "TORNEO",
+        TextMeshProUGUI title = UIKit.Text(card, "Title", config != null ? config.TournamentName.ToUpper() : "TORNEIG",
                                            56f, UIKit.TextMain, FontStyles.Bold);
         UIKit.Place(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -44f), new Vector2(820f, 70f));
 
         string msg;
         string error = null;
-        if (config == null) msg = "Asigna un TournamentConfig al TournamentHub";
+        if (config == null) msg = "Assigna un TournamentConfig al TournamentHub";
         else if (!config.IsValid(out error)) msg = error;
-        else msg = "No hay ningún torneo en curso";
+        else msg = "No hi ha cap torneig en curs";
         TextMeshProUGUI text = UIKit.Text(card, "Message", msg, 26f, UIKit.TextSoft);
         text.textWrappingMode = TextWrappingModes.Normal;
         UIKit.Place(text.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -140f), new Vector2(820f, 80f));
 
-        Button again = UIKit.Button(card, "Nuevo", "NUEVO TORNEO", true, 28f);
+        Button again = UIKit.Button(card, "Nuevo", "NOU TORNEIG", true, 28f);
         UIKit.Place((RectTransform)again.transform, new Vector2(0.5f, 0f), new Vector2(-150f, 40f), new Vector2(280f, 84f));
         again.onClick.AddListener(() => NewTournamentClicked?.Invoke());
         again.interactable = canStart;

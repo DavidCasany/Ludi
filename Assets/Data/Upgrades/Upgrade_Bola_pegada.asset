@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 949cd4ce9daa6ed4db43b0a3c9fdcd4d, type: 3}
   m_Name: Upgrade_Bola_pegada
   m_EditorClassIdentifier: Assembly-CSharp::UpgradeData
-  displayName: Bola pegada al stick
-  flavorText: "Cuesta m\xE1s quit\xE1rtela."
+  displayName: "Bola enganxada a l'stick"
+  flavorText: "Costa m\xE9s prendre-te-la."
   icon: {fileID: 0}
   rarity: 0
   maxStacks: 3

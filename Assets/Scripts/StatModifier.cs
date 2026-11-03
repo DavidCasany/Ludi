@@ -59,19 +59,19 @@ public struct StatModifier
     {
         switch (s)
         {
-            case StatType.TopSpeed: return "velocidad";
-            case StatType.Acceleration: return "aceleración";
-            case StatType.SprintDuration: return "duración del sprint";
-            case StatType.SprintRecharge: return "tiempo de recarga del sprint";
-            case StatType.ShotPower: return "potencia de tiro";
-            case StatType.PassSpeed: return "velocidad de pase";
-            case StatType.StealSkill: return "robo";
+            case StatType.TopSpeed: return "velocitat";
+            case StatType.Acceleration: return "acceleració";
+            case StatType.SprintDuration: return "durada del sprint";
+            case StatType.SprintRecharge: return "temps de recàrrega del sprint";
+            case StatType.ShotPower: return "potència de xut";
+            case StatType.PassSpeed: return "velocitat de passada";
+            case StatType.StealSkill: return "robatori";
             case StatType.BallControl: return "control de bola";
-            case StatType.StickReach: return "alcance del stick";
-            case StatType.StealCooldown: return "recarga del stick";
-            case StatType.JukeCooldown: return "recarga del regate";
-            case StatType.GoalkeeperSpeed: return "velocidad del portero";
-            default: return "recorrido del portero";
+            case StatType.StickReach: return "abast de l'stick";
+            case StatType.StealCooldown: return "recàrrega de l'stick";
+            case StatType.JukeCooldown: return "recàrrega del regat";
+            case StatType.GoalkeeperSpeed: return "velocitat del porter";
+            default: return "recorregut del porter";
         }
     }
 }

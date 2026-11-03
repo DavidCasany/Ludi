@@ -567,7 +567,7 @@ public class Goalkeeper : MonoBehaviour
         ball.MarkPass(myTeam, 1.5f);   // los compañeros la controlan aunque vaya rápida
         ball.SetGuide(best, null);     // y la bola corrige hacia el receptor
 
-        Feedback.Popup(rb.position, "¡CONTROLA!", new Color(0.4f, 1f, 0.5f));
+        Feedback.Popup(rb.position, "CONTROLA!", new Color(0.4f, 1f, 0.5f));
         return true;
     }
 

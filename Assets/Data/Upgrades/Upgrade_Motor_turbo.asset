@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Upgrade_Motor_turbo
   m_EditorClassIdentifier: Assembly-CSharp::UpgradeData
   displayName: Motor turbo
-  flavorText: "M\xE1s r\xE1pido que nadie... durante poco rato."
+  flavorText: "M\xE9s r\xE0pid que ning\xFA... durant poca estona."
   icon: {fileID: 0}
   rarity: 2
   maxStacks: 1

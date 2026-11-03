@@ -1,27 +1,42 @@
+using System.Collections;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 // Conecta la escena del partido con el torneo:
-//  - Al empezar: pone nombres, equipaciones y nivel de IA de los dos equipos, y activa el gol de oro.
-//  - Al terminar: envía el resultado al torneo y muestra "CONTINUAR" para volver al cuadro.
-// Si no hay torneo activo (abres la escena Match directamente para probar) no hace nada.
-// El jugador humano siempre es el equipo local (GameManager.home).
+//  - Al empezar: el jugador (local) es humano y el rival la IA; nombres, colores, nivel de IA y mejoras
+//    de los dos equipos; gol de oro activado (en eliminatoria no hay empates).
+//  - Al terminar: envía el resultado al torneo y, tras ver un momento el "FIN DEL PARTIDO", abre la
+//    pantalla de resultado (TournamentResultScreen), donde se eligen las mejoras y se vuelve al cuadro.
+// Si no hay partido de torneo pendiente (amistoso, o la escena abierta directamente) se desactiva solo.
+//
+// Va antes que TeamManager/GameManager (orden -900) para fijar quién es humano antes de su Awake.
+// MatchBootstrapper (-1000) lo desactiva en los amistosos antes de que llegue a suscribirse.
+[DefaultExecutionOrder(-900)]
 public class TournamentMatchBridge : MonoBehaviour
 {
     [SerializeField] GameManager gameManager;
+    [Tooltip("Segundos (reales) que se ve el FIN DEL PARTIDO antes de la pantalla de resultado")]
+    [SerializeField] float resultDelay = 2f;
 
     BracketMatch match;
     bool finished;
-    string resultText;
-    GUIStyle buttonStyle;
 
     void Awake()
     {
         if (gameManager == null) gameManager = GetComponent<GameManager>();
+        if (gameManager == null) gameManager = FindAnyObjectByType<GameManager>();
 
-        // Abans es comprovava 'match' abans d'assignar-lo (sempre era null) i el pont quedava sempre apagat
-        match = TournamentSession.PendingPlayerMatch();
-        if (gameManager == null || match == null || MatchLaunch.Mode != MatchMode.Tournament) enabled = false;
+        // OJO: antes se comprobaba 'match' aquí arriba, cuando todavía era null, y el puente se apagaba
+        // siempre. Ahora primero se busca el partido y después se decide.
+        match = MatchLaunch.Mode == MatchMode.Tournament ? TournamentSession.PendingPlayerMatch() : null;
+
+        if (gameManager == null || gameManager.home == null || gameManager.away == null || match == null)
+        {
+            enabled = false;
+            return;
+        }
+
+        gameManager.home.humanControlled = true;    // el jugador siempre es el equipo local
+        gameManager.away.humanControlled = false;
     }
 
     void OnEnable()
@@ -36,15 +51,17 @@ public class TournamentMatchBridge : MonoBehaviour
 
     void Start()
     {
-        TeamData player = TournamentSession.Team(TournamentSession.PlayerTeam);
-        TeamData rival = TournamentSession.RivalIn(match);
+        int player = TournamentSession.PlayerTeam;
+        int rival = match.OpponentOf(player);
+        TeamData playerData = TournamentSession.Team(player);
+        TeamData rivalData = TournamentSession.Team(rival);
 
-        gameManager.ConfigureMatch(player.ShortName, rival.ShortName, true);
-        TeamDataApplier.ApplyMatch(gameManager.home, player, gameManager.away, rival);   // equipacions + IA
+        gameManager.ConfigureMatch(playerData.ShortName, rivalData.ShortName, true);
+        TeamDataApplier.ApplyMatch(gameManager.home, playerData, gameManager.away, rivalData);   // equipacions + IA
 
         // Mejoras roguelite de cada equipo (el rival también ha ido eligiendo)
-        TeamStatApplier.Apply(gameManager.home, TournamentSession.UpgradesOf(TournamentSession.PlayerTeam));
-        TeamStatApplier.Apply(gameManager.away, TournamentSession.UpgradesOf(match.OpponentOf(TournamentSession.PlayerTeam)));
+        TeamStatApplier.Apply(gameManager.home, TournamentSession.UpgradesOf(player));
+        TeamStatApplier.Apply(gameManager.away, TournamentSession.UpgradesOf(rival));
     }
 
     void OnMatchFinished(int homeGoals, int awayGoals)
@@ -52,25 +69,37 @@ public class TournamentMatchBridge : MonoBehaviour
         if (finished) return;
         finished = true;
 
-        TournamentSession.ReportPlayerMatch(homeGoals, awayGoals);
-        resultText = homeGoals > awayGoals ? "¡Pasas de ronda!"
-                   : TournamentSession.PlayerEliminated ? "Eliminado del torneo"
-                   : "Primera derrota: sigues vivo en el cuadro de perdedores";
+        int player = TournamentSession.PlayerTeam;
+        TournamentResultScreen.Outcome o = new TournamentResultScreen.Outcome
+        {
+            playerTeam = TournamentSession.Team(player),
+            rivalTeam = TournamentSession.Team(match.OpponentOf(player)),
+            playerGoals = homeGoals,
+            rivalGoals = awayGoals,
+            roundName = TournamentSession.Bracket.RoundName(match)
+        };
+
+        if (!TournamentSession.ReportPlayerMatch(homeGoals, awayGoals))
+        {
+            o.reportFailed = true;
+        }
+        else
+        {
+            o.champion = TournamentSession.IsChampion;
+            o.eliminated = TournamentSession.PlayerEliminated;
+            o.losses = TournamentSession.Bracket.Losses(player);
+            BracketMatch next = TournamentSession.PlayerNextMatch();
+            o.nextRoundName = next != null ? TournamentSession.Bracket.RoundName(next) : null;
+        }
+
+        StartCoroutine(ShowResultAfterDelay(o));
     }
 
-    void OnGUI()
+    IEnumerator ShowResultAfterDelay(TournamentResultScreen.Outcome o)
     {
-        if (!finished) return;
-        GUI.depth = -10;   // por encima del HUD del GameManager
-
-        if (buttonStyle == null)
-            buttonStyle = new GUIStyle(GUI.skin.button) { fontSize = 30, fontStyle = FontStyle.Bold };
-
-        GUIStyle label = new GUIStyle(GUI.skin.label) { fontSize = 28, alignment = TextAnchor.MiddleCenter };
-        GUI.Label(new Rect(0, Screen.height - 190f, Screen.width, 40f), resultText, label);
-
-        Rect r = new Rect((Screen.width - 280f) * 0.5f, Screen.height - 130f, 280f, 70f);
-        if (GUI.Button(r, "CONTINUAR", buttonStyle))
-            SceneManager.LoadScene(TournamentSession.Config.HubScene);
+        // Tiempo real: el partido puede haber acabado en plena cámara lenta
+        yield return new WaitForSecondsRealtime(resultDelay);
+        HudVisibility.Hidden = true;   // el HUD de OnGUI se pinta encima del Canvas: se esconde
+        TournamentResultScreen.Show(o);
     }
 }

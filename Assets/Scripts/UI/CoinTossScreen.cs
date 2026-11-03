@@ -73,7 +73,7 @@ public class CoinTossScreen : MonoBehaviour
         Image dim = UIKit.Image(root, "Dim", UIKit.Alpha(UIKit.Background, 0.78f), 0f, true);
         UIKit.Stretch(dim.rectTransform, 0f);
 
-        TextMeshProUGUI title = UIKit.Text(root, "Title", "SORTEO", 30f, UIKit.Accent, FontStyles.Bold);
+        TextMeshProUGUI title = UIKit.Text(root, "Title", "SORTEIG", 30f, UIKit.Accent, FontStyles.Bold);
         title.characterSpacing = 14f;
         UIKit.Place(title.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 330f), new Vector2(600f, 40f));
 
@@ -109,7 +109,7 @@ public class CoinTossScreen : MonoBehaviour
         headsButton.onClick.AddListener(() => Pick(true));
         headsButton.gameObject.AddComponent<HoverPop>();
 
-        tailsButton = UIKit.Button(choice, "Cruz", "CRUZ", false, 36f);
+        tailsButton = UIKit.Button(choice, "Cruz", "CREU", false, 36f);
         UIKit.Place((RectTransform)tailsButton.transform, new Vector2(0.5f, 0.5f), new Vector2(160f, -150f), new Vector2(280f, 96f));
         tailsButton.onClick.AddListener(() => Pick(false));
         tailsButton.gameObject.AddComponent<HoverPop>();
@@ -117,7 +117,7 @@ public class CoinTossScreen : MonoBehaviour
         headsButton.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnRight = tailsButton };
         tailsButton.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnLeft = headsButton };
 
-        TextMeshProUGUI hint = UIKit.Text(choice, "Hint", "Quien gane, saca", 24f, UIKit.TextSoft);
+        TextMeshProUGUI hint = UIKit.Text(choice, "Hint", "Qui guanyi, treu", 24f, UIKit.TextSoft);
         UIKit.Place(hint.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, -240f), new Vector2(600f, 34f));
 
         // Lo que se ve después de elegir
@@ -156,7 +156,7 @@ public class CoinTossScreen : MonoBehaviour
         int halfTurns = 12 + (heads ? 0 : 1);
         targetAngle = Mathf.PI * halfTurns;
 
-        pickText.text = "Has elegido " + (pickedHeads ? "CARA" : "CRUZ");
+        pickText.text = "Has triat " + (pickedHeads ? "CARA" : "CREU");
         choiceGroup.interactable = choiceGroup.blocksRaycasts = false;
         if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(null);
 
@@ -224,11 +224,11 @@ public class CoinTossScreen : MonoBehaviour
         PlaySound(gm.coinLandClip);
 
         SetAlpha(pickText, 0f);
-        resultTitle.text = playerWon ? "¡GANAS EL SORTEO!" : "PIERDES EL SORTEO";
+        resultTitle.text = playerWon ? "GUANYES EL SORTEIG!" : "PERDS EL SORTEIG";
         resultTitle.color = playerWon ? UIKit.Good : UIKit.Bad;
 
         Team server = playerWon ? gm.PlayerTeam : (gm.PlayerTeam == Team.Home ? Team.Away : Team.Home);
-        resultSub.text = "SACA " + (server == Team.Home ? gm.HomeName : gm.AwayName);
+        resultSub.text = "TREU " + (server == Team.Home ? gm.HomeName : gm.AwayName);
     }
 
     void UpdateResult()
@@ -271,7 +271,7 @@ public class CoinTossScreen : MonoBehaviour
         Color rim = heads ? HeadsRim : TailsRim;
         coinRim.color = rim;
         coinFace.color = coinInner.color = Color.Lerp(rim, face, Mathf.Clamp01(w * 1.4f));
-        coinLabel.text = heads ? "CARA" : "CRUZ";
+        coinLabel.text = heads ? "CARA" : "CREU";
         coinLabel.color = heads ? HeadsInk : TailsInk;
         SetAlpha(coinLabel, Mathf.Clamp01((w - 0.3f) / 0.4f));   // de canto no se lee el texto
     }

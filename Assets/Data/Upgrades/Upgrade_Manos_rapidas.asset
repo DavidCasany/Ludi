@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 949cd4ce9daa6ed4db43b0a3c9fdcd4d, type: 3}
   m_Name: Upgrade_Manos_rapidas
   m_EditorClassIdentifier: Assembly-CSharp::UpgradeData
-  displayName: "Manos r\xE1pidas"
-  flavorText: "M\xE1s robos con \xE9xito."
+  displayName: "Mans r\xE0pides"
+  flavorText: "M\xE9s robatoris amb \xE8xit."
   icon: {fileID: 0}
   rarity: 0
   maxStacks: 3

@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 949cd4ce9daa6ed4db43b0a3c9fdcd4d, type: 3}
   m_Name: Upgrade_Fintas
   m_EditorClassIdentifier: Assembly-CSharp::UpgradeData
-  displayName: Rey de las fintas
-  flavorText: "Regatea m\xE1s a menudo."
+  displayName: Rei de les fintes
+  flavorText: "Regateja m\xE9s sovint."
   icon: {fileID: 0}
   rarity: 1
   maxStacks: 2

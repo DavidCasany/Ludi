@@ -40,9 +40,9 @@ public class TournamentConfig : ScriptableObject
     public bool IsValid(out string error)
     {
         error = null;
-        if (!DoubleEliminationBracket.IsValidSize(teams.Count)) error = "Hacen falta 4, 8 o 16 equipos (hay " + teams.Count + ")";
-        else if (teams.Contains(null)) error = "Hay huecos vacíos en la lista de equipos";
-        else if (playerTeam == null || !teams.Contains(playerTeam)) error = "El equipo del jugador debe estar en la lista";
+        if (!DoubleEliminationBracket.IsValidSize(teams.Count)) error = "Calen 4, 8 o 16 equips (n'hi ha " + teams.Count + ")";
+        else if (teams.Contains(null)) error = "Hi ha buits a la llista d'equips";
+        else if (playerTeam == null || !teams.Contains(playerTeam)) error = "L'equip del jugador ha de ser a la llista";
         return error == null;
     }
 

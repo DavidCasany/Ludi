@@ -53,10 +53,19 @@ public static class GameSettings
         loaded = false;
     }
 
+    // En el navegador (WebGL) la resolución la decide la ventana/página y la pantalla completa solo se puede
+    // pedir desde un clic del jugador: no se toca nada al arrancar y el desplegable de resolución se oculta.
+    public static bool IsWeb => Application.platform == RuntimePlatform.WebGLPlayer;
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     static void Init()
     {
         Load();
+        if (IsWeb)
+        {
+            Fullscreen = false;   // el navegador siempre arranca en ventana
+            return;
+        }
         ClampToAvailable();   // p. ej. se guardó 2560×1440 y ahora el monitor es de 1920×1080
         ApplyDisplay();
     }
@@ -65,6 +74,7 @@ public static class GameSettings
 
     public static void SetResolution(int width, int height)
     {
+        if (IsWeb) return;
         Width = width;
         Height = height;
         ApplyDisplay();
@@ -76,6 +86,12 @@ public static class GameSettings
     public static void SetFullscreen(bool on)
     {
         Fullscreen = on;
+        if (IsWeb)
+        {
+            Screen.fullScreen = on;   // Unity lo pide al navegador en el mismo clic del jugador
+            Save();
+            return;
+        }
         ClampToAvailable();
         ApplyDisplay();
         Save();

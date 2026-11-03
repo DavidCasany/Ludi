@@ -64,7 +64,7 @@ public class FriendlyMatchEndScreen : MonoBehaviour
         float y = Mathf.Min(Screen.height * 0.5f + 230f, Screen.height - h - 20f);
 
         GUI.enabled = Ready;
-        if (GUI.Button(new Rect(Screen.width * 0.5f - w - gap * 0.5f, y, w, h), "REVANCHA", buttonStyle)) Rematch();
+        if (GUI.Button(new Rect(Screen.width * 0.5f - w - gap * 0.5f, y, w, h), "REVENJA", buttonStyle)) Rematch();
         if (GUI.Button(new Rect(Screen.width * 0.5f + gap * 0.5f, y, w, h), "MENÚ", buttonStyle)) GoToMenu();
         GUI.enabled = true;
     }

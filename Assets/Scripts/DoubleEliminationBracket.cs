@@ -239,14 +239,14 @@ public class DoubleEliminationBracket
         switch (m.side)
         {
             case BracketSide.Winners:
-                if (m.round == winnersRounds - 1) return "Final de ganadores";
-                if (m.round == winnersRounds - 2) return "Semifinal de ganadores";
-                return "Ganadores · Ronda " + (m.round + 1);
+                if (m.round == winnersRounds - 1) return "Final de guanyadors";
+                if (m.round == winnersRounds - 2) return "Semifinal de guanyadors";
+                return "Guanyadors · Ronda " + (m.round + 1);
             case BracketSide.Losers:
-                if (m.round == losersRounds - 1) return "Final de perdedores";
-                return "Perdedores · Ronda " + (m.round + 1);
+                if (m.round == losersRounds - 1) return "Final de perdedors";
+                return "Perdedors · Ronda " + (m.round + 1);
             case BracketSide.GrandFinal: return "Gran final";
-            default: return "Gran final · Desempate";
+            default: return "Gran final · Desempat";
         }
     }
 }

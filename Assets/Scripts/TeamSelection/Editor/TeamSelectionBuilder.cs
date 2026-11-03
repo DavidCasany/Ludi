@@ -91,12 +91,12 @@ public static class TeamSelectionBuilder
         Image bar = CreateImage(root.transform, "AccentBar", Accent, null);
         Place(bar.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -146f), new Vector2(120f, 6f));
 
-        TextMeshProUGUI instruction = CreateText(root.transform, "Instruction", "Elige tu equipo", 34f,
+        TextMeshProUGUI instruction = CreateText(root.transform, "Instruction", "Tria el teu equip", 34f,
                                                  FontStyles.Normal, TextSoft, TextAlignmentOptions.Center);
         Place(instruction.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -166f), new Vector2(1000f, 50f));
 
         // ---------- Paneles laterales ----------
-        TeamSidePanel homePanel = CreateSidePanel(root.transform, "HomePanel", "TU EQUIPO",
+        TeamSidePanel homePanel = CreateSidePanel(root.transform, "HomePanel", "EL TEU EQUIP",
                                                   new Vector2(0f, 0.5f), new Vector2(PanelMargin, 0f));
         TeamSidePanel awayPanel = CreateSidePanel(root.transform, "AwayPanel", "RIVAL · CPU",
                                                   new Vector2(1f, 0.5f), new Vector2(-PanelMargin, 0f));
@@ -117,9 +117,9 @@ public static class TeamSelectionBuilder
         TeamCard template = CreateCardTemplate(gridGO.transform);
 
         // ---------- Botones de abajo ----------
-        Button back = CreateButton(root.transform, "Volver", "VOLVER", Surface);
+        Button back = CreateButton(root.transform, "Volver", "TORNAR", Surface);
         Place((RectTransform)back.transform, new Vector2(0.5f, 0f), new Vector2(-460f, 90f), new Vector2(360f, 90f));
-        Button random = CreateButton(root.transform, "Aleatorio", "ALEATORIO", Surface);
+        Button random = CreateButton(root.transform, "Aleatorio", "ALEATORI", Surface);
         Place((RectTransform)random.transform, new Vector2(0.5f, 0f), new Vector2(0f, 90f), new Vector2(360f, 90f));
         Button play = CreateButton(root.transform, "Jugar", "JUGAR", Accent);
         Place((RectTransform)play.transform, new Vector2(0.5f, 0f), new Vector2(460f, 90f), new Vector2(360f, 90f));
@@ -129,7 +129,7 @@ public static class TeamSelectionBuilder
         Place(error.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 200f), new Vector2(1400f, 44f));
         error.gameObject.SetActive(false);
 
-        TextMeshProUGUI hint = CreateText(root.transform, "Hint", "Esc · Volver", 22f, FontStyles.Normal, TextSoft,
+        TextMeshProUGUI hint = CreateText(root.transform, "Hint", "Esc · Tornar", 22f, FontStyles.Normal, TextSoft,
                                           TextAlignmentOptions.Center);
         Place(hint.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 36f), new Vector2(400f, 36f));
 
@@ -269,7 +269,7 @@ public static class TeamSelectionBuilder
                                               TextSoft, TextAlignmentOptions.Center);
         Place(fallback.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -100f), new Vector2(PanelWidth - 40f, 240f));
 
-        TextMeshProUGUI nameText = CreateText(contentGO.transform, "Name", "Sin elegir", 40f, FontStyles.Bold,
+        TextMeshProUGUI nameText = CreateText(contentGO.transform, "Name", "Sense triar", 40f, FontStyles.Bold,
                                               TextMain, TextAlignmentOptions.Center);
         nameText.enableAutoSizing = true;
         nameText.fontSizeMin = 24f;
@@ -280,8 +280,8 @@ public static class TeamSelectionBuilder
                                           TextAlignmentOptions.Center);
         Place(info.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -424f), new Vector2(PanelWidth - 40f, 40f));
 
-        Image playerColor = CreateSwatch(contentGO.transform, "PlayerColor", "Jugadores", new Vector2(-90f, -500f));
-        Image keeperColor = CreateSwatch(contentGO.transform, "KeeperColor", "Portero", new Vector2(90f, -500f));
+        Image playerColor = CreateSwatch(contentGO.transform, "PlayerColor", "Jugadors", new Vector2(-90f, -500f));
+        Image keeperColor = CreateSwatch(contentGO.transform, "KeeperColor", "Porter", new Vector2(90f, -500f));
 
         TeamSidePanel panel = holder.AddComponent<TeamSidePanel>();
         Wire(panel, "button", button);
@@ -343,7 +343,7 @@ public static class TeamSelectionBuilder
         badgeImg.type = Image.Type.Sliced;
         badgeImg.raycastTarget = false;
         Place(badgeImg.rectTransform, new Vector2(1f, 1f), new Vector2(8f, 12f), new Vector2(80f, 40f));
-        TextMeshProUGUI badgeText = CreateText(badgeImg.transform, "Text", "TÚ", 24f, FontStyles.Bold, Color.white,
+        TextMeshProUGUI badgeText = CreateText(badgeImg.transform, "Text", "TU", 24f, FontStyles.Bold, Color.white,
                                                TextAlignmentOptions.Center);
         Stretch(badgeText.rectTransform, 0f);
 

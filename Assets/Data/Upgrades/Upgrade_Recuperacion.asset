@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 949cd4ce9daa6ed4db43b0a3c9fdcd4d, type: 3}
   m_Name: Upgrade_Recuperacion
   m_EditorClassIdentifier: Assembly-CSharp::UpgradeData
-  displayName: "Recuperaci\xF3n r\xE1pida"
-  flavorText: La barra de sprint se llena antes.
+  displayName: "Recuperaci\xF3 r\xE0pida"
+  flavorText: "La barra de sprint s'omple abans."
   icon: {fileID: 0}
   rarity: 0
   maxStacks: 3

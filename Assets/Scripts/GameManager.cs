@@ -135,10 +135,10 @@ public class GameManager : MonoBehaviour
         bool playerWins = heads == playerPicksHeads;
         firstServer = playerWins ? playerTeam : Other(playerTeam);
 
-        string chosen = playerPicksHeads ? "CARA" : "CRUZ";
-        string result = heads ? "CARA" : "CRUZ";
-        coinResultText = $"Elegiste {chosen} · Ha salido {result}";
-        coinServeText = playerWins ? "¡Sacas tú!" : "Saca el rival";
+        string chosen = playerPicksHeads ? "CARA" : "CREU";
+        string result = heads ? "CARA" : "CREU";
+        coinResultText = $"Has triat {chosen} · Ha sortit {result}";
+        coinServeText = playerWins ? "Treus tu!" : "Treu el rival";
 
         State = MatchState.CoinResult;
         if (CoinTossHandledExternally) CoinTossed?.Invoke(heads, playerWins);
@@ -304,7 +304,7 @@ public class GameManager : MonoBehaviour
         if (PauseController.IsPaused || HudVisibility.Hidden) return;
         GUIStyle hud = new GUIStyle(GUI.skin.label) { fontSize = 28, fontStyle = FontStyle.Bold };
         GUI.Label(new Rect(10, 10, 700, 40), $"{homeName} {homeScore} - {awayScore} {awayName}", hud);
-        string clock = IsGoldenGoal ? "PRÓRROGA · GOL DE ORO" : $"{Half}ª PARTE   {FormatTime(timeLeft)}";
+        string clock = IsGoldenGoal ? "PRÒRROGA · GOL D'OR" : $"{Half}a PART   {FormatTime(timeLeft)}";
         GUI.Label(new Rect(10, 50, 700, 40), clock, hud);
 
         switch (State)
@@ -313,7 +313,7 @@ public class GameManager : MonoBehaviour
             case MatchState.CoinResult: if (!CoinTossHandledExternally) DrawCoinResult(); break;
             case MatchState.Kickoff: DrawKickoffHint(); break;
             case MatchState.GoalPause: DrawGoalScreen(); break;
-            case MatchState.HalfTime: DrawCentered("DESCANSO", 80, 0f); break;
+            case MatchState.HalfTime: DrawCentered("DESCANS", 80, 0f); break;
             case MatchState.OvertimeBreak: DrawOvertimeScreen(); break;
             case MatchState.FullTime: DrawFullTimeScreen(); break;
         }
@@ -322,14 +322,14 @@ public class GameManager : MonoBehaviour
     void DrawCoinToss()
     {
         DrawDim(0.6f);
-        DrawCentered("SORTEO", 70, -160f);
-        DrawCentered("Elige cara o cruz", 40, -90f);
+        DrawCentered("SORTEIG", 70, -160f);
+        DrawCentered("Tria cara o creu", 40, -90f);
 
         GUIStyle btn = new GUIStyle(GUI.skin.button) { fontSize = 36, fontStyle = FontStyle.Bold };
         float w = 220f, h = 80f, y = Screen.height * 0.5f - 10f;
 
         if (GUI.Button(new Rect(Screen.width * 0.5f - w - 20f, y, w, h), "CARA", btn)) ChooseCoin(true);
-        if (GUI.Button(new Rect(Screen.width * 0.5f + 20f, y, w, h), "CRUZ", btn)) ChooseCoin(false);
+        if (GUI.Button(new Rect(Screen.width * 0.5f + 20f, y, w, h), "CREU", btn)) ChooseCoin(false);
     }
 
     void DrawCoinResult()
@@ -342,8 +342,8 @@ public class GameManager : MonoBehaviour
     void DrawKickoffHint()
     {
         string text = kickoffTeam == playerTeam
-            ? "SAQUE: pasa a un compañero (clic derecho)"
-            : "Saque del rival";
+            ? "TREUS TU: passa-la a un company (clic dret)"
+            : "Treu el rival";
 
         DrawCentered(text, 36, 100f - Screen.height * 0.5f);
     }
@@ -351,26 +351,26 @@ public class GameManager : MonoBehaviour
     void DrawGoalScreen()
     {
         DrawDim(0.45f);
-        DrawCentered(IsGoldenGoal ? "¡GOL DE ORO!" : "¡GOL!", 140, -80f);
+        DrawCentered(IsGoldenGoal ? "GOL D'OR!" : "GOL!", 140, -80f);
         DrawCentered($"{homeScore} - {awayScore}", 90, 80f);
     }
 
     void DrawOvertimeScreen()
     {
         DrawDim(0.6f);
-        DrawCentered("EMPATE", 70, -80f);
-        DrawCentered("Prórroga a gol de oro: el primero que marque gana", 36, 20f);
+        DrawCentered("EMPAT", 70, -80f);
+        DrawCentered("Pròrroga a gol d'or: qui marqui primer guanya", 36, 20f);
     }
 
     void DrawFullTimeScreen()
     {
         DrawDim(0.75f);
 
-        string result = homeScore > awayScore ? "GANA " + homeName
-                      : awayScore > homeScore ? "GANA " + awayName
-                      : "EMPATE";
+        string result = homeScore > awayScore ? "GUANYA " + homeName
+                      : awayScore > homeScore ? "GUANYA " + awayName
+                      : "EMPAT";
 
-        DrawCentered("FIN DEL PARTIDO", 50, -140f);
+        DrawCentered("FINAL DEL PARTIT", 50, -140f);
         DrawCentered($"{homeScore} - {awayScore}", 140, 0f);
         DrawCentered(result, 50, 140f);
     }

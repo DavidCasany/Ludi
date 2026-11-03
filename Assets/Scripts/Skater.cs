@@ -633,7 +633,7 @@ public class Skater : MonoBehaviour
 
         if (b.Speed > stickCatchMaxSpeed)
         {
-            Feedback.Popup(b.rb.position, "¡MUY RÁPIDA!", colInfo);
+            Feedback.Popup(b.rb.position, "MOLT RÀPIDA!", colInfo);
             return Miss(StickResult.TooFast, missRecovery * 0.5f);
         }
 
@@ -645,7 +645,7 @@ public class Skater : MonoBehaviour
             {
                 b.rb.linearVelocity = Rotate(b.rb.linearVelocity, Random.Range(-25f, 25f)) * 0.75f;
                 b.Touch(team);
-                Feedback.Popup(b.rb.position, "¡TOCADA!", colInfo);
+                Feedback.Popup(b.rb.position, "TOCADA!", colInfo);
                 return Miss(StickResult.Failed, missRecovery * 0.5f);
             }
         }
@@ -654,7 +654,7 @@ public class Skater : MonoBehaviour
         bool wasEnemyPass = b.IsPassFor(other);
 
         TakeBall(b);
-        Feedback.Popup(pos, wasEnemyPass ? "¡INTERCEPTADA!" : "¡RECOGIDA!", colGood);
+        Feedback.Popup(pos, wasEnemyPass ? "INTERCEPTADA!" : "RECOLLIDA!", colGood);
         return StickResult.Intercepted;
     }
 
@@ -698,7 +698,7 @@ public class Skater : MonoBehaviour
         if (IsDribbling)
         {
             thief.Stagger(thief.missRecovery);
-            Feedback.Popup(pos, "¡REGATE!", colWarn);
+            Feedback.Popup(pos, "REGAT!", colWarn);
             return StickResult.Dribbled;
         }
 
@@ -706,7 +706,7 @@ public class Skater : MonoBehaviour
         if (Time.time < graceUntil)
         {
             thief.Stagger(thief.missRecovery);
-            Feedback.Popup(pos, "¡AGUANTA!", colInfo);
+            Feedback.Popup(pos, "AGUANTA!", colInfo);
             return StickResult.Grace;
         }
 
@@ -717,7 +717,7 @@ public class Skater : MonoBehaviour
         if (side < shieldDot)
         {
             thief.Stagger(thief.missRecovery);
-            Feedback.Popup(pos, "¡PROTEGIDA!", colInfo);
+            Feedback.Popup(pos, "PROTEGIDA!", colInfo);
             return StickResult.Shielded;
         }
 
@@ -731,7 +731,7 @@ public class Skater : MonoBehaviour
         if (!success)
         {
             thief.Stagger(thief.missRecovery * (side > 0.5f ? 0.5f : 1f));   // un buen intento fallido castiga menos
-            Feedback.Popup(pos, "¡AGUANTÓ!", colInfo);
+            Feedback.Popup(pos, "HA AGUANTAT!", colInfo);
             return StickResult.Failed;
         }
 
@@ -750,8 +750,8 @@ public class Skater : MonoBehaviour
         Stagger(0.5f);                       // el que pierde la bola queda descolocado un momento
         thief.TakeBall(b);                   // el ladrón se la queda directamente
 
-        Feedback.Popup(thief.transform.position, "¡ROBO!", colGood);
-        Feedback.Popup(transform.position, "¡PERDIDA!", colBad);
+        Feedback.Popup(thief.transform.position, "ROBADA!", colGood);
+        Feedback.Popup(transform.position, "PERDUDA!", colBad);
     }
 
     public void Stagger(float duration)
@@ -784,7 +784,7 @@ public class Skater : MonoBehaviour
             beaten++;
         }
 
-        if (beaten > 0) Feedback.Popup(transform.position, "¡REGATE!", colWarn);
+        if (beaten > 0) Feedback.Popup(transform.position, "REGAT!", colWarn);
         return true;
     }
 

@@ -1368,6 +1368,9 @@ MonoBehaviour:
   halfTimeBreak: 4
   overtimeBreak: 3
   coinResultTime: 2.5
+  useCoinTossScreen: 1
+  coinFlipClip: {fileID: 0}
+  coinLandClip: {fileID: 0}
   homeScore: 0
   awayScore: 0
   homeName: HOME
@@ -1401,6 +1404,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TournamentMatchBridge
   gameManager: {fileID: 1119589248}
+  resultDelay: 2
 --- !u!114 &1119589251
 MonoBehaviour:
   m_ObjectHideFlags: 0

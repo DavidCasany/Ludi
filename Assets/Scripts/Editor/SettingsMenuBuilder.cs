@@ -16,7 +16,7 @@ using UnityEngine.InputSystem.UI;
 // Distribución (sigue el blocking, sin panel que lo encierre):
 //   arriba ........ título AJUSTES + barra de acento
 //   centro ........ columna: AUDIO (música, efectos) · PANTALLA (resolución, pantalla completa) · JUEGO (flechas)
-//   abajo ......... botón VOLVER + "Esc · Volver"
+//   abajo ......... botón VOLVER + "Esc · Tornar"
 // Todo son GameObjects normales: después se puede retocar a mano.
 public static class SettingsMenuBuilder
 {
@@ -113,9 +113,13 @@ public static class SettingsMenuBuilder
         hv.childControlWidth = hv.childControlHeight = true;
         hv.childForceExpandWidth = hv.childForceExpandHeight = false;
 
-        TextMeshProUGUI title = CreateText(header.transform, "Title", "AJUSTES", 84f, FontStyles.Bold, TextMain,
+        TextMeshProUGUI title = CreateText(header.transform, "Title", "CONFIGURACIÓ", 84f, FontStyles.Bold, TextMain,
                                            TextAlignmentOptions.Center);
         title.characterSpacing = 6f;
+        title.enableAutoSizing = true;              // "CONFIGURACIÓ" es más largo que "AJUSTES"
+        title.fontSizeMin = 40f;
+        title.fontSizeMax = 84f;
+        title.textWrappingMode = TextWrappingModes.NoWrap;
         SetSize(title.gameObject, ColumnWidth, 100f, 0f);
 
         Image bar = CreateImage(header.transform, "AccentBar", Accent, null);
@@ -132,23 +136,23 @@ public static class SettingsMenuBuilder
         cv.childForceExpandHeight = false;
         column.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-        CreateSection(column.transform, "AUDIO", true);
+        CreateSection(column.transform, "ÀUDIO", true);
         TextMeshProUGUI musicValue, sfxValue;
         Slider music = CreateSliderBlock(column.transform, "Musica", "Música", uiRes, out musicValue);
-        Slider sfx = CreateSliderBlock(column.transform, "Efectos", "Efectos", uiRes, out sfxValue);
+        Slider sfx = CreateSliderBlock(column.transform, "Efectes", "Efectes", uiRes, out sfxValue);
 
         CreateSection(column.transform, "PANTALLA", false);
-        TMP_Dropdown dropdown = CreateDropdownBlock(column.transform, "Resolucion", "Resolución", tmpRes);
+        TMP_Dropdown dropdown = CreateDropdownBlock(column.transform, "Resolucion", "Resolució", tmpRes);
         Toggle fullscreen = CreateToggleRow(column.transform, "PantallaCompleta", "Pantalla completa");
 
-        CreateSection(column.transform, "JUEGO", false);
-        Toggle arrows = CreateToggleRow(column.transform, "FlechasPase", "Mostrar flechas de pase");
+        CreateSection(column.transform, "JOC", false);
+        Toggle arrows = CreateToggleRow(column.transform, "FlechasPase", "Mostra les fletxes de passada");
 
         // ---------- Volver (abajo, centrado) ----------
-        Button back = CreateButton(root.transform, "Volver", "VOLVER");
+        Button back = CreateButton(root.transform, "Volver", "TORNAR");
         Place((RectTransform)back.transform, new Vector2(0.5f, 0f), new Vector2(0f, 90f), new Vector2(400f, 90f));
 
-        TextMeshProUGUI hint = CreateText(root.transform, "Hint", "Esc · Volver", 22f, FontStyles.Normal, TextSoft,
+        TextMeshProUGUI hint = CreateText(root.transform, "Hint", "Esc · Tornar", 22f, FontStyles.Normal, TextSoft,
                                           TextAlignmentOptions.Center);
         Place(hint.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(400f, 36f));
 

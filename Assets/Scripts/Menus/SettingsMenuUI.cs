@@ -42,6 +42,7 @@ public class SettingsMenuUI : MonoBehaviour
         overlay = SceneManager.sceneCount > 1;
         if (overlay) RemoveDuplicatesForOverlay();
 
+        if (GameSettings.IsWeb) HideResolution();
         resolutionDropdown.onValueChanged.AddListener(OnResolutionChanged);
         fullscreenToggle.onValueChanged.AddListener(OnFullscreenChanged);
         musicSlider.onValueChanged.AddListener(OnMusicChanged);
@@ -96,12 +97,30 @@ public class SettingsMenuUI : MonoBehaviour
         resolutionDropdown.SetValueWithoutNotify(current);
         resolutionDropdown.RefreshShownValue();
 
-        fullscreenToggle.SetIsOnWithoutNotify(GameSettings.Fullscreen);
+        // En el navegador se puede salir de pantalla completa con Esc: se lee el estado real
+        fullscreenToggle.SetIsOnWithoutNotify(GameSettings.IsWeb ? Screen.fullScreen : GameSettings.Fullscreen);
         musicSlider.SetValueWithoutNotify(GameSettings.MusicVolume);
         sfxSlider.SetValueWithoutNotify(GameSettings.SfxVolume);
         passArrowsToggle.SetIsOnWithoutNotify(GameSettings.PassArrows);
         SetPercent(musicValue, GameSettings.MusicVolume);
         SetPercent(sfxValue, GameSettings.SfxVolume);
+    }
+
+    // En el navegador la resolución la pone la página: se oculta el bloque y la navegación lo salta
+    void HideResolution()
+    {
+        Navigation skip = resolutionDropdown.navigation;
+        foreach (Selectable s in GetComponentsInChildren<Selectable>(true))
+        {
+            Navigation n = s.navigation;
+            if (n.mode != Navigation.Mode.Explicit) continue;
+            if (n.selectOnDown == resolutionDropdown) n.selectOnDown = skip.selectOnDown;
+            if (n.selectOnUp == resolutionDropdown) n.selectOnUp = skip.selectOnUp;
+            s.navigation = n;
+        }
+        Transform block = resolutionDropdown.transform.parent;
+        if (block != null && block != transform) block.gameObject.SetActive(false);
+        else resolutionDropdown.gameObject.SetActive(false);
     }
 
     // ---------- Cambios ----------

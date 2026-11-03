@@ -35,7 +35,12 @@ public class MainMenuBuilder : EditorWindow
 
     [Header("Título")]
     [SerializeField] bool showTitle = true;
-    [SerializeField] string titleText = "HOQUEI PATINS";
+    [Tooltip("Admite rich text: la segunda parte va en el color de acento")]
+    [SerializeField] string titleText = "HOCKEY<color=#F2782B>MANIACS</color>";
+    [Tooltip("Arriba a la izquierda, alineado con los botones. Tamaño automático para que no se salga")]
+    [SerializeField] float titleTop = 70f;
+    [SerializeField] float titleWidth = 1100f;
+    [SerializeField] float titleMaxSize = 104f;
 
     [Header("Columna de botones (px a 1920×1080)")]
     [SerializeField] float columnLeft = 160f;
@@ -153,13 +158,20 @@ public class MainMenuBuilder : EditorWindow
 
         if (showTitle)
         {
-            TextMeshProUGUI title = CreateText(column.transform, "Title", titleText, 84f, FontStyles.Bold, Color.white);
-            SetHeight(title.gameObject, 160f);
+            // Fuera de la columna de botones (480 px): un título largo no cabría.
+            TextMeshProUGUI title = CreateText(root.transform, "Title", titleText, titleMaxSize, FontStyles.Bold, Color.white);
+            title.alignment = TextAlignmentOptions.Left;
+            title.textWrappingMode = TextWrappingModes.NoWrap;
+            title.enableAutoSizing = true;
+            title.fontSizeMin = 48f;
+            title.fontSizeMax = titleMaxSize;
+            title.characterSpacing = 4f;
+            Place(title.rectTransform, new Vector2(0f, 1f), new Vector2(columnLeft, -titleTop), new Vector2(titleWidth, 150f));
         }
 
         Button cont, nuevo, pvp, pve;
-        GameObject torneo = CreateSplitRow(column.transform, "Torneo", "TORNEO",
-                                           "Continuar", "CONTINUAR", "Nuevo", "NUEVO",
+        GameObject torneo = CreateSplitRow(column.transform, "Torneo", "TORNEIG",
+                                           "Continuar", "CONTINUAR", "Nuevo", "NOU",
                                            tournamentPreview, preview, rounded, out cont, out nuevo);
         GameObject oneVsOne = CreateSplitRow(column.transform, "1vs1", "1 VS 1",
                                              "PvP", "PvP", "PvE", "PvE",
@@ -170,8 +182,8 @@ public class MainMenuBuilder : EditorWindow
         cc.disabledColor = ButtonDisabled;
         cont.colors = cc;
 
-        Button creditos = CreateSimpleRow(column.transform, "Creditos", "CRÉDITOS", preview, rounded);
-        Button salir = CreateSimpleRow(column.transform, "Salir", "SALIR", preview, rounded);
+        Button creditos = CreateSimpleRow(column.transform, "Creditos", "CRÈDITS", preview, rounded);
+        Button salir = CreateSimpleRow(column.transform, "Salir", "SORTIR", preview, rounded);
 
         // ---------- Ajustes: botón cuadrado en la esquina superior derecha ----------
         Button ajustes = CreateButton(root.transform, "Ajustes", null, rounded);

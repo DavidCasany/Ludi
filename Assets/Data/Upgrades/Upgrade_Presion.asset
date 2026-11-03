@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 949cd4ce9daa6ed4db43b0a3c9fdcd4d, type: 3}
   m_Name: Upgrade_Presion
   m_EditorClassIdentifier: Assembly-CSharp::UpgradeData
-  displayName: "Presi\xF3n asfixiante"
-  flavorText: Golpeas con el stick sin descanso.
+  displayName: "Pressi\xF3 asfixiant"
+  flavorText: "Colpeges amb l'stick sense descans."
   icon: {fileID: 0}
   rarity: 1
   maxStacks: 2

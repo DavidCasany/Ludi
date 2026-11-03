@@ -52,8 +52,8 @@ public static class BracketView
         UIKit.Stretch(boxes, 0f);
 
         // ---------- Títulos ----------
-        SectionTitle(content, "CUADRO DE GANADORES", 0f);
-        SectionTitle(content, "CUADRO DE PERDEDORES", losersHeader);
+        SectionTitle(content, "QUADRE DE GUANYADORS", 0f);
+        SectionTitle(content, "QUADRE DE PERDEDORS", losersHeader);
         for (int r = 0; r < wR; r++) ColumnTitle(content, ColumnName(BracketSide.Winners, r, wR, lR), r, SectionTitleH);
         for (int r = 0; r < lR; r++) ColumnTitle(content, ColumnName(BracketSide.Losers, r, wR, lR), r, losersHeader + SectionTitleH);
 
@@ -70,7 +70,7 @@ public static class BracketView
         if (b.resetMatchId >= 0)
         {
             pos[b.resetMatchId] = new Vector2(gfX, gfCenter + BoxH * 0.5f + ColumnTitleH + 18f);
-            ColumnTitle(content, "DESEMPATE", cols - 1, gfCenter + BoxH * 0.5f + 14f, UIKit.Gold);
+            ColumnTitle(content, "DESEMPAT", cols - 1, gfCenter + BoxH * 0.5f + 14f, UIKit.Gold);
         }
 
         // ---------- Líneas (detrás de las cajas) ----------
@@ -121,7 +121,7 @@ public static class BracketView
             int fromEnd = wR - 1 - r;
             if (fromEnd == 0) return "FINAL";
             if (fromEnd == 1) return "SEMIFINALES";
-            if (fromEnd == 2) return "CUARTOS";
+            if (fromEnd == 2) return "QUARTS";
             return "RONDA " + (r + 1);
         }
         return r == lR - 1 ? "FINAL" : "RONDA " + (r + 1);
@@ -201,7 +201,7 @@ public static class BracketView
         {
             Image tag = UIKit.Image(holder, "NextTag", UIKit.Accent, 8f);
             UIKit.Place(tag.rectTransform, new Vector2(1f, 1f), new Vector2(8f, 12f), new Vector2(92f, 22f));
-            TextMeshProUGUI t = UIKit.Text(tag.transform, "Text", "PRÓXIMO", 13f, Color.white, FontStyles.Bold);
+            TextMeshProUGUI t = UIKit.Text(tag.transform, "Text", "SEGÜENT", 13f, Color.white, FontStyles.Bold);
             t.characterSpacing = 4f;
             UIKit.Stretch(t.rectTransform, 0f);
         }
@@ -225,7 +225,7 @@ public static class BracketView
         }
 
         Color nameColor = !known ? UIKit.TextFaint : lost ? UIKit.TextFaint : isPlayer ? new Color(0.6f, 0.8f, 1f) : UIKit.TextMain;
-        string label = known ? data.TeamName : "Por decidir";
+        string label = known ? data.TeamName : "Per decidir";
         TextMeshProUGUI name = UIKit.Text(box, "Team", label, 19f, nameColor,
                                           won || isPlayer ? FontStyles.Bold : (known ? FontStyles.Normal : FontStyles.Italic),
                                           TextAlignmentOptions.Left);

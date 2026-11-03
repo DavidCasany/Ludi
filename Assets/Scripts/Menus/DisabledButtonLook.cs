@@ -57,8 +57,11 @@ public class DisabledButtonLook : MonoBehaviour
         }
         initialized = true;
 
+        // Con el marco dibujado (UIArt.ButtonFrame) un tinte casi negro taparía el dibujo: se usa un gris
+        Image targetImage = target.targetGraphic as Image;
+        bool framed = targetImage != null && targetImage.sprite != null && targetImage.sprite == UIArt.ButtonFrame;
         ColorBlock c = target.colors;
-        c.disabledColor = disabledBackground;
+        c.disabledColor = framed ? UIArt.FrameDisabled : disabledBackground;
         target.colors = c;
 
         // Todo lo que hay dentro menos el propio fondo del botón

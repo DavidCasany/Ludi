@@ -150,7 +150,7 @@ public class GoalkeeperQTE : MonoBehaviour
             Fill(bar, new Color(resultColor.r, resultColor.g, resultColor.b, 0.85f));
             labelStyle.fontSize = 22;
             GUI.color = resultColor;
-            GUI.Label(new Rect(bar.x, bar.y - 34f, bar.width, 30f), lastOk ? "¡PARADÓN!" : "¡FALLO!", labelStyle);
+            GUI.Label(new Rect(bar.x, bar.y - 34f, bar.width, 30f), lastOk ? "ATURADÀS!" : "FALLADA!", labelStyle);
             GUI.color = Color.white;
             labelStyle.fontSize = 16;
             return;
@@ -167,7 +167,7 @@ public class GoalkeeperQTE : MonoBehaviour
         float cx = inner.x + Mathf.Clamp01(cursor) * inner.width;
         Fill(new Rect(cx - 2f, bar.y - 4f, 4f, bar.height + 8f), Color.white);
 
-        string text = State == QTEState.Running ? "¡PARADA! [" + key + "]" : (lastOk ? "¡PARADÓN!" : "¡FALLO!");
+        string text = State == QTEState.Running ? "ATURA! [" + key + "]" : (lastOk ? "ATURADÀS!" : "FALLADA!");
         GUI.color = State == QTEState.Running ? Color.white : (lastOk ? new Color(0.4f, 1f, 0.5f) : new Color(1f, 0.4f, 0.4f));
         GUI.Label(new Rect(bar.x, bar.y - 28f, bar.width, 24f), text, labelStyle);
         GUI.color = Color.white;

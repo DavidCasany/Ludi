@@ -43,7 +43,7 @@ public class UpgradeData : ScriptableObject
     }
 
     public static string RarityName(UpgradeRarity r) =>
-        r == UpgradeRarity.Epica ? "ÉPICA" : r == UpgradeRarity.Rara ? "RARA" : "COMÚN";
+        r == UpgradeRarity.Epica ? "ÈPICA" : r == UpgradeRarity.Rara ? "RARA" : "COMUNA";
 
 #if UNITY_EDITOR
     // Solo para el script de editor que crea las mejoras de ejemplo

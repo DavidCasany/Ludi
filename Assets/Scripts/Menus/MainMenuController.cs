@@ -35,9 +35,9 @@ public class MainMenuController : MonoBehaviour
     [Tooltip("Sello de los botones que no se pueden usar (modo apagado para la demo o escena sin asignar)")]
     [SerializeField] string unavailableLabel = "NO DISPONIBLE";
     [Tooltip("Sello de Continuar cuando no hay ningún torneo guardado")]
-    [SerializeField] string noTournamentLabel = "SIN TORNEO";
+    [SerializeField] string noTournamentLabel = "SENSE TORNEIG";
     [Tooltip("Sello de Continuar cuando el último torneo ya terminó")]
-    [SerializeField] string finishedTournamentLabel = "TERMINADO";
+    [SerializeField] string finishedTournamentLabel = "ACABAT";
 
     [Header("Botones")]
     [SerializeField] Button continueTournamentButton;
@@ -70,6 +70,10 @@ public class MainMenuController : MonoBehaviour
     void Start()
     {
         Time.timeScale = 1f;   // por si llegamos desde el menú de pausa con el juego parado
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // En el navegador no se puede cerrar el juego (Application.Quit no hace nada): fuera SORTIR
+        if (quitButton != null) quitButton.gameObject.SetActive(false);
+#endif
         RefreshAvailability();
         BuildNavigation();     // después de RefreshAvailability: un botón desactivado no entra en la navegación
     }
@@ -107,9 +111,9 @@ public class MainMenuController : MonoBehaviour
         if (tournamentConfig != null &&
             TournamentSession.GetSaveState(tournamentConfig) == TournamentSession.SaveState.InProgress)
         {
-            ConfirmDialog.Show("¿Empezar un torneo nuevo?",
-                               "Tienes un torneo a medias. Si empiezas otro, se perderá.",
-                               "EMPEZAR", "CANCELAR", StartNewTournament,
+            ConfirmDialog.Show("Vols començar un torneig nou?",
+                               "Tens un torneig a mitges. Si en comences un altre, es perdrà.",
+                               "COMENÇAR", "CANCEL·LAR", StartNewTournament,
                                () => UIKit.Select(newTournamentButton));
             return;
         }
@@ -234,7 +238,7 @@ public class MainMenuController : MonoBehaviour
                 Debug.LogWarning($"[MainMenu] La fila '{row.name}' no tiene ni SplitMenuButton ni Button.", row);
                 continue;
             }
-            if (!sel.interactable) continue;   // fila apagada (NO DISPONIBLE): el teclado/mando la salta
+            if (!sel.interactable || !sel.gameObject.activeInHierarchy) continue;   // fila apagada u oculta: se salta
             rowSelectables.Add(sel);
             splits.Add(split);
         }

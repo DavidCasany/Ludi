@@ -45,7 +45,7 @@ public class TeamSidePanel : MonoBehaviour
         {
             crest.enabled = false;
             SetText(crestFallbackText, "?");
-            SetText(nameText, "Sin elegir");
+            SetText(nameText, "Sense triar");
             SetText(infoText, "");
             playerColor.color = keeperColor.color = new Color(1f, 1f, 1f, 0.08f);
             if (teamVisual != null) teamVisual.Show(null);
@@ -60,7 +60,7 @@ public class TeamSidePanel : MonoBehaviour
         if (teamVisual != null) teamVisual.Show(team);
 
         SetText(nameText, team.TeamName);
-        SetText(infoText, $"{team.ShortName}  ·  Nivel {team.Rating}");
+        SetText(infoText, $"{team.ShortName}  ·  Nivell {team.Rating}");
         playerColor.color = team.PrimaryColor;
         keeperColor.color = team.GoalkeeperColor;
     }

@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 949cd4ce9daa6ed4db43b0a3c9fdcd4d, type: 3}
   m_Name: Upgrade_Patines_afilados
   m_EditorClassIdentifier: Assembly-CSharp::UpgradeData
-  displayName: Patines afilados
-  flavorText: "Cada d\xE9cima cuenta."
+  displayName: Patins esmolats
+  flavorText: "Cada d\xE8cima compta."
   icon: {fileID: 0}
   rarity: 0
   maxStacks: 3

@@ -11,7 +11,7 @@ using UnityEngine.UI;
 // (si se cerró el juego a mitad de elección o el torneo da mejoras antes del primer partido).
 public class UpgradeDraftPanel : MonoBehaviour
 {
-    const float CardWidth = 330f;
+    const float CardWidth = 328f;    // proporción de UpgradeCard.png (781 × 1024)
     const float CardHeight = 430f;
     const float CardGap = 36f;
 
@@ -36,7 +36,7 @@ public class UpgradeDraftPanel : MonoBehaviour
 
     void Build(RectTransform root)
     {
-        titleText = UIKit.Text(root, "Title", "ELIGE UNA MEJORA", 46f, UIKit.TextMain, FontStyles.Bold);
+        titleText = UIKit.Text(root, "Title", "TRIA UNA MILLORA", 46f, UIKit.TextMain, FontStyles.Bold);
         titleText.characterSpacing = 6f;
         UIKit.Place(titleText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, 0f), new Vector2(1400f, 60f));
 
@@ -51,7 +51,7 @@ public class UpgradeDraftPanel : MonoBehaviour
         h.childControlWidth = h.childControlHeight = false;
         h.childForceExpandWidth = h.childForceExpandHeight = false;
 
-        TextMeshProUGUI hint = UIKit.Text(root, "Hint", "Clic en una carta  ·  o pulsa 1, 2, 3", 20f, UIKit.TextFaint);
+        TextMeshProUGUI hint = UIKit.Text(root, "Hint", "Clica una carta  ·  o prem 1, 2, 3", 20f, UIKit.TextFaint);
         UIKit.Place(hint.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -136f - CardHeight),
                     new Vector2(1000f, 30f));
     }
@@ -94,10 +94,10 @@ public class UpgradeDraftPanel : MonoBehaviour
 
         int total = Mathf.Max(pending, TournamentSession.PlayerPicksThisRound);
         int current = total - pending + 1;
-        titleText.text = total > 1 ? $"ELIGE UNA MEJORA  ·  {current} DE {total}" : "ELIGE UNA MEJORA";
+        titleText.text = total > 1 ? $"TRIA UNA MILLORA  ·  {current} DE {total}" : "TRIA UNA MILLORA";
         subtitleText.text = total > 1
-            ? "Has avanzado sin esperar: recuperas las jornadas que te has saltado"
-            : "Todos los equipos eligen una mejora por jornada (los rivales también)";
+            ? "Has avançat sense esperar: recuperes les jornades que t'has saltat"
+            : "Tots els equips trien una millora per jornada (els rivals també)";
 
         for (int i = 0; i < offer.Count; i++)
         {
@@ -128,9 +128,113 @@ public class UpgradeDraftPanel : MonoBehaviour
 
     static Button CreateCard(Transform parent, UpgradeData u, int number)
     {
+        Sprite art = UIArt.UpgradeCard;
+        return art != null ? CreateArtCard(parent, u, number, art) : CreatePlainCard(parent, u, number);
+    }
+
+    // ---------- Carta con el dibujo (UpgradeCard.png) ----------
+    // Zonas del dibujo, en fracción del ancho/alto: papel beige 0,06–0,93 × 0,125–0,94;
+    // stick a la izquierda (hasta 0,10 y su pala abajo hasta 0,28) y patín abajo a la derecha (desde 0,70 × 0,71).
+    // El texto va en la parte libre del papel; la frase, entre la pala del stick y el patín.
+
+    static readonly Color Ink = new Color(0.27f, 0.18f, 0.1f);       // marrón oscuro sobre el papel
+    static readonly Color InkSoft = new Color(0.45f, 0.36f, 0.27f);
+
+    static Button CreateArtCard(Transform parent, UpgradeData u, int number, Sprite art)
+    {
+        Color rc = RarityInk(u.Rarity);
+
+        Image card = UIKit.Image(parent, "Card_" + u.DisplayName, Color.white, 0f, true);
+        card.sprite = art;
+        card.preserveAspect = true;
+        card.rectTransform.sizeDelta = new Vector2(CardWidth, CardHeight);
+        Button button = card.gameObject.AddComponent<Button>();
+        button.targetGraphic = card;
+        ColorBlock cb = UIArt.FrameColors();
+        cb.highlightedColor = cb.selectedColor = new Color(1f, 0.93f, 0.8f);
+        button.colors = cb;
+        card.gameObject.AddComponent<HoverPop>().Scale = 1.06f;
+
+        float W = CardWidth, H = CardHeight;
+        float cx = (0.13f + 0.90f) * 0.5f * W - W * 0.5f;    // centro horizontal de la zona libre
+        float colW = (0.90f - 0.13f) * W;
+
+        // Rareza + franja de su color
+        TextMeshProUGUI rarity = UIKit.Text(card.transform, "Rarity", UpgradeData.RarityName(u.Rarity), 16f, rc,
+                                            FontStyles.Bold);
+        rarity.characterSpacing = 8f;
+        UIKit.Place(rarity.rectTransform, new Vector2(0.5f, 1f), new Vector2(cx, -0.16f * H), new Vector2(colW, 22f));
+        Image strip = UIKit.Image(card.transform, "RarityStrip", rc, 2f);
+        UIKit.Place(strip.rectTransform, new Vector2(0.5f, 1f), new Vector2(cx, -0.16f * H - 24f), new Vector2(56f, 4f));
+
+        // Atajo de teclado, arriba a la derecha del papel
+        TextMeshProUGUI key = UIKit.Text(card.transform, "Key", number.ToString(), 16f, InkSoft, FontStyles.Bold);
+        UIKit.Place(key.rectTransform, new Vector2(0f, 1f), new Vector2(0.86f * W - 14f, -0.145f * H), new Vector2(28f, 24f));
+
+        float y = 0.16f * H + 40f;
+        if (u.Icon != null)
+        {
+            Image icon = UIKit.Image(card.transform, "Icon", Color.white);
+            icon.sprite = u.Icon;
+            icon.preserveAspect = true;
+            UIKit.Place(icon.rectTransform, new Vector2(0.5f, 1f), new Vector2(cx, -y), new Vector2(84f, 84f));
+            y += 92f;
+        }
+
+        TextMeshProUGUI title = UIKit.Text(card.transform, "Name", u.DisplayName, 28f, Ink, FontStyles.Bold);
+        title.textWrappingMode = TextWrappingModes.Normal;
+        title.enableAutoSizing = true;
+        title.fontSizeMin = 18f;
+        title.fontSizeMax = 28f;
+        UIKit.Place(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(cx, -y), new Vector2(colW, 66f));
+        y += 72f;
+
+        Image divider = UIKit.Image(card.transform, "Divider", UIKit.Alpha(Ink, 0.25f));
+        UIKit.Place(divider.rectTransform, new Vector2(0.5f, 1f), new Vector2(cx, -y), new Vector2(70f, 2f));
+        y += 10f;
+
+        float effectsBottom = 0.70f * H;
+        TextMeshProUGUI effects = UIKit.Text(card.transform, "Effects", ColoredEffects(u, true), 19f, Ink);
+        effects.textWrappingMode = TextWrappingModes.Normal;
+        effects.richText = true;
+        effects.lineSpacing = 6f;
+        effects.enableAutoSizing = true;
+        effects.fontSizeMin = 13f;
+        effects.fontSizeMax = 19f;
+        effects.alignment = TextAlignmentOptions.Top;
+        UIKit.Place(effects.rectTransform, new Vector2(0.5f, 1f), new Vector2(cx, -y), new Vector2(colW, Mathf.Max(40f, effectsBottom - y)));
+
+        if (!string.IsNullOrEmpty(u.FlavorText))
+        {
+            float fx = (0.29f + 0.69f) * 0.5f * W - W * 0.5f;
+            TextMeshProUGUI flavor = UIKit.Text(card.transform, "Flavor", u.FlavorText, 14f, InkSoft, FontStyles.Italic);
+            flavor.textWrappingMode = TextWrappingModes.Normal;
+            flavor.enableAutoSizing = true;
+            flavor.fontSizeMin = 10f;
+            flavor.fontSizeMax = 14f;
+            UIKit.Place(flavor.rectTransform, new Vector2(0.5f, 1f), new Vector2(fx, -0.725f * H),
+                        new Vector2((0.69f - 0.29f) * W, 0.19f * H));
+        }
+        return button;
+    }
+
+    // Versión del rojo/azul/morado de la rareza que se lee bien sobre el papel beige
+    static Color RarityInk(UpgradeRarity r)
+    {
+        switch (r)
+        {
+            case UpgradeRarity.Epica: return new Color(0.5f, 0.2f, 0.7f);
+            case UpgradeRarity.Rara: return new Color(0.15f, 0.4f, 0.75f);
+            default: return new Color(0.42f, 0.38f, 0.33f);
+        }
+    }
+
+    // ---------- Carta sin dibujo (si falta UpgradeCard.png) ----------
+
+    static Button CreatePlainCard(Transform parent, UpgradeData u, int number)
+    {
         Color rc = RarityColor(u.Rarity);
 
-        // Marco del color de la rareza + cuerpo
         Image frame = UIKit.Image(parent, "Card_" + u.DisplayName, Color.white, 18f, true);
         frame.rectTransform.sizeDelta = new Vector2(CardWidth, CardHeight);
         Button button = frame.gameObject.AddComponent<Button>();
@@ -141,33 +245,22 @@ public class UpgradeDraftPanel : MonoBehaviour
         Image body = UIKit.Image(frame.transform, "Body", UIKit.Panel, 15f);
         UIKit.Stretch(body.rectTransform, 4f);
 
-        // Cabecera: rareza y atajo
         TextMeshProUGUI rarity = UIKit.Text(body.transform, "Rarity", UpgradeData.RarityName(u.Rarity), 18f, rc,
                                             FontStyles.Bold, TextAlignmentOptions.Left);
         rarity.characterSpacing = 8f;
         UIKit.PlaceTopLeft(rarity.rectTransform, 22f, 18f, 200f, 26f);
 
-        Image key = UIKit.Image(body.transform, "Key", UIKit.Surface, 8f);
-        UIKit.Place(key.rectTransform, new Vector2(1f, 1f), new Vector2(-16f, -14f), new Vector2(36f, 34f));
-        TextMeshProUGUI keyText = UIKit.Text(key.transform, "Number", number.ToString(), 20f, UIKit.TextSoft,
-                                             FontStyles.Bold);
-        UIKit.Stretch(keyText.rectTransform, 0f);
+        TextMeshProUGUI keyText = UIKit.Text(body.transform, "Number", number.ToString(), 20f, UIKit.TextSoft, FontStyles.Bold);
+        UIKit.Place(keyText.rectTransform, new Vector2(1f, 1f), new Vector2(-16f, -14f), new Vector2(36f, 34f));
 
-        // Icono (o un círculo con la inicial mientras no haya arte)
-        Image iconBg = UIKit.CircleImage(body.transform, "Icon", UIKit.Alpha(rc, 0.18f), 104f);
-        UIKit.Place(iconBg.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -58f), new Vector2(104f, 104f));
+        float y = 60f;
         if (u.Icon != null)
         {
-            Image icon = UIKit.Image(iconBg.transform, "Sprite", Color.white);
+            Image icon = UIKit.Image(body.transform, "Icon", Color.white);
             icon.sprite = u.Icon;
             icon.preserveAspect = true;
-            UIKit.Stretch(icon.rectTransform, 16f);
-        }
-        else
-        {
-            string initial = string.IsNullOrEmpty(u.DisplayName) ? "?" : u.DisplayName.Substring(0, 1).ToUpper();
-            TextMeshProUGUI t = UIKit.Text(iconBg.transform, "Initial", initial, 52f, rc, FontStyles.Bold);
-            UIKit.Stretch(t.rectTransform, 0f);
+            UIKit.Place(icon.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -y), new Vector2(96f, 96f));
+            y += 106f;
         }
 
         TextMeshProUGUI title = UIKit.Text(body.transform, "Name", u.DisplayName, 30f, UIKit.TextMain, FontStyles.Bold);
@@ -175,10 +268,8 @@ public class UpgradeDraftPanel : MonoBehaviour
         title.enableAutoSizing = true;
         title.fontSizeMin = 20f;
         title.fontSizeMax = 30f;
-        UIKit.Place(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -176f), new Vector2(CardWidth - 40f, 72f));
-
-        Image divider = UIKit.Image(body.transform, "Divider", UIKit.Alpha(rc, 0.5f));
-        UIKit.Place(divider.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -254f), new Vector2(70f, 3f));
+        UIKit.Place(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -y), new Vector2(CardWidth - 40f, 72f));
+        y += 80f;
 
         TextMeshProUGUI effects = UIKit.Text(body.transform, "Effects", ColoredEffects(u), 21f, UIKit.TextMain);
         effects.textWrappingMode = TextWrappingModes.Normal;
@@ -188,12 +279,11 @@ public class UpgradeDraftPanel : MonoBehaviour
         effects.fontSizeMin = 15f;
         effects.fontSizeMax = 21f;
         effects.alignment = TextAlignmentOptions.Top;
-        UIKit.Place(effects.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -268f), new Vector2(CardWidth - 44f, 92f));
+        UIKit.Place(effects.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -y), new Vector2(CardWidth - 44f, 110f));
 
         if (!string.IsNullOrEmpty(u.FlavorText))
         {
-            TextMeshProUGUI flavor = UIKit.Text(body.transform, "Flavor", u.FlavorText, 16f, UIKit.TextFaint,
-                                                FontStyles.Italic);
+            TextMeshProUGUI flavor = UIKit.Text(body.transform, "Flavor", u.FlavorText, 16f, UIKit.TextFaint, FontStyles.Italic);
             flavor.textWrappingMode = TextWrappingModes.Normal;
             flavor.enableAutoSizing = true;
             flavor.fontSizeMin = 12f;
@@ -204,14 +294,17 @@ public class UpgradeDraftPanel : MonoBehaviour
     }
 
     // Una línea por efecto: verde si ayuda, rojo si es un coste
-    public static string ColoredEffects(UpgradeData u)
+    // onLight = sobre fondo claro (carta de papel): verde y rojo más oscuros para que se lean
+    public static string ColoredEffects(UpgradeData u, bool onLight = false)
     {
+        string good = onLight ? "<color=#1F7A35>" : "<color=#7CFF8A>";
+        string bad = onLight ? "<color=#B3261E>" : "<color=#FF8080>";
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < u.Modifiers.Count; i++)
         {
             StatModifier m = u.Modifiers[i];
             if (i > 0) sb.Append('\n');
-            sb.Append(m.IsBeneficial ? "<color=#7CFF8A>" : "<color=#FF8080>").Append(m.Describe()).Append("</color>");
+            sb.Append(m.IsBeneficial ? good : bad).Append(m.Describe()).Append("</color>");
         }
         return sb.ToString();
     }

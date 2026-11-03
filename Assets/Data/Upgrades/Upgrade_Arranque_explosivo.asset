@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 949cd4ce9daa6ed4db43b0a3c9fdcd4d, type: 3}
   m_Name: Upgrade_Arranque_explosivo
   m_EditorClassIdentifier: Assembly-CSharp::UpgradeData
-  displayName: Arranque explosivo
-  flavorText: Primeros metros imparables.
+  displayName: Arrencada explosiva
+  flavorText: Primers metres imparables.
   icon: {fileID: 0}
   rarity: 1
   maxStacks: 2

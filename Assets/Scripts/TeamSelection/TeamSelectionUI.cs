@@ -83,7 +83,7 @@ public class TeamSelectionUI : MonoBehaviour
         mode = MatchLaunch.Mode == MatchMode.PvP ? MatchMode.PvP : MatchMode.PvE;   // aquí Torneo no aplica
 
         if (titleText != null) titleText.text = IsPvP ? "1 VS 1 · PvP" : "1 VS 1 · PvE";
-        homePanel.SetTitle(IsPvP ? "JUGADOR 1" : "TU EQUIPO");
+        homePanel.SetTitle(IsPvP ? "JUGADOR 1" : "EL TEU EQUIP");
         awayPanel.SetTitle(IsPvP ? "JUGADOR 2" : "RIVAL · CPU");
         ShowError(null);
 
@@ -193,7 +193,7 @@ public class TeamSelectionUI : MonoBehaviour
 
     void Refresh()
     {
-        string homeLabel = IsPvP ? "J1" : "TÚ";
+        string homeLabel = IsPvP ? "J1" : "TU";
         string awayLabel = IsPvP ? "J2" : "CPU";
 
         foreach (TeamCard c in cards)
@@ -213,11 +213,11 @@ public class TeamSelectionUI : MonoBehaviour
         if (instructionText != null)
         {
             if (playButton.interactable)
-                instructionText.text = "Pulsa JUGAR para empezar";
+                instructionText.text = "Prem JUGAR per començar";
             else if (active == Side.Home)
-                instructionText.text = IsPvP ? "Jugador 1: elige tu equipo" : "Elige tu equipo";
+                instructionText.text = IsPvP ? "Jugador 1: tria el teu equip" : "Tria el teu equip";
             else
-                instructionText.text = IsPvP ? "Jugador 2: elige tu equipo" : "Elige el equipo rival";
+                instructionText.text = IsPvP ? "Jugador 2: tria el teu equip" : "Tria l'equip rival";
         }
     }
 
@@ -232,8 +232,8 @@ public class TeamSelectionUI : MonoBehaviour
         if (!ok)
         {
             // Launch ya escribe el motivo en la consola; aquí solo se avisa sin bloquear la pantalla
-            ShowError("No se ha podido empezar el partido. Revisa que la escena '" + matchScene +
-                      "' esté en Build Profiles.");
+            ShowError("No s'ha pogut començar el partit. Revisa que l'escena '" + matchScene +
+                      "' sigui a Build Profiles.");
             return;
         }
         leaving = true;

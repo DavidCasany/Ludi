@@ -63,14 +63,14 @@ public static class PauseMenuBuilder
         TextMeshProUGUI title = CreateText(panel.transform, "Title", "PAUSA", 72f, FontStyles.Bold, Color.white);
         SetHeight(title.gameObject, 100f);
 
-        TextMeshProUGUI context = CreateText(panel.transform, "Context", "Torneo · Semifinal\nHOME  2 – 1  AWAY",
+        TextMeshProUGUI context = CreateText(panel.transform, "Context", "Torneig · Semifinal\nHOME  2 – 1  AWAY",
                                              28f, FontStyles.Normal, TextSoft);
         SetHeight(context.gameObject, 90f);
 
-        Button resume = CreateButton(panel.transform, "Reanudar", "REANUDAR", rounded);
-        Button settings = CreateButton(panel.transform, "Ajustes", "AJUSTES", rounded);
-        Button bracket = CreateButton(panel.transform, "Cuadro", "VOLVER AL CUADRO", rounded);
-        Button quit = CreateButton(panel.transform, "Salir", "SALIR AL MENÚ", rounded);
+        Button resume = CreateButton(panel.transform, "Reanudar", "REPRENDRE", rounded);
+        Button settings = CreateButton(panel.transform, "Ajustes", "CONFIGURACIÓ", rounded);
+        Button bracket = CreateButton(panel.transform, "Cuadro", "TORNAR AL QUADRE", rounded);
+        Button quit = CreateButton(panel.transform, "Salir", "SORTIR AL MENÚ", rounded);
 
         // ---------- Confirmación ----------
         GameObject confirm = new GameObject("Confirm", typeof(RectTransform));
@@ -84,7 +84,7 @@ public static class PauseMenuBuilder
         Center(confirmPanel.rectTransform, 820f);
         AddVerticalLayout(confirmPanel.gameObject, new RectOffset(50, 50, 40, 40), 30f);
 
-        TextMeshProUGUI message = CreateText(confirmPanel.transform, "Message", "¿Salir al menú principal?",
+        TextMeshProUGUI message = CreateText(confirmPanel.transform, "Message", "Vols sortir al menú principal?",
                                              32f, FontStyles.Normal, Color.white);
         SetHeight(message.gameObject, 140f);
 
@@ -96,8 +96,8 @@ public static class PauseMenuBuilder
         hlg.childForceExpandWidth = hlg.childForceExpandHeight = true;
         SetHeight(row, 90f);
 
-        Button no = CreateButton(row.transform, "No", "CANCELAR", rounded);
-        Button yes = CreateButton(row.transform, "Yes", "SALIR", rounded);
+        Button no = CreateButton(row.transform, "No", "CANCEL·LAR", rounded);
+        Button yes = CreateButton(row.transform, "Yes", "SORTIR", rounded);
 
         confirm.SetActive(false);
 

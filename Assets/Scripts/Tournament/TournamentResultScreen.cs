@@ -59,9 +59,9 @@ public class TournamentResultScreen : MonoBehaviour
         UIKit.Place(round.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -40f), new Vector2(1200f, 30f));
 
         string word; Color wordColor;
-        if (o.champion) { word = "¡CAMPEONES!"; wordColor = UIKit.Gold; }
-        else if (o.eliminated) { word = "ELIMINADO"; wordColor = UIKit.Bad; }
-        else if (o.Won) { word = "¡VICTORIA!"; wordColor = UIKit.Good; }
+        if (o.champion) { word = "CAMPIONS!"; wordColor = UIKit.Gold; }
+        else if (o.eliminated) { word = "ELIMINAT"; wordColor = UIKit.Bad; }
+        else if (o.Won) { word = "VICTÒRIA!"; wordColor = UIKit.Good; }
         else { word = "DERROTA"; wordColor = UIKit.Bad; }
 
         TextMeshProUGUI title = UIKit.Text(root, "Result", word, drafting ? 76f : 110f, wordColor, FontStyles.Bold);
@@ -96,11 +96,11 @@ public class TournamentResultScreen : MonoBehaviour
         }
 
         // ---------- Volver al cuadro ----------
-        continueButton = UIKit.Button(root, "VerCuadro", "VER EL CUADRO", true, 34f);
+        continueButton = UIKit.Button(root, "VerCuadro", "VEURE EL QUADRE", true, 34f);
         UIKit.Place((RectTransform)continueButton.transform, new Vector2(0.5f, 0f), new Vector2(0f, 48f),
                     new Vector2(440f, 96f));
         continueButton.onClick.AddListener(GoToBracket);
-        DisabledButtonLook.Ensure(continueButton, "ELIGE UNA MEJORA");
+        DisabledButtonLook.Ensure(continueButton, "TRIA UNA MILLORA");
         continueButton.interactable = !drafting;
 
         TextMeshProUGUI hint = UIKit.Text(root, "Hint", "Enter · Continuar", 20f, UIKit.TextFaint);
@@ -133,21 +133,21 @@ public class TournamentResultScreen : MonoBehaviour
 
     static string StatusText(Outcome o)
     {
-        if (o.reportFailed) return "No se ha podido registrar el resultado (mira la consola).";
+        if (o.reportFailed) return "No s'ha pogut registrar el resultat (mira la consola).";
         if (o.champion)
         {
-            string cup = TournamentSession.Config != null ? TournamentSession.Config.TournamentName : "el torneo";
-            return "¡Eres el campeón de la " + cup + "!";
+            string cup = TournamentSession.Config != null ? TournamentSession.Config.TournamentName : "el torneig";
+            return "Ets el campió de la " + cup + "!";
         }
-        if (o.eliminated) return "Segunda derrota: quedas eliminado del torneo";
+        if (o.eliminated) return "Segona derrota: quedes eliminat del torneig";
 
-        string next = string.IsNullOrEmpty(o.nextRoundName) ? "" : "   ·   Siguiente: " + o.nextRoundName;
-        if (!o.Won) return "Primera derrota: sigues vivo, pero ya no puedes fallar" + next;
-        return (o.losses == 0 ? "Sigues invicto" : "Sigues vivo en el cuadro de perdedores") + next;
+        string next = string.IsNullOrEmpty(o.nextRoundName) ? "" : "   ·   Següent: " + o.nextRoundName;
+        if (!o.Won) return "Primera derrota: segueixes viu, però ja no pots fallar" + next;
+        return (o.losses == 0 ? "Segueixes invicte" : "Segueixes viu al quadre de perdedors") + next;
     }
 
     static string LossesText(int losses) =>
-        losses == 0 ? "Derrotas: 0 / 2" : "Derrotas: " + losses + " / 2  ·  una más y quedas fuera";
+        losses == 0 ? "Derrotes: 0 / 2" : "Derrotes: " + losses + " / 2  ·  una més i quedes fora";
 
     void OnDraftCompleted()
     {

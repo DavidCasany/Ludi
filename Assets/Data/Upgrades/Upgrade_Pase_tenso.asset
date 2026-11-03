@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 949cd4ce9daa6ed4db43b0a3c9fdcd4d, type: 3}
   m_Name: Upgrade_Pase_tenso
   m_EditorClassIdentifier: Assembly-CSharp::UpgradeData
-  displayName: Pase tenso
-  flavorText: Menos tiempo para interceptar.
+  displayName: Passada tensa
+  flavorText: Menys temps per interceptar.
   icon: {fileID: 0}
   rarity: 0
   maxStacks: 3
