@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TeamData
   teamName: "Bar\xE7a"
   shortName: BAR
-  crest: {fileID: 0}
+  crest: {fileID: -4811391228557625918, guid: 09d4d88b397a21e4b9ddf5efdf4537d5, type: 3}
   primaryColor: {r: 0.6981132, g: 0.02733428, b: 0, a: 1}
   secondaryColor: {r: 0, g: 0.031115515, b: 0.4528302, a: 1}
   alternateColor: {r: 0.9245283, g: 0.34691975, b: 0, a: 1}

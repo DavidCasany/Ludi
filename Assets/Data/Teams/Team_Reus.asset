@@ -14,8 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TeamData
   teamName: Reus Deportiu Virginies
   shortName: REU
+  crest: {fileID: 5288294909157949305, guid: 59e412d0218c2d548b26f00ed73d7be8, type: 3}
   primaryColor: {r: 0, g: 0, b: 0, a: 1}
+  secondaryColor: {r: 1, g: 1, b: 1, a: 1}
+  alternateColor: {r: 1, g: 1, b: 1, a: 1}
+  jerseyPattern: {fileID: 0}
+  alternatePattern: {fileID: 0}
   goalkeeperColor: {r: 0.2924528, g: 0.2924528, b: 0.2924528, a: 1}
-  crest: {fileID: 0}
   rating: 80
   aiSkill: 0.8

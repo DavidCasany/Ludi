@@ -14,8 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TeamData
   teamName: HC Sant Just
   shortName: STJ
+  crest: {fileID: 1307654884251346905, guid: 7346085ac15b82b46bd0c3518075763b, type: 3}
   primaryColor: {r: 0.77965736, g: 0, b: 1, a: 1}
+  secondaryColor: {r: 1, g: 1, b: 1, a: 1}
+  alternateColor: {r: 1, g: 1, b: 1, a: 1}
+  jerseyPattern: {fileID: 0}
+  alternatePattern: {fileID: 0}
   goalkeeperColor: {r: 1, g: 0, b: 0.592762, a: 1}
-  crest: {fileID: 0}
   rating: 60
   aiSkill: 0.3

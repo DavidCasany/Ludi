@@ -14,8 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TeamData
   teamName: CP Calafell
   shortName: CAL
+  crest: {fileID: -8198920128388688387, guid: f388be3bf93d2b04a8ffd52e155bc5cf, type: 3}
   primaryColor: {r: 0.99814713, g: 1, b: 0, a: 1}
+  secondaryColor: {r: 1, g: 1, b: 1, a: 1}
+  alternateColor: {r: 1, g: 1, b: 1, a: 1}
+  jerseyPattern: {fileID: 0}
+  alternatePattern: {fileID: 0}
   goalkeeperColor: {r: 1, g: 1, b: 1, a: 1}
-  crest: {fileID: 0}
   rating: 70
   aiSkill: 0.7

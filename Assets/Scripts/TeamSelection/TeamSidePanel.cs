@@ -19,6 +19,8 @@ public class TeamSidePanel : MonoBehaviour
     [SerializeField] TMP_Text infoText;
     [SerializeField] Image playerColor;
     [SerializeField] Image keeperColor;
+    [Tooltip("Opcional: escut de fons, vel negre i jugador amb l'equipació (Tools > Ludi > Afegir escut i jugador...)")]
+    [SerializeField] TeamPreviewVisual teamVisual;   // no es diu 'preview': Show() ja té un paràmetre amb aquest nom
 
     [SerializeField, Range(0f, 1f)] float previewAlpha = 0.55f;
 
@@ -46,13 +48,16 @@ public class TeamSidePanel : MonoBehaviour
             SetText(nameText, "Sin elegir");
             SetText(infoText, "");
             playerColor.color = keeperColor.color = new Color(1f, 1f, 1f, 0.08f);
+            if (teamVisual != null) teamVisual.Show(null);
             return;
         }
 
+        // Amb la previsualització, l'escut va de fons i el jugador ocupa el lloc de l'escut petit
         bool hasCrest = team.Crest != null;
-        crest.enabled = hasCrest;
+        crest.enabled = hasCrest && teamVisual == null;
         if (hasCrest) crest.sprite = team.Crest;
-        SetText(crestFallbackText, hasCrest ? "" : team.ShortName);
+        SetText(crestFallbackText, hasCrest || teamVisual != null ? "" : team.ShortName);
+        if (teamVisual != null) teamVisual.Show(team);
 
         SetText(nameText, team.TeamName);
         SetText(infoText, $"{team.ShortName}  ·  Nivel {team.Rating}");

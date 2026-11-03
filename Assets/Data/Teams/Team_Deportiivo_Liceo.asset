@@ -14,8 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TeamData
   teamName: Deportiovo Liceo
   shortName: LIC
+  crest: {fileID: 4684253729341755616, guid: 02dc6e6df8b72684bb675780c739c0b8, type: 3}
   primaryColor: {r: 0, g: 0.3490566, b: 0.044942897, a: 1}
+  secondaryColor: {r: 1, g: 1, b: 1, a: 1}
+  alternateColor: {r: 1, g: 1, b: 1, a: 1}
+  jerseyPattern: {fileID: 0}
+  alternatePattern: {fileID: 0}
   goalkeeperColor: {r: 0, g: 1, b: 0.2469294, a: 1}
-  crest: {fileID: 0}
   rating: 90
   aiSkill: 0.9

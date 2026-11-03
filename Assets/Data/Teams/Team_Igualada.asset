@@ -12,10 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d6ae5af5484286f4692d947702382ce5, type: 3}
   m_Name: Team_Igualada
   m_EditorClassIdentifier: Assembly-CSharp::TeamData
-  teamName: Igualada Irgat HC
+  teamName: Igualada Rigat HC
   shortName: EQU
+  crest: {fileID: -2571529769141644948, guid: db55d981a522383418851909a86b9569, type: 3}
   primaryColor: {r: 1, g: 0, b: 0, a: 1}
+  secondaryColor: {r: 1, g: 1, b: 1, a: 1}
+  alternateColor: {r: 1, g: 1, b: 1, a: 1}
+  jerseyPattern: {fileID: 0}
+  alternatePattern: {fileID: 0}
   goalkeeperColor: {r: 1, g: 0, b: 0.592762, a: 1}
-  crest: {fileID: 0}
   rating: 50
   aiSkill: 0.5

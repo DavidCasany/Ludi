@@ -14,8 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TeamData
   teamName: "CP Voltreg\xE0"
   shortName: VOL
+  crest: {fileID: 1535227007007822783, guid: 1f724308e4feb8a4280b49db6b2cb54c, type: 3}
   primaryColor: {r: 0, g: 1, b: 1, a: 1}
+  secondaryColor: {r: 1, g: 1, b: 1, a: 1}
+  alternateColor: {r: 1, g: 1, b: 1, a: 1}
+  jerseyPattern: {fileID: 0}
+  alternatePattern: {fileID: 0}
   goalkeeperColor: {r: 0, g: 1, b: 0.7186146, a: 1}
-  crest: {fileID: 0}
   rating: 40
   aiSkill: 0.4
