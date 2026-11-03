@@ -38,6 +38,7 @@ public static class CreditsBuilder
     static readonly Color TextSoft = new Color(0.62f, 0.68f, 0.77f);
     static readonly Color Accent = new Color(0.95f, 0.47f, 0.17f);
     static readonly Color AccentPressed = new Color(0.75f, 0.35f, 0.1f);
+    static readonly Color Red = new Color(0.92f, 0.3f, 0.3f);
     static readonly Color Blue = new Color(0.3f, 0.6f, 0.95f);
     static readonly Color Green = new Color(0.35f, 0.8f, 0.5f);
 
@@ -211,12 +212,12 @@ public static class CreditsBuilder
     {
         var data = new[]
         {
-            (name: "Gerard Canadell Xandri", number: 7, tagline: "Posa el color a la pista",
-             role: "Art i direcció visual\nDisseny de personatges\nEstil visual del joc", color: Accent),
-            (name: "Àlex Tarazaga Carcaré", number: 10, tagline: "L'entrenador de tots els rivals",
-             role: "Programació de la IA dels rivals\ni d'altres parts del joc", color: Blue),
-            (name: "David Casany Ballesté", number: 23, tagline: "Del menú a la final del torneig",
-             role: "Programació i disseny de la UI\nSistema de torneig\nProgramació de diverses parts del joc", color: Green),
+            (name: "Gerard Canadell Xandri", number: 5, tagline: "Posa el color a la pista",
+             role: "Direcció d'art\nDisseny de personatges\nEstil visual del joc", color: Red),
+            (name: "Àlex Tarazaga Carcaré", number: 1, tagline: "L'entrenador de tots els rivals",
+             role: "Programació principal\nIA dels rivals\nMecàniques i sistemes de joc", color: Blue),
+            (name: "David Casany Ballesté", number: 8, tagline: "Del menú a la final del torneig",
+             role: "Disseny i implementació de la UI\nDisseny sonor\nProgramació del mode torneig", color: Green),
         };
 
         SerializedObject so = new SerializedObject(ui);

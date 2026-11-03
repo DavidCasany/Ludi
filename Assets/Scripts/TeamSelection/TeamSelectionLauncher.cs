@@ -4,7 +4,8 @@ using UnityEngine;
 // MatchLauncher.Launch (que ya carga la escena Match). Sin estado propio y sin DontDestroyOnLoad.
 public static class TeamSelectionLauncher
 {
-    // PvE: el jugador es el local, la máquina el visitante. Un amistoso puede acabar en empate.
+    // PvE: el jugador es el local, la máquina el visitante.
+    // Si acaba en empate se juega una prórroga a gol de oro (requireWinner), igual que en el torneo.
     public static bool PlayPvE(TeamData playerTeam, TeamData cpuTeam, string matchScene = MatchLauncher.DefaultMatchScene)
     {
         if (!CheckTeams(playerTeam, cpuTeam)) return false;
@@ -15,7 +16,7 @@ public static class TeamSelectionLauncher
             awayTeam = cpuTeam,
             homeController = ControllerType.HumanP1,
             awayController = ControllerType.CPU,
-            requireWinner = false
+            requireWinner = true
         };
         MatchLaunch.Mode = MatchMode.PvE;   // la pausa lo lee para el texto de contexto
         return MatchLauncher.Launch(setup, matchScene);
@@ -32,7 +33,7 @@ public static class TeamSelectionLauncher
             awayTeam = p2Team,
             homeController = ControllerType.HumanP1,
             awayController = ControllerType.HumanP2,
-            requireWinner = false
+            requireWinner = true
         };
         MatchLaunch.Mode = MatchMode.PvP;
         return MatchLauncher.Launch(setup, matchScene);

@@ -219,21 +219,73 @@ def crack(spec, dur=0.15, gain=1.0):
 
 # ---- Bola y stick ----
 
+def impact(dur, bright, body, seed_shift=0.0, decay=90.0):
+    """Golpe realista: un impulso de ruido muy corto que excita resonancias amortiguadas
+    (palo + bola de plastico duro). Nada de tonos puros: por eso suena a objeto real."""
+    from scipy.signal import iirpeak, lfilter
+    n = int(dur * SR)
+    t = np.arange(n) / SR
+    exc = RNG.uniform(-1, 1, n) * np.exp(-t * 2500)            # contacto de ~1 ms
+    out = lowpass(exc, 8000) * 0.3 * bright                     # parte "crack" de banda ancha
+    # Resonancias inarmonicas: bola (agudas, cortas) y palo (medias), algo aleatorias
+    res = [(2900, 9, 1.0 * bright), (4300, 10, 0.7 * bright), (6100, 12, 0.4 * bright),
+           (1350, 7, 0.8), (820, 6, 0.7 * body), (430, 5, 0.6 * body)]
+    for f, q, g in res:
+        f *= 1 + RNG.uniform(-0.06, 0.06) + seed_shift
+        b, a = iirpeak(f, q, fs=SR)
+        out += lfilter(b, a, exc) * g * 3.0
+    out *= np.exp(-t * decay)                                   # todo muere muy rapido
+    # flexion del palo: golpe grave muy breve
+    out += np.sin(2 * np.pi * (210 + RNG.uniform(-20, 20)) * t) * np.exp(-t * 70) * 0.35 * body
+    return out
+
+
+def scrape(dur, lo=900, hi=6000, level=1.0):
+    """El stick barriendo el suelo justo antes de golpear la bola."""
+    t = time_axis(dur)
+    env = (t / dur) ** 1.5                                      # crece hasta el golpe
+    return bandpass(noise(dur), lo, hi) * env * level
+
+
+def arena(x, size=0.5, wet=0.18):
+    """Pabellon: un rebote temprano en las vallas + una cola corta."""
+    early = np.zeros(len(x) + int(0.03 * SR))
+    d = int(0.013 * SR)
+    early[d:d + len(x)] += lowpass(x, 3500) * 0.25
+    early[:len(x)] += x
+    return room(early, size, wet)
+
+
+def follow(dur, lo, hi, level):
+    """Barrido del stick por el suelo DESPUES del golpe (el gesto sigue)."""
+    t = time_axis(dur)
+    return bandpass(noise(dur), lo, hi) * np.exp(-t * 35) * level
+
+
+def shot(seed_shift):
+    # El juego lanza el sonido en el instante del golpe: el "crack" tiene que estar al principio
+    sc = scrape(0.012, 1000, 6000, 0.2)
+    hit = impact(0.25, 0.9, 1.0, seed_shift, decay=80)
+    fol = follow(0.12, 800, 4000, 0.12)
+    air = lowpass(noise(0.25), 1200) * np.exp(-time_axis(0.25) * 14) * 0.05   # aire de la bola, muy sutil
+    x = mix(0.5, (sc, 0, 1.0), (hit, 0.012, 1.0), (fol, 0.015, 1.0), (air, 0.02, 1.0))
+    return finish(lowpass(arena(x), 9000), 0.95, 0.06)
+
+
 def sfx_shot_1():
-    x = mix(0.5, (crack(WOOD_A), 0, 1.0), (thump(110, 55, 0.2), 0, 0.6),
-            (sweep(0.3, 2500, 900, 0.8), 0.02, 0.25))
-    return finish(x, 0.95, 0.05)
+    return shot(0.0)
 
 
 def sfx_shot_2():
-    x = mix(0.5, (crack(WOOD_B), 0, 1.0), (thump(100, 50, 0.2), 0, 0.6),
-            (sweep(0.3, 2200, 800, 0.8), 0.02, 0.25))
-    return finish(x, 0.95, 0.05)
+    return shot(-0.07)
 
 
 def sfx_pass():
-    x = mix(0.25, (crack(WOOD_A, 0.1, 0.8), 0, 1.0), (sweep(0.15, 1600, 900, 0.7), 0.01, 0.15))
-    return finish(lowpass(x, 6000), 0.6, 0.03)
+    sc = scrape(0.012, 600, 3000, 0.1)
+    hit = impact(0.18, 0.45, 0.8, 0.03, decay=110)
+    fol = follow(0.1, 500, 2500, 0.08)
+    x = mix(0.35, (sc, 0, 1.0), (lowpass(hit, 4500), 0.012, 1.0), (fol, 0.015, 1.0))
+    return finish(arena(x, 0.4, 0.14), 0.6, 0.04)
 
 
 def sfx_stick_swing():

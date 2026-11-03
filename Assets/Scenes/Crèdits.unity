@@ -153,20 +153,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CreditsUI
   members:
   - fullName: Gerard Canadell Xandri
-    number: 7
+    number: 5
     tagline: Posa el color a la pista
-    role: "Art i direcci\xF3 visual\nDisseny de personatges\nEstil visual del joc"
-    color: {r: 0.95, g: 0.47, b: 0.17, a: 1}
+    role: "Direcci\xF3 d'art\nDisseny de personatges\nEstil visual del joc"
+    color: {r: 0.92, g: 0.3, b: 0.3, a: 1}
   - fullName: "\xC0lex Tarazaga Carcar\xE9"
-    number: 10
+    number: 1
     tagline: L'entrenador de tots els rivals
-    role: "Programaci\xF3 de la IA dels rivals\ni d'altres parts del joc"
+    role: "Programaci\xF3 principal\nIA dels rivals\nMec\xE0niques i sistemes de joc"
     color: {r: 0.3, g: 0.6, b: 0.95, a: 1}
   - fullName: "David Casany Ballest\xE9"
-    number: 23
+    number: 8
     tagline: "Del men\xFA a la final del torneig"
-    role: "Programaci\xF3 i disseny de la UI\nSistema de torneig\nProgramaci\xF3
-      de diverses parts del joc"
+    role: "Disseny i implementaci\xF3 de la UI\nDisseny sonor\nProgramaci\xF3 del mode torneig"
     color: {r: 0.35, g: 0.8, b: 0.5, a: 1}
   cardTemplate: {fileID: 2010793073}
   cardRow: {fileID: 1209789579}
