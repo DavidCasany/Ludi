@@ -30,7 +30,15 @@ public class GameManager : MonoBehaviour
     public float resetDelay = 2f;       // pausa tras un gol
     public float halfTimeBreak = 4f;    // pausa del descanso
     public float overtimeBreak = 3f;    // pausa antes del gol de oro
-    public float coinResultTime = 2.5f; // cuánto se ve el resultado del sorteo
+    public float coinResultTime = 2.5f; // cuánto se ve el resultado del sorteo (solo con el sorteo de OnGUI)
+
+    [Header("Sorteo")]
+    [Tooltip("Usa la pantalla de sorteo con la moneda animada (CoinTossScreen) en vez de la de OnGUI")]
+    public bool useCoinTossScreen = true;
+    [Tooltip("Opcional: sonido al lanzar la moneda")]
+    public AudioClip coinFlipClip;
+    [Tooltip("Opcional: sonido al caer la moneda")]
+    public AudioClip coinLandClip;
 
     [Header("Marcador")]
     public int homeScore;
@@ -47,6 +55,13 @@ public class GameManager : MonoBehaviour
     public bool IsGoldenGoal { get; private set; }
     public string HomeName => homeName;
     public string AwayName => awayName;
+    public Team PlayerTeam => playerTeam;
+
+    // Sorteo dibujado por otra pantalla (CoinTossScreen): GameManager decide el resultado y espera
+    // a que la pantalla llame a CompleteCoinToss() para empezar el saque
+    public bool CoinTossHandledExternally { get; set; }
+    // (salió cara, ganó el jugador)
+    public event Action<bool, bool> CoinTossed;
 
     // Se lanza una sola vez al terminar el partido: (goles local, goles visitante)
     public event Action<int, int> MatchFinished;
@@ -70,6 +85,7 @@ public class GameManager : MonoBehaviour
         goals = FindObjectsByType<Goal>(FindObjectsSortMode.None);
         timeLeft = halfDuration;
         playerTeam = home.humanControlled ? Team.Home : Team.Away;
+        if (useCoinTossScreen) CoinTossScreen.Create(this);
     }
 
     // Lo llama quien organiza el partido (p. ej. el torneo) antes de que empiece
@@ -112,8 +128,9 @@ public class GameManager : MonoBehaviour
 
     // ---------- Sorteo ----------
 
-    void ChooseCoin(bool playerPicksHeads)
+    public void ChooseCoin(bool playerPicksHeads)
     {
+        if (State != MatchState.CoinToss) return;
         bool heads = UnityEngine.Random.value < 0.5f;
         bool playerWins = heads == playerPicksHeads;
         firstServer = playerWins ? playerTeam : Other(playerTeam);
@@ -124,7 +141,14 @@ public class GameManager : MonoBehaviour
         coinServeText = playerWins ? "¡Sacas tú!" : "Saca el rival";
 
         State = MatchState.CoinResult;
-        StartCoroutine(CoinResultRoutine());
+        if (CoinTossHandledExternally) CoinTossed?.Invoke(heads, playerWins);
+        else StartCoroutine(CoinResultRoutine());
+    }
+
+    // Lo llama la pantalla del sorteo cuando ha terminado de enseñar el resultado
+    public void CompleteCoinToss()
+    {
+        if (State == MatchState.CoinResult) StartKickoff(firstServer);
     }
 
     IEnumerator CoinResultRoutine()
@@ -285,8 +309,8 @@ public class GameManager : MonoBehaviour
 
         switch (State)
         {
-            case MatchState.CoinToss: DrawCoinToss(); break;
-            case MatchState.CoinResult: DrawCoinResult(); break;
+            case MatchState.CoinToss: if (!CoinTossHandledExternally) DrawCoinToss(); break;
+            case MatchState.CoinResult: if (!CoinTossHandledExternally) DrawCoinResult(); break;
             case MatchState.Kickoff: DrawKickoffHint(); break;
             case MatchState.GoalPause: DrawGoalScreen(); break;
             case MatchState.HalfTime: DrawCentered("DESCANSO", 80, 0f); break;
