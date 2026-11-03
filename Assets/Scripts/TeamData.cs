@@ -15,6 +15,10 @@ public class TeamData : ScriptableObject
     [SerializeField] Color secondaryColor = Color.white;
     [Tooltip("Segunda camiseta: se usa si el rival tiene un color demasiado parecido")]
     [SerializeField] Color alternateColor = Color.white;
+    [Tooltip("Patrón de la camiseta (franjas, banda, mitades...). Vacío = camiseta lisa")]
+    [SerializeField] Sprite jerseyPattern;
+    [Tooltip("Patrón de la 2ª camiseta. Vacío = el mismo que la primera")]
+    [SerializeField] Sprite alternatePattern;
     [SerializeField] Color goalkeeperColor = Color.gray;
 
     [Header("Nivel")]
@@ -28,6 +32,8 @@ public class TeamData : ScriptableObject
     public Color PrimaryColor => primaryColor;
     public Color SecondaryColor => secondaryColor;
     public Color AlternateColor => alternateColor;
+    public Sprite JerseyPattern => jerseyPattern;
+    public Sprite AlternatePattern => alternatePattern != null ? alternatePattern : jerseyPattern;
     public Color GoalkeeperColor => goalkeeperColor;
     public Sprite Crest => crest;
     public int Rating => rating;

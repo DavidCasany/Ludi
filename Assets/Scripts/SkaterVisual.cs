@@ -6,7 +6,7 @@ using UnityEngine;
 //  - L'ESTIC (StickPivot) segueix la bola tot el partit, limitat a un arc davant del cos.
 //    Si la bola és a prop, l'estic "s'estira o s'arronsa" perquè la pala quedi just a la bola.
 //  - Fa una escombrada quan el jugador intenta robar (Skater.Swung) i un cop sec en xutar (Skater.Shot).
-//  - SetKit() pinta la samarreta i els guants amb els colors de l'equip.
+//  - SetKit() pinta la samarreta, el patró (franges, banda...) i els guants amb els colors de l'equip.
 //
 // JERARQUIA ESPERADA
 //  Skater (Rigidbody2D, Collider2D, Skater, SkaterAI, SkaterVisual)
@@ -14,10 +14,11 @@ using UnityEngine;
 //      ├ Shadow          order -1
 //      ├ Base            order 0   (cames i patins, sense tenyir)
 //      ├ Jersey          order 1   (samarreta en grisos)          <- primaryRenderers
-//      ├ Head            order 3   (cap, sense tenyir)
+//      ├ Pattern         order 2   (patró de l'equip, en grisos)  <- patternRenderer
+//      ├ Head            order 4   (cap, sense tenyir)
 //      └ StickPivot                                <- stickPivot (al centre del cos)
-//         ├ Stick        order 2
-//         ├ Gloves       order 4   (guants en grisos)             <- secondaryRenderers
+//         ├ Stick        order 3
+//         ├ Gloves       order 5   (guants en grisos)             <- secondaryRenderers
 //         └ BladeTip     (Empty a la pala, on toca la bola)       <- bladeTip
 [RequireComponent(typeof(Skater))]
 public class SkaterVisual : MonoBehaviour
@@ -30,6 +31,8 @@ public class SkaterVisual : MonoBehaviour
     [SerializeField] SpriteRenderer[] primaryRenderers;
     [Tooltip("Es tenyeixen amb el color secundari (guants, ribets, número)")]
     [SerializeField] SpriteRenderer[] secondaryRenderers;
+    [Tooltip("Capa del patró: rep el sprite i el color del TeamData")]
+    [SerializeField] SpriteRenderer patternRenderer;
 
     [Header("Cos")]
     [SerializeField] float bodyTurnSpeed = 540f;      // graus/s
@@ -88,10 +91,20 @@ public class SkaterVisual : MonoBehaviour
 
     // ---------- Equipació ----------
 
-    public void SetKit(Color primary, Color secondary)
+    public void SetKit(Color primary, Color secondary) => SetKit(primary, secondary, null, secondary);
+
+    // shirt = samarreta, trim = guants i ribets, pattern = patró (null = llisa), patternColor = color del patró
+    public void SetKit(Color shirt, Color trim, Sprite pattern, Color patternColor)
     {
-        foreach (SpriteRenderer sr in primaryRenderers) if (sr != null) sr.color = primary;
-        foreach (SpriteRenderer sr in secondaryRenderers) if (sr != null) sr.color = secondary;
+        foreach (SpriteRenderer sr in primaryRenderers) if (sr != null) sr.color = shirt;
+        foreach (SpriteRenderer sr in secondaryRenderers) if (sr != null) sr.color = trim;
+
+        if (patternRenderer != null)
+        {
+            patternRenderer.sprite = pattern;
+            patternRenderer.color = patternColor;
+            patternRenderer.enabled = pattern != null;
+        }
     }
 
     // ---------- Animació ----------
