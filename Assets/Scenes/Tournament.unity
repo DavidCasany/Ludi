@@ -286,10 +286,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TournamentHub
   config: {fileID: 11400000, guid: 0081d49d63ada9648a78a1438d2de2eb, type: 2}
-  columnWidth: 190
-  boxWidth: 170
-  boxHeight: 46
-  rowHeight: 56
+  mainMenuScene: MainMenu
 --- !u!4 &1525542439
 Transform:
   m_ObjectHideFlags: 0

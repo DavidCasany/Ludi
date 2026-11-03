@@ -154,7 +154,7 @@ public class BulletTime : MonoBehaviour
 
     void OnGUI()
     {
-        if (PauseController.IsPaused) return;
+        if (PauseController.IsPaused || HudVisibility.Hidden) return;
         if (!Active && energy >= maxAimTime - 0.01f) return;   // barra llena y sin usar: oculta
 
         float w = 220f, h = 14f;

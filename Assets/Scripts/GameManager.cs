@@ -277,7 +277,7 @@ public class GameManager : MonoBehaviour
 
     void OnGUI()
     {
-        if (PauseController.IsPaused) return;
+        if (PauseController.IsPaused || HudVisibility.Hidden) return;
         GUIStyle hud = new GUIStyle(GUI.skin.label) { fontSize = 28, fontStyle = FontStyle.Bold };
         GUI.Label(new Rect(10, 10, 700, 40), $"{homeName} {homeScore} - {awayScore} {awayName}", hud);
         string clock = IsGoldenGoal ? "PRÓRROGA · GOL DE ORO" : $"{Half}ª PARTE   {FormatTime(timeLeft)}";

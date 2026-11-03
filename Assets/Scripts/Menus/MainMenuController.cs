@@ -17,6 +17,7 @@ using UnityEngine.InputSystem;
 public class MainMenuController : MonoBehaviour
 {
     [Header("Escenas (dejar vacío mientras no existan)")]
+    [Tooltip("Vacío = la escena del cuadro que diga el TournamentConfig (HubScene)")]
     [SerializeField] string tournamentScene = "";
     [SerializeField] string pvpScene = "";
     [SerializeField] string pveScene = "";
@@ -34,7 +35,9 @@ public class MainMenuController : MonoBehaviour
     [Tooltip("Sello de los botones que no se pueden usar (modo apagado para la demo o escena sin asignar)")]
     [SerializeField] string unavailableLabel = "NO DISPONIBLE";
     [Tooltip("Sello de Continuar cuando no hay ningún torneo guardado")]
-    [SerializeField] string noSaveLabel = "SIN PARTIDA";
+    [SerializeField] string noTournamentLabel = "SIN TORNEO";
+    [Tooltip("Sello de Continuar cuando el último torneo ya terminó")]
+    [SerializeField] string finishedTournamentLabel = "TERMINADO";
 
     [Header("Botones")]
     [SerializeField] Button continueTournamentButton;
@@ -86,16 +89,36 @@ public class MainMenuController : MonoBehaviour
 
     // ---------- Acciones de los botones ----------
 
+    // Escena del cuadro: la del campo, o si está vacío la del TournamentConfig
+    string TournamentScene => !string.IsNullOrEmpty(tournamentScene) ? tournamentScene
+                            : tournamentConfig != null ? tournamentConfig.HubScene : "";
+
     public void ContinueTournament()
     {
-        if (!tournamentEnabled) return;
-        TryLoad(tournamentScene, "Continuar torneo", () => TournamentSession.TryResume(tournamentConfig));
+        if (!tournamentEnabled || ConfirmDialog.IsOpen) return;
+        TryLoad(TournamentScene, "Continuar torneo", () => TournamentSession.TryResume(tournamentConfig));
     }
 
+    // Si hay un torneo a medias, se pide confirmación antes de borrarlo
     public void NewTournament()
     {
-        if (!tournamentEnabled) return;
-        TryLoad(tournamentScene, "Nuevo torneo", () =>
+        if (!tournamentEnabled || loading || ConfirmDialog.IsOpen) return;
+
+        if (tournamentConfig != null &&
+            TournamentSession.GetSaveState(tournamentConfig) == TournamentSession.SaveState.InProgress)
+        {
+            ConfirmDialog.Show("¿Empezar un torneo nuevo?",
+                               "Tienes un torneo a medias. Si empiezas otro, se perderá.",
+                               "EMPEZAR", "CANCELAR", StartNewTournament,
+                               () => UIKit.Select(newTournamentButton));
+            return;
+        }
+        StartNewTournament();
+    }
+
+    void StartNewTournament()
+    {
+        TryLoad(TournamentScene, "Nuevo torneo", () =>
         {
             if (tournamentConfig == null)
             {
@@ -156,11 +179,16 @@ public class MainMenuController : MonoBehaviour
     //  - Continuar, además, necesita un torneo guardado.
     public void RefreshAvailability()
     {
-        bool tournamentReady = tournamentEnabled && tournamentConfig != null && SceneReady(tournamentScene);
-        bool hasSave = tournamentReady && TournamentSession.HasSave(tournamentConfig);
+        bool tournamentReady = tournamentEnabled && tournamentConfig != null && SceneReady(TournamentScene);
+        TournamentSession.SaveState save = tournamentReady ? TournamentSession.GetSaveState(tournamentConfig)
+                                                           : TournamentSession.SaveState.None;
 
+        // Continuar: solo con un torneo a medias. Si no, el sello dice por qué (no hay / ya terminó / apagado)
+        string continueLabel = !tournamentReady ? unavailableLabel
+                             : save == TournamentSession.SaveState.Finished ? finishedTournamentLabel
+                             : noTournamentLabel;
         SetAvailable(newTournamentButton, tournamentReady, unavailableLabel);
-        SetAvailable(continueTournamentButton, hasSave, tournamentReady ? noSaveLabel : unavailableLabel);
+        SetAvailable(continueTournamentButton, save == TournamentSession.SaveState.InProgress, continueLabel);
         SetAvailable(pvpButton, pvpEnabled && SceneReady(pvpScene), unavailableLabel);
         SetAvailable(pveButton, SceneReady(pveScene), unavailableLabel);
         SetAvailable(creditsButton, SceneReady(creditsScene), unavailableLabel);

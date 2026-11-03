@@ -1608,16 +1608,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a34e84848d1c2e142855537fa03d2173, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MainMenuController
-  tournamentScene: 
+  tournamentScene: Tournament
   pvpScene: TeamSelection
   pveScene: TeamSelection
   settingsScene: "Configuraci\xF3"
   creditsScene: "Cr\xE8dits"
-  tournamentConfig: {fileID: 0}
-  tournamentEnabled: 0
+  tournamentConfig: {fileID: 11400000, guid: 0081d49d63ada9648a78a1438d2de2eb, type: 2}
+  tournamentEnabled: 1
   pvpEnabled: 0
   unavailableLabel: NO DISPONIBLE
-  noSaveLabel: SIN PARTIDA
+  noTournamentLabel: SIN TORNEO
+  finishedTournamentLabel: TERMINADO
   continueTournamentButton: {fileID: 887101725}
   newTournamentButton: {fileID: 834208182}
   pvpButton: {fileID: 828045317}
