@@ -32,6 +32,8 @@ public struct PassPlan
 public class Skater : MonoBehaviour
 {
     public static readonly List<Skater> All = new List<Skater>();
+    public event System.Action Swung;   // intent de robar amb l'estic
+    public event System.Action Shot;    // xut
 
     [Header("Equipo")]
     public Team team;
@@ -358,6 +360,7 @@ public class Skater : MonoBehaviour
         Ball b = ball;
         DropBall(dir.normalized * force + rb.linearVelocity * inheritVelocity, pickupCooldown, false);
         b.MarkShot(team, this);   // el portero sabe que es un tiro (y de quién)
+        Shot?.Invoke();           // SkaterVisual: cop sec de l'estic
         if (IsControlled) GameCamera.Shake(0.12f, 0.12f);   // pequeño golpe de cámara al tirar
     }
 
@@ -609,6 +612,7 @@ public class Skater : MonoBehaviour
 
         Vector2 pos = transform.position;
         Feedback.Swing(pos, AimDir, stickReach, stickArc);
+        Swung?.Invoke();          // SkaterVisual: escombrada de l'estic
 
         Ball b = Ball.Instance;
         if (b == null) return Miss(StickResult.Whiff, missRecovery);

@@ -6,9 +6,16 @@ public class TeamData : ScriptableObject
 {
     [SerializeField] string teamName = "Equipo";
     [SerializeField] string shortName = "EQU";
-    [SerializeField] Color primaryColor = Color.white;
-    [SerializeField] Color goalkeeperColor = Color.gray;
     [SerializeField] Sprite crest;
+
+    [Header("Equipación")]
+    [Tooltip("Camiseta")]
+    [SerializeField] Color primaryColor = Color.white;
+    [Tooltip("Guantes, ribetes, número")]
+    [SerializeField] Color secondaryColor = Color.white;
+    [Tooltip("Segunda camiseta: se usa si el rival tiene un color demasiado parecido")]
+    [SerializeField] Color alternateColor = Color.white;
+    [SerializeField] Color goalkeeperColor = Color.gray;
 
     [Header("Nivel")]
     [Tooltip("Fuerza para simular los partidos IA vs IA (1-100)")]
@@ -19,6 +26,8 @@ public class TeamData : ScriptableObject
     public string TeamName => teamName;
     public string ShortName => shortName;
     public Color PrimaryColor => primaryColor;
+    public Color SecondaryColor => secondaryColor;
+    public Color AlternateColor => alternateColor;
     public Color GoalkeeperColor => goalkeeperColor;
     public Sprite Crest => crest;
     public int Rating => rating;

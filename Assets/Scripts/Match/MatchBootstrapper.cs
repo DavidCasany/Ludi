@@ -69,8 +69,7 @@ public class MatchBootstrapper : MonoBehaviour
         // En Start: TeamManager.Awake ya ha rellenado sus listas de jugadores
         gameManager.ConfigureMatch(setup.homeTeam.ShortName, setup.awayTeam.ShortName, setup.requireWinner);
 
-        TeamDataApplier.Apply(gameManager.home, setup.homeTeam);
-        TeamDataApplier.Apply(gameManager.away, setup.awayTeam);
+        TeamDataApplier.ApplyMatch(gameManager.home, setup.homeTeam, gameManager.away, setup.awayTeam);
 
         TeamStatApplier.Apply(gameManager.home, setup.homeUpgrades);
         TeamStatApplier.Apply(gameManager.away, setup.awayUpgrades);

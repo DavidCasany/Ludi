@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 // Conecta la escena del partido con el torneo:
-//  - Al empezar: pone nombres, colores y nivel de IA de los dos equipos, y activa el gol de oro.
+//  - Al empezar: pone nombres, equipaciones y nivel de IA de los dos equipos, y activa el gol de oro.
 //  - Al terminar: envía el resultado al torneo y muestra "CONTINUAR" para volver al cuadro.
 // Si no hay torneo activo (abres la escena Match directamente para probar) no hace nada.
 // El jugador humano siempre es el equipo local (GameManager.home).
@@ -17,11 +17,11 @@ public class TournamentMatchBridge : MonoBehaviour
 
     void Awake()
     {
-        if (gameManager == null || match == null || MatchLaunch.Mode != MatchMode.Tournament) enabled = false;
         if (gameManager == null) gameManager = GetComponent<GameManager>();
 
+        // Abans es comprovava 'match' abans d'assignar-lo (sempre era null) i el pont quedava sempre apagat
         match = TournamentSession.PendingPlayerMatch();
-        if (gameManager == null || match == null) enabled = false;
+        if (gameManager == null || match == null || MatchLaunch.Mode != MatchMode.Tournament) enabled = false;
     }
 
     void OnEnable()
@@ -40,27 +40,11 @@ public class TournamentMatchBridge : MonoBehaviour
         TeamData rival = TournamentSession.RivalIn(match);
 
         gameManager.ConfigureMatch(player.ShortName, rival.ShortName, true);
-        ApplyTeam(gameManager.home, player);
-        ApplyTeam(gameManager.away, rival);
+        TeamDataApplier.ApplyMatch(gameManager.home, player, gameManager.away, rival);   // equipacions + IA
 
         // Mejoras roguelite de cada equipo (el rival también ha ido eligiendo)
         TeamStatApplier.Apply(gameManager.home, TournamentSession.UpgradesOf(TournamentSession.PlayerTeam));
         TeamStatApplier.Apply(gameManager.away, TournamentSession.UpgradesOf(match.OpponentOf(TournamentSession.PlayerTeam)));
-    }
-
-    static void ApplyTeam(TeamManager tm, TeamData data)
-    {
-        foreach (Skater s in tm.skaters)
-        {
-            SpriteRenderer sr = s.GetComponentInChildren<SpriteRenderer>();
-            if (sr != null) sr.color = data.PrimaryColor;
-
-            SkaterAI ai = s.GetComponent<SkaterAI>();
-            if (ai != null) ai.skill = data.AiSkill;
-        }
-
-        // El portero restaura su color base tras cada parada, así que se lo cambia él mismo
-        if (tm.goalkeeper != null) tm.goalkeeper.SetColor(data.GoalkeeperColor);
     }
 
     void OnMatchFinished(int homeGoals, int awayGoals)
