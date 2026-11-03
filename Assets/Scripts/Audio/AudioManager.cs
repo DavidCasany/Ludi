@@ -99,6 +99,8 @@ public class AudioManager : MonoBehaviour
     int lastUpgradeCount = -1;
     bool draftVisible;
     bool warnedPoll;
+    string sceneTrack;          // música que debería sonar en la escena actual
+    float nextWatchdog;
 
     // ---------- Arranque automático ----------
 
@@ -143,6 +145,13 @@ public class AudioManager : MonoBehaviour
         return new Channel { source = s };
     }
 
+    void Start()
+    {
+        // La primera escena del juego ya está cargada cuando el AudioManager arranca:
+        // si su evento sceneLoaded no ha llegado, se arranca aquí su música.
+        if (sceneTrack == null) OnSceneLoaded(SceneManager.GetActiveScene(), LoadSceneMode.Single);
+    }
+
     void OnEnable()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
@@ -168,6 +177,12 @@ public class AudioManager : MonoBehaviour
         if (Instance != null) Instance.StartMusic(name);
     }
 
+    // Para otros scripts de audio (MatchAudio): devuelve el clip de Resources/Audio/SFX
+    public static AudioClip GetSfx(string name)
+    {
+        return Instance != null ? Instance.Load(SfxFolder + name) : Resources.Load<AudioClip>(SfxFolder + name);
+    }
+
     public static void StopMusic(float fadeSeconds = 0.5f)
     {
         if (Instance != null) Instance.FadeOutMusic(fadeSeconds);
@@ -186,6 +201,7 @@ public class AudioManager : MonoBehaviour
 
         string track = MusicForScene(scene);
         if (track == null) return;
+        sceneTrack = track;
 
         if (pendingMusic != null) StopCoroutine(pendingMusic);
         // Si aún suena un stinger (p. ej. "¡CAMPEONES!"), la música de la escena entra cuando acaba
@@ -284,6 +300,7 @@ public class AudioManager : MonoBehaviour
         StepChannel(stingerChannel, dt, musicVolume);
 
         PollMatch();
+        Watchdog();
 
         if (Time.unscaledTime >= nextScan)
         {
@@ -291,6 +308,17 @@ public class AudioManager : MonoBehaviour
             HookNewSelectables();
             PollUpgrades();
         }
+    }
+
+    // Red de seguridad: si la escena tiene música y no suena nada (y no es un silencio buscado,
+    // como el stinger del final del partido), se vuelve a poner.
+    void Watchdog()
+    {
+        if (Time.unscaledTime < nextWatchdog) return;
+        nextWatchdog = Time.unscaledTime + 0.5f;
+        if (sceneTrack == null || pendingMusic != null || stingerChannel.source.isPlaying) return;
+        if (music[0].source.isPlaying || music[1].source.isPlaying) return;
+        StartMusic(sceneTrack);
     }
 
     static void StepChannel(Channel c, float dt, float volume)
@@ -363,7 +391,11 @@ public class AudioManager : MonoBehaviour
             if (trackedGame != null) trackedGame.MatchFinished -= OnMatchFinished;
             trackedGame = gm;
             goldenGoalMusic = false;
-            if (gm != null) gm.MatchFinished += OnMatchFinished;
+            if (gm != null)
+            {
+                gm.MatchFinished += OnMatchFinished;
+                if (gm.GetComponent<MatchAudio>() == null) gm.gameObject.AddComponent<MatchAudio>();
+            }
         }
 
         if (gm != null && gm.IsGoldenGoal && !goldenGoalMusic && gm.State != MatchState.FullTime)
@@ -380,6 +412,7 @@ public class AudioManager : MonoBehaviour
 
     IEnumerator MatchResult(int homeGoals, int awayGoals, GameManager gm)
     {
+        sceneTrack = null;   // silencio buscado: que el vigilante no vuelva a poner la música
         yield return null;   // un frame: TournamentMatchBridge ya ha apuntado el resultado en el torneo
 
         Team player = gm != null ? gm.PlayerTeam : Team.Home;
@@ -393,7 +426,10 @@ public class AudioManager : MonoBehaviour
         else if (mine > theirs) stinger = "stinger_victory";
         else if (mine < theirs) stinger = "stinger_defeat";
 
-        FadeOutMusic(0.3f);
+        FadeOutMusic(0.4f);
+        if (pendingMusic != null) StopCoroutine(pendingMusic);
+        pendingMusic = null;
+        yield return new WaitForSecondsRealtime(1.0f);   // primero el triple silbato final (MatchAudio)
         float length = stinger != null ? PlayStinger(stinger) : 0f;
 
         if (pendingMusic != null) StopCoroutine(pendingMusic);

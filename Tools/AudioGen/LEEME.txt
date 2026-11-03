@@ -18,8 +18,12 @@ YA ESTA TODO EN EL PROYECTO. Solo hace falta volver a generar si quereis cambiar
      py sfx.py ui_click ui_hover --out ..\..\Assets\Resources\Audio\SFX
 
 Musica:  credits, menu, match, hub, goldengoal, pause, victory, defeat, champion, eliminated
-Efectos: ui_hover, ui_click, ui_back, ui_deny, ui_pause_open, ui_pause_close, ui_slider,
+Efectos de interfaz: ui_hover, ui_click, ui_back, ui_deny, ui_pause_open, ui_pause_close, ui_slider,
          ui_cards_appear, ui_card_pick_common, ui_card_pick_rare, ui_card_pick_epic, ui_play_match
+Efectos de partido: sfx_shot_1/2, sfx_pass, sfx_stick_swing, sfx_steal, sfx_intercept, sfx_stick_block,
+         sfx_ball_wall_soft/mid/hard, sfx_juke, sfx_keeper_save, sfx_ball_pickup, sfx_skate_loop,
+         sfx_sprint, sfx_exhausted, sfx_player_bump, sfx_slowmo_in/out, sfx_qte_success/fail/tick,
+         sfx_whistle_short/long/end, sfx_goal_horn, sfx_crowd_cheer/ooh/loop, sfx_coin_flip/land
 
 Archivos:
   music.py       -> composicion rock de cada pista
@@ -31,5 +35,8 @@ Archivos:
 EN UNITY (Assets/Scripts/Audio)
   AudioManager.cs  -> se crea solo al arrancar. Musica por escena (tabla SceneMusic),
                       gol de oro, pausa, stingers de final de partido y efectos de interfaz.
+  MatchAudio.cs    -> se añade solo al GameManager de cada partido: bola, stick, jugadores,
+                      QTE, camara lenta, silbatos, bocina, publico y moneda del sorteo.
+  MatchAudioRelay.cs -> pasa los choques de la bola y de los jugadores a MatchAudio.
   UISoundHook.cs   -> se añade solo a cada boton/slider/toggle (hover, clic, volver, jugar...).
   Editor/AudioImportSettings.cs -> configura la importacion de los .wav automaticamente.
