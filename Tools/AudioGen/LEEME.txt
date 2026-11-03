@@ -1,0 +1,35 @@
+AUDIO DEL JUEGO - Hockey Patines (Premis Ludi)
+==============================================
+Todo el audio se sintetiza desde cero con Python (modelo fisico de cuerda
+para las guitarras, distorsion y bateria sintetizada). No usa samples ni
+material de terceros: no hay licencias externas.
+
+YA ESTA TODO EN EL PROYECTO. Solo hace falta volver a generar si quereis cambiar algo.
+
+1) Dependencias (solo la primera vez):
+     py -m pip install -r requirements.txt
+
+2) Regenerar (desde esta carpeta, Tools\AudioGen):
+     py music.py --out ..\..\Assets\Resources\Audio\Music
+     py sfx.py   --out ..\..\Assets\Resources\Audio\SFX
+
+   Solo algunas pistas / efectos:
+     py music.py menu match --out ..\..\Assets\Resources\Audio\Music
+     py sfx.py ui_click ui_hover --out ..\..\Assets\Resources\Audio\SFX
+
+Musica:  credits, menu, match, hub, goldengoal, pause, victory, defeat, champion, eliminated
+Efectos: ui_hover, ui_click, ui_back, ui_deny, ui_pause_open, ui_pause_close, ui_slider,
+         ui_cards_appear, ui_card_pick_common, ui_card_pick_rare, ui_card_pick_epic, ui_play_match
+
+Archivos:
+  music.py       -> composicion rock de cada pista
+  sfx.py         -> efectos de interfaz
+  rock.py        -> guitarras, bajo, guitarra solista y bateria de rock
+  synth.py       -> mezcla (reverb, loops, volumen) y sintes base
+  music_funk.py  -> version funk (se usa para music_credits)
+
+EN UNITY (Assets/Scripts/Audio)
+  AudioManager.cs  -> se crea solo al arrancar. Musica por escena (tabla SceneMusic),
+                      gol de oro, pausa, stingers de final de partido y efectos de interfaz.
+  UISoundHook.cs   -> se añade solo a cada boton/slider/toggle (hover, clic, volver, jugar...).
+  Editor/AudioImportSettings.cs -> configura la importacion de los .wav automaticamente.
