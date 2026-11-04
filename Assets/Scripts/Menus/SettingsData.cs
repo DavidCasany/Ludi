@@ -16,6 +16,18 @@ public class SettingsData : ScriptableObject
     [SerializeField, Range(0f, 1f)] float defaultSfxVolume = 0.8f;
     [SerializeField] bool defaultPassArrows = true;
 
+    [Header("Controles (móvil / tableta)")]
+    [Tooltip("Automàtic: táctil en móviles y tabletas, teclado y ratón en el ordenador (y cambia solo)")]
+    [SerializeField] ControlPreference defaultControls = ControlPreference.Auto;
+    [SerializeField, Range(GameSettings.TouchScaleMin, GameSettings.TouchScaleMax)] float defaultTouchScale = 1f;
+    [SerializeField, Range(GameSettings.TouchOpacityMin, GameSettings.TouchOpacityMax)] float defaultTouchOpacity = 0.7f;
+    [Tooltip("Joystick a la derecha y botones a la izquierda")]
+    [SerializeField] bool defaultTouchLeftHanded = false;
+
+    [Header("Web")]
+    [Tooltip("Resolución interna del canvas: 0 = automática (como mucho x2 la de la pantalla), 1 = nativa, 0.5 = mitad")]
+    [SerializeField, Range(0f, 1f)] float defaultRenderScale = 0f;
+
     [Header("Resoluciones extra del desplegable")]
     [Tooltip("Se suman a las que el monitor dice que soporta (Screen.resolutions). Las que no caben se ocultan")]
     [SerializeField] List<Vector2Int> resolutions = new List<Vector2Int>
@@ -41,5 +53,10 @@ public class SettingsData : ScriptableObject
     public float DefaultMusicVolume => defaultMusicVolume;
     public float DefaultSfxVolume => defaultSfxVolume;
     public bool DefaultPassArrows => defaultPassArrows;
+    public ControlPreference DefaultControls => defaultControls;
+    public float DefaultTouchScale => defaultTouchScale;
+    public float DefaultTouchOpacity => defaultTouchOpacity;
+    public bool DefaultTouchLeftHanded => defaultTouchLeftHanded;
+    public float DefaultRenderScale => defaultRenderScale;
     public IReadOnlyList<Vector2Int> Resolutions => resolutions;
 }

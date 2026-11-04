@@ -81,6 +81,7 @@ public static class NavigationSelector
 
     static bool PointerUsed()
     {
+        if (TouchInput.AnyBegan) return true;   // el dedo cuenta como ratón: nada de selección automática
 #if ENABLE_INPUT_SYSTEM && !ENABLE_LEGACY_INPUT_MANAGER
         var m = UnityEngine.InputSystem.Mouse.current;
         return m != null && (m.delta.ReadValue().sqrMagnitude > 1f || m.leftButton.wasPressedThisFrame);

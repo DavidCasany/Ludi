@@ -19,7 +19,7 @@ using UnityEngine;
 // Requisito: Player Settings > Web > Publishing Settings > Compression Format = Disabled.
 public static class WebGLLocalPage
 {
-    const string Title = "Hockeymaniacs";
+    const string Title = WebPageParts.ProductTitle;
 
     [PostProcessBuild(100)]
     static void OnPostprocessBuild(BuildTarget target, string buildPath)
@@ -96,36 +96,11 @@ public static class WebGLLocalPage
     }
 
     // ---------- Página ----------
+    // HTML, CSS y funciones comunes con la plantilla web (adaptación a móvil/tableta): ver WebPageParts
 
-    static string Head() => @"<!DOCTYPE html>
-<html lang=""ca"">
-<head>
-<meta charset=""utf-8"">
-<meta name=""viewport"" content=""width=device-width, initial-scale=1"">
-<title>" + Title + @"</title>
-<style>
-  html, body { margin: 0; height: 100%; background: #12151c; overflow: hidden; font-family: Arial, sans-serif; }
-  /* 16:9 centrado, ocupando todo lo posible de la ventana */
-  #unity-canvas { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-                  width: min(100vw, 177.78vh); height: min(56.25vw, 100vh); background: #12151c; outline: none; }
-  #loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center;
-             justify-content: center; color: #e8ecf3; gap: 18px; }
-  #loading h1 { margin: 0; font-size: 48px; letter-spacing: 6px; }
-  #loading h1 span { color: #f2782b; }
-  #bar { width: 320px; height: 10px; border-radius: 5px; background: #2a3242; overflow: hidden; }
-  #fill { width: 0; height: 100%; background: #f2782b; transition: width .15s; }
-  #fs { position: absolute; right: 12px; bottom: 12px; padding: 8px 14px; border: 0; border-radius: 8px;
-        background: #2a3242; color: #e8ecf3; cursor: pointer; font-size: 14px; display: none; }
-  #fs:hover { background: #f2782b; }
-</style>
-</head>
-<body>
-<canvas id=""unity-canvas"" tabindex=""-1""></canvas>
-<div id=""loading""><h1>HOCKEY<span>MANIACS</span></h1><div id=""bar""><div id=""fill""></div></div><p id=""msg"">Carregant…</p></div>
-<button id=""fs"">Pantalla completa</button>
-";
+    static string Head() => WebPageParts.Head(Title);
 
-    static string Boot() => @"<script>
+    static string Boot() => WebPageParts.HelpersScript + @"<script>
 (function () {
   function blobUrl(id, type) {
     var el = document.getElementById(id);
@@ -137,8 +112,6 @@ public static class WebGLLocalPage
   }
 
   var canvas = document.getElementById('unity-canvas');
-  var fill = document.getElementById('fill');
-  var msg = document.getElementById('msg');
 
   // Deja pintar la pantalla de carga antes de decodificar los datos (tarda un momento)
   setTimeout(function () {
@@ -150,17 +123,12 @@ public static class WebGLLocalPage
       companyName: 'Hockeymaniacs',
       productName: '" + Title + @"',
       productVersion: '1.0',
-      showBanner: function (text, type) { (type === 'error' ? console.error : console.warn)(text); }
+      devicePixelRatio: ludiRatio(),
+      showBanner: ludiBanner
     };
-    createUnityInstance(canvas, config, function (p) { fill.style.width = (100 * p) + '%'; })
-      .then(function (instance) {
-        document.getElementById('loading').remove();
-        var fs = document.getElementById('fs');
-        fs.style.display = 'block';
-        fs.onclick = function () { instance.SetFullscreen(1); };
-        canvas.focus();
-      })
-      .catch(function (e) { msg.textContent = 'No s\'ha pogut carregar el joc: ' + e; });
+    createUnityInstance(canvas, config, ludiProgress)
+      .then(function (instance) { ludiReady(instance, canvas); })
+      .catch(ludiError);
   }, 50);
 })();
 </script>

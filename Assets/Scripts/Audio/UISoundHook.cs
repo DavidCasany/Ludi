@@ -56,6 +56,7 @@ public class UISoundHook : MonoBehaviour, IPointerEnterHandler, IPointerClickHan
 
     public void OnPointerEnter(PointerEventData eventData)
     {
+        if (TouchInput.IsTouchPointer(eventData)) return;   // con el dedo "entrar" es tocar: ya suena el clic
         if (Interactable && clickSound != Override.Silent) AudioManager.PlayUI("ui_hover", 0.04f);
     }
 

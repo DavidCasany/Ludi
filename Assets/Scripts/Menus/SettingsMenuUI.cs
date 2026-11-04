@@ -24,6 +24,15 @@ public class SettingsMenuUI : MonoBehaviour
     [SerializeField] Slider sfxSlider;
     [SerializeField] TMP_Text sfxValue;
     [SerializeField] Toggle passArrowsToggle;
+
+    [Header("Controles táctiles (opcionales: los crea Tools > Ludi > Crear menú de ajustes)")]
+    [SerializeField] TMP_Dropdown controlModeDropdown;
+    [SerializeField] Slider touchScaleSlider;
+    [SerializeField] TMP_Text touchScaleValue;
+    [SerializeField] Slider touchOpacitySlider;
+    [SerializeField] TMP_Text touchOpacityValue;
+    [SerializeField] Toggle leftHandedToggle;
+
     [Tooltip("Opcional: vuelve a los valores por defecto")]
     [SerializeField] Button resetButton;
     [SerializeField] Button backButton;
@@ -33,6 +42,8 @@ public class SettingsMenuUI : MonoBehaviour
     [SerializeField] string fallbackScene = "MainMenu";
 
     readonly List<Vector2Int> resolutions = new List<Vector2Int>();
+    readonly List<float> renderScales = new List<float>();   // web: el desplegable elige la resolución de render
+    bool renderMode;
     bool overlay, leaving;
     GameObject checkedSelection;
     bool checkedSelectionValid;
@@ -42,12 +53,25 @@ public class SettingsMenuUI : MonoBehaviour
         overlay = SceneManager.sceneCount > 1;
         if (overlay) RemoveDuplicatesForOverlay();
 
-        if (GameSettings.IsWeb) HideResolution();
+        // Escritorio: resolución de la ventana. Web (ordenador, móvil, tableta): la ventana la pone el navegador,
+        // así que el desplegable pasa a ser la resolución interna del canvas (nitidez vs. rendimiento).
+        // Build nativa de móvil: ni resolución ni pantalla completa.
+        if (GameSettings.IsNativeMobile)
+        {
+            Hide(resolutionDropdown, true);
+            Hide(fullscreenToggle, false);
+        }
+        else if (GameSettings.IsWeb)
+        {
+            SetupRenderResolution();
+            if (!WebPlatform.FullscreenSupported()) Hide(fullscreenToggle, false);   // iPhone: Safari no lo permite
+        }
         resolutionDropdown.onValueChanged.AddListener(OnResolutionChanged);
         fullscreenToggle.onValueChanged.AddListener(OnFullscreenChanged);
         musicSlider.onValueChanged.AddListener(OnMusicChanged);
         sfxSlider.onValueChanged.AddListener(OnSfxChanged);
         passArrowsToggle.onValueChanged.AddListener(GameSettings.SetPassArrows);
+        SetupControls();
         if (resetButton != null) resetButton.onClick.AddListener(ResetDefaults);   // opcional
         backButton.onClick.AddListener(Back);
 
@@ -66,7 +90,8 @@ public class SettingsMenuUI : MonoBehaviour
     {
         if (leaving) return;
 
-        if (BackPressed() && !resolutionDropdown.IsExpanded)   // con la lista abierta, Esc solo la cierra
+        bool listOpen = resolutionDropdown.IsExpanded || (controlModeDropdown != null && controlModeDropdown.IsExpanded);
+        if (BackPressed() && !listOpen)   // con la lista abierta, Esc solo la cierra
         {
             Back();
             return;
@@ -79,6 +104,21 @@ public class SettingsMenuUI : MonoBehaviour
     // ---------- Mostrar valores actuales ----------
 
     void Refresh()
+    {
+        if (renderMode) RefreshRenderResolutions();
+        else RefreshResolutions();
+
+        // En el navegador se puede salir de pantalla completa con Esc: se lee el estado real
+        fullscreenToggle.SetIsOnWithoutNotify(GameSettings.IsWeb ? Screen.fullScreen : GameSettings.Fullscreen);
+        musicSlider.SetValueWithoutNotify(GameSettings.MusicVolume);
+        sfxSlider.SetValueWithoutNotify(GameSettings.SfxVolume);
+        passArrowsToggle.SetIsOnWithoutNotify(GameSettings.PassArrows);
+        SetPercent(musicValue, GameSettings.MusicVolume);
+        SetPercent(sfxValue, GameSettings.SfxVolume);
+        RefreshControls();
+    }
+
+    void RefreshResolutions()
     {
         resolutions.Clear();
         resolutions.AddRange(GameSettings.AvailableResolutions());
@@ -96,37 +136,142 @@ public class SettingsMenuUI : MonoBehaviour
         resolutionDropdown.AddOptions(options);
         resolutionDropdown.SetValueWithoutNotify(current);
         resolutionDropdown.RefreshShownValue();
-
-        // En el navegador se puede salir de pantalla completa con Esc: se lee el estado real
-        fullscreenToggle.SetIsOnWithoutNotify(GameSettings.IsWeb ? Screen.fullScreen : GameSettings.Fullscreen);
-        musicSlider.SetValueWithoutNotify(GameSettings.MusicVolume);
-        sfxSlider.SetValueWithoutNotify(GameSettings.SfxVolume);
-        passArrowsToggle.SetIsOnWithoutNotify(GameSettings.PassArrows);
-        SetPercent(musicValue, GameSettings.MusicVolume);
-        SetPercent(sfxValue, GameSettings.SfxVolume);
     }
 
-    // En el navegador la resolución la pone la página: se oculta el bloque y la navegación lo salta
-    void HideResolution()
+    // ---------- Web: resolución de render ----------
+
+    // El canvas ocupa la ventana del navegador (o la pantalla del móvil); lo que se elige es con cuántos
+    // píxeles se dibuja. "Automàtica" = como mucho el doble de píxeles CSS: nítido y fluido en móviles x3.
+    void SetupRenderResolution()
     {
-        Navigation skip = resolutionDropdown.navigation;
+        renderMode = true;
+        Transform block = resolutionDropdown.transform.parent;
+        Transform label = block != null ? block.Find("Label") : null;
+        TMP_Text t = label != null ? label.GetComponent<TMP_Text>() : null;
+        if (t != null) t.text = "Resolució de renderitzat";
+    }
+
+    void RefreshRenderResolutions()
+    {
+        renderScales.Clear();
+        List<Vector2Int> seen = new List<Vector2Int>();
+        List<string> options = new List<string>();
+        float currentScale = GameSettings.RenderScale;
+
+        foreach (float f in GameSettings.RenderScales)
+        {
+            Vector2Int r = WebPlatform.ResolutionFor(f);
+            bool isCurrent = Mathf.Approximately(f, currentScale);
+            if (r.y < 360 && !isCurrent) continue;   // demasiado borroso para ofrecerlo
+
+            // Con pantallas x1 "Automàtica" y "Nativa" son lo mismo: se enseña una sola (la elegida, si es una)
+            int dup = seen.IndexOf(r);
+            if (dup >= 0)
+            {
+                if (!isCurrent) continue;
+                seen.RemoveAt(dup);
+                renderScales.RemoveAt(dup);
+                options.RemoveAt(dup);
+            }
+            seen.Add(r);
+            renderScales.Add(f);
+            options.Add(RenderLabel(f, r));
+        }
+
+        int current = 0;
+        for (int i = 0; i < renderScales.Count; i++)
+            if (Mathf.Approximately(renderScales[i], currentScale)) current = i;
+
+        resolutionDropdown.ClearOptions();
+        resolutionDropdown.AddOptions(options);
+        resolutionDropdown.SetValueWithoutNotify(current);
+        resolutionDropdown.RefreshShownValue();
+    }
+
+    static string RenderLabel(float f, Vector2Int r)
+    {
+        string size = $"{r.x} × {r.y}";
+        if (f <= 0f) return "Automàtica · " + size;
+        if (f >= 1f) return "Nativa · " + size;
+        return Mathf.RoundToInt(f * 100f) + " % · " + size;
+    }
+
+    // ---------- Controles (móvil / tableta) ----------
+
+    void SetupControls()
+    {
+        if (controlModeDropdown != null)
+        {
+            controlModeDropdown.ClearOptions();
+            controlModeDropdown.AddOptions(new List<string> { "Automàtic", "Teclat i ratolí", "Tàctil" });
+            controlModeDropdown.onValueChanged.AddListener(i => GameSettings.SetControls((ControlPreference)i));
+        }
+        if (touchScaleSlider != null)
+        {
+            touchScaleSlider.minValue = GameSettings.TouchScaleMin;
+            touchScaleSlider.maxValue = GameSettings.TouchScaleMax;
+            touchScaleSlider.onValueChanged.AddListener(v =>
+            {
+                GameSettings.SetTouchScale(v);
+                SetPercent(touchScaleValue, v);
+            });
+        }
+        if (touchOpacitySlider != null)
+        {
+            touchOpacitySlider.minValue = GameSettings.TouchOpacityMin;
+            touchOpacitySlider.maxValue = GameSettings.TouchOpacityMax;
+            touchOpacitySlider.onValueChanged.AddListener(v =>
+            {
+                GameSettings.SetTouchOpacity(v);
+                SetPercent(touchOpacityValue, v);
+            });
+        }
+        if (leftHandedToggle != null) leftHandedToggle.onValueChanged.AddListener(GameSettings.SetTouchLeftHanded);
+    }
+
+    void RefreshControls()
+    {
+        if (controlModeDropdown != null)
+        {
+            controlModeDropdown.SetValueWithoutNotify((int)GameSettings.Controls);
+            controlModeDropdown.RefreshShownValue();
+        }
+        if (touchScaleSlider != null) touchScaleSlider.SetValueWithoutNotify(GameSettings.TouchScale);
+        if (touchOpacitySlider != null) touchOpacitySlider.SetValueWithoutNotify(GameSettings.TouchOpacity);
+        if (leftHandedToggle != null) leftHandedToggle.SetIsOnWithoutNotify(GameSettings.TouchLeftHanded);
+        SetPercent(touchScaleValue, GameSettings.TouchScale);
+        SetPercent(touchOpacityValue, GameSettings.TouchOpacity);
+    }
+
+    // Oculta un control y hace que la navegación con teclado/mando se lo salte.
+    // block = true: se oculta también su bloque (etiqueta + control), que es su padre.
+    void Hide(Selectable target, bool block)
+    {
+        if (target == null) return;
+        Navigation skip = target.navigation;
         foreach (Selectable s in GetComponentsInChildren<Selectable>(true))
         {
+            if (s == target) continue;
             Navigation n = s.navigation;
             if (n.mode != Navigation.Mode.Explicit) continue;
-            if (n.selectOnDown == resolutionDropdown) n.selectOnDown = skip.selectOnDown;
-            if (n.selectOnUp == resolutionDropdown) n.selectOnUp = skip.selectOnUp;
+            if (n.selectOnDown == target) n.selectOnDown = skip.selectOnDown;
+            if (n.selectOnUp == target) n.selectOnUp = skip.selectOnUp;
             s.navigation = n;
         }
-        Transform block = resolutionDropdown.transform.parent;
-        if (block != null && block != transform) block.gameObject.SetActive(false);
-        else resolutionDropdown.gameObject.SetActive(false);
+        Transform parent = target.transform.parent;
+        if (block && parent != null && parent != transform) parent.gameObject.SetActive(false);
+        else target.gameObject.SetActive(false);
     }
 
     // ---------- Cambios ----------
 
     void OnResolutionChanged(int index)
     {
+        if (renderMode)
+        {
+            if (index >= 0 && index < renderScales.Count) GameSettings.SetRenderScale(renderScales[index]);
+            return;
+        }
         if (index < 0 || index >= resolutions.Count) return;
         GameSettings.SetResolution(resolutions[index].x, resolutions[index].y);
     }
@@ -218,8 +363,10 @@ public class SettingsMenuUI : MonoBehaviour
         return checkedSelectionValid && sel.activeInHierarchy;
     }
 
+    // Con el dedo no se deja nada seleccionado: se vería como pulsado
     static void Select(Selectable s)
     {
+        if (InputMode.IsTouch) return;
         if (EventSystem.current != null && s != null) EventSystem.current.SetSelectedGameObject(s.gameObject);
     }
 

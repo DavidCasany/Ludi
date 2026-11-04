@@ -60,12 +60,16 @@ public class FriendlyMatchEndScreen : MonoBehaviour
         if (buttonStyle == null)   // GUI.skin solo existe dentro de OnGUI: se crea una vez aquí
             buttonStyle = new GUIStyle(GUI.skin.button) { fontSize = 32, fontStyle = FontStyle.Bold };
 
-        float w = 260f, h = 70f, gap = 30f;
-        float y = Mathf.Min(Screen.height * 0.5f + 230f, Screen.height - h - 20f);
+        GUIScale.Apply();
+        float sw = GUIScale.Width, sh = GUIScale.Height;
+        // Con el dedo, botones más grandes
+        float w = InputMode.IsTouch ? 320f : 260f, h = InputMode.IsTouch ? 100f : 70f, gap = 30f;
+        float y = Mathf.Min(sh * 0.5f + 230f, sh - h - 20f);
 
         GUI.enabled = Ready;
-        if (GUI.Button(new Rect(Screen.width * 0.5f - w - gap * 0.5f, y, w, h), "REVENJA", buttonStyle)) Rematch();
-        if (GUI.Button(new Rect(Screen.width * 0.5f + gap * 0.5f, y, w, h), "MENÚ", buttonStyle)) GoToMenu();
+        // GUIScale.Button = GUI.Button que además responde a toques
+        if (GUIScale.Button(new Rect(sw * 0.5f - w - gap * 0.5f, y, w, h), "REVENJA", buttonStyle)) Rematch();
+        if (GUIScale.Button(new Rect(sw * 0.5f + gap * 0.5f, y, w, h), "MENÚ", buttonStyle)) GoToMenu();
         GUI.enabled = true;
     }
 

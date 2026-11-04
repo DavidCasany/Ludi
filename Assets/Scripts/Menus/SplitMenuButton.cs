@@ -14,6 +14,9 @@ using UnityEngine.UI;
 // reaccionar evento a evento. Así no parpadea cuando el ratón pasa del botón principal a un sub-botón
 // (la salida y la entrada llegan en el mismo frame) y evitamos seleccionar dentro de OnSelect,
 // que Unity no permite ("Attempting to select while already selecting").
+//
+// Con el dedo no hay "hover": el dedo entra al tocar y sale al levantarlo, así que el grupo se abriría y
+// se cerraría solo. Por eso un toque lo deja ABIERTO (pinned) hasta que se toca fuera del grupo.
 [DisallowMultipleComponent]
 public class SplitMenuButton : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
@@ -35,12 +38,17 @@ public class SplitMenuButton : MonoBehaviour, IPointerEnterHandler, IPointerExit
     RectTransform splitRect;
     Selectable navUp, navDown;
     bool hovered, wasHovered, expanded, selectionWasInside;
+    bool pinned;          // abierto por un toque
+    RectTransform rootRect;
+    Canvas canvas;
     float t;   // 0 = cerrado, 1 = abierto
 
     void Awake()
     {
         previewTrigger = GetComponent<MenuPreviewTrigger>();
         splitRect = (RectTransform)splitGroup.transform;
+        rootRect = (RectTransform)transform;
+        canvas = GetComponentInParent<Canvas>();
 
         // Sin un Graphic en la raíz, el hueco entre sub-botones no recibe el ratón y el grupo parpadea
         if (GetComponent<Graphic>() == null)
@@ -56,15 +64,36 @@ public class SplitMenuButton : MonoBehaviour, IPointerEnterHandler, IPointerExit
     void OnDisable()
     {
         if (selectionWasInside && previewTrigger != null) previewTrigger.SetSelected(false);
-        hovered = wasHovered = expanded = selectionWasInside = false;
+        hovered = wasHovered = expanded = selectionWasInside = pinned = false;
         t = 0f;
         ApplyInteractable();
         ApplyVisual(0f);
     }
 
     // Los eventos de puntero suben a los padres: la raíz los recibe aunque el ratón esté sobre un hijo
-    public void OnPointerEnter(PointerEventData eventData) => hovered = true;
-    public void OnPointerExit(PointerEventData eventData) => hovered = false;
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        if (TouchInput.IsTouchPointer(eventData)) pinned = true;
+        else hovered = true;
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        if (!TouchInput.IsTouchPointer(eventData)) hovered = false;   // el dedo al levantarse no lo cierra
+    }
+
+    // Un toque que empieza fuera del grupo lo cierra
+    bool TouchStartedOutside()
+    {
+        Camera cam = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
+        foreach (Vector2 p in TouchInput.Began)
+        {
+            bool inside = RectTransformUtility.RectangleContainsScreenPoint(rootRect, p, cam) ||
+                          RectTransformUtility.RectangleContainsScreenPoint(splitRect, p, cam);
+            if (!inside) return true;
+        }
+        return false;
+    }
 
     void Update()
     {
@@ -92,8 +121,10 @@ public class SplitMenuButton : MonoBehaviour, IPointerEnterHandler, IPointerExit
         }
         wasHovered = hovered;
 
+        if (pinned && (TouchStartedOutside() || !InputMode.IsTouch)) pinned = false;
+
         // Si ningún sub-botón se puede usar, la fila no se abre: se queda el botón principal con su aspecto apagado
-        bool wantExpanded = (hovered || selectionInside) && FirstInteractableSub() != null;
+        bool wantExpanded = (hovered || pinned || selectionInside) && FirstInteractableSub() != null;
         if (wantExpanded != expanded)
         {
             expanded = wantExpanded;

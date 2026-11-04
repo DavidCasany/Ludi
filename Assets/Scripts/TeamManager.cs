@@ -14,6 +14,15 @@ public enum Team { Home, Away }
 //                    sin bola (mantener): defensa asistida (DefendAssist)
 //   Espacio ........ con bola: regate | sin bola: cambiar al jugador más cercano a la bola
 //   (Conduciendo, con un rival cerca, tu jugador protege la bola con el cuerpo automáticamente)
+//
+// CONTROLES TÁCTILES (móvil / tableta, ver TouchControls; el esquema lo decide InputMode)
+//   Joystick ....... mover (y hacia dónde llevas la bola / apuntas el pase)
+//   SPRINT ......... mantener
+//   XUTA / ROBA .... con bola: mantener = bullet time, arrastrar el dedo = apuntar, soltar = tirar
+//                    (sin arrastrar, el tiro va a portería con el tiro asistido) | sin bola: stick
+//   PASSA .......... con bola: pase hacia el joystick (al compañero en esa dirección); sin bola no sale
+//   REGAT / CANVI .. como Espacio
+//   (La defensa asistida es solo de ratón: con el dedo se defiende con el joystick, ROBA y CANVI)
 public class TeamManager : MonoBehaviour
 {
     public Team team;
@@ -53,6 +62,14 @@ public class TeamManager : MonoBehaviour
     [Header("HUD")]
     public bool showControlsHint = true;
 
+    [Header("Táctil")]
+    [Tooltip("Pase con el joystick: busca compañero a menos de estos grados de la dirección del joystick")]
+    public float touchPassAngle = 50f;
+    [Tooltip("Pase sin tocar el joystick: margen alrededor de la última dirección")]
+    public float touchPassAngleNoStick = 75f;
+    [Tooltip("Sin compañero en esa dirección, la bola va a este punto (m)")]
+    public float touchPassDistance = 10f;
+
     public Skater Controlled { get; private set; }
 
     Camera cam;
@@ -66,6 +83,12 @@ public class TeamManager : MonoBehaviour
 
     // Defensa asistida (clic derecho mantenido sin bola)
     DefendAssist defendAssist;
+
+    // Táctil
+    TouchControls touch;
+    Vector2 touchAim = Vector2.right;   // última dirección del joystick (el joystick suelto no la borra)
+    Skater touchAimOwner;
+    ControlScheme lastScheme;
 
     GUIStyle smallStyle;
 
@@ -91,6 +114,8 @@ public class TeamManager : MonoBehaviour
     void Start()
     {
         if (humanControlled && skaters.Count > 0) SetControlled(skaters[0]);
+        if (humanControlled) touch = TouchControls.Ensure();   // oculto hasta que se juegue con el dedo
+        lastScheme = InputMode.Current;
     }
 
     void Update()
@@ -98,8 +123,18 @@ public class TeamManager : MonoBehaviour
         if (PauseController.IsPaused) { CancelAim(); return; }
         if (!humanControlled || Controlled == null) return;
 
+        // Cambio de teclado a dedo (o al revés) a media jugada: no se queda nada a medias
+        if (InputMode.Current != lastScheme)
+        {
+            lastScheme = InputMode.Current;
+            CancelAim();
+            Controlled.SprintInput = false;
+            Controlled.MoveInput = Vector2.zero;
+        }
+
         AutoSelect();
-        HandleInput();
+        if (InputMode.IsTouch && touch != null) HandleTouchInput();
+        else HandleInput();
     }
 
     void OnDisable()
@@ -194,18 +229,153 @@ public class TeamManager : MonoBehaviour
         }
         else
         {
-            // Robo / intercepción: solo cuenta el clic. El golpe va siempre hacia la bola, el cursor no importa.
-            // Si la bola está fuera de alcance no se golpea (antes un clic lejano dejaba descolocado y gastaba el cooldown).
-            Ball b = Ball.Instance;
-            if (b == null) return;
-
-            Vector2 toBall = b.rb.position - (Vector2)Controlled.transform.position;
-            if (toBall.magnitude > Controlled.stickReach * stickClickRange) return;
-
-            if (toBall.sqrMagnitude > 0.0001f) Controlled.AimDir = toBall.normalized;
-            Controlled.Stick();
+            StickAtBall();
         }
     }
+
+    // Robo / intercepción: solo cuenta el clic. El golpe va siempre hacia la bola, el cursor no importa.
+    // Si la bola está fuera de alcance no se golpea (antes un clic lejano dejaba descolocado y gastaba el cooldown).
+    void StickAtBall()
+    {
+        Ball b = Ball.Instance;
+        if (b == null) return;
+
+        Vector2 toBall = b.rb.position - (Vector2)Controlled.transform.position;
+        if (toBall.magnitude > Controlled.stickReach * stickClickRange) return;
+
+        if (toBall.sqrMagnitude > 0.0001f) Controlled.AimDir = toBall.normalized;
+        Controlled.Stick();
+    }
+
+    // ---------- Input táctil (TouchControls) ----------
+
+    void HandleTouchInput()
+    {
+        // Las pulsaciones se leen siempre, aunque no se usen, para que no se disparen más tarde
+        bool shootPressed = touch.Shoot.ConsumePress();
+        bool passPressed = touch.Pass.ConsumePress();
+        bool actionPressed = touch.Action.ConsumePress();
+        bool blocked = GoalkeeperQTE.BlocksInput;   // ese toque era para el QTE del portero
+
+        Vector2 input = Vector2.ClampMagnitude(touch.Move, 1f);
+        Controlled.MoveInput = input;
+        Controlled.SprintInput = touch.SprintHeld;
+
+        // Sin cursor, se apunta con el joystick; al soltarlo se mantiene la última dirección
+        if (touchAimOwner != Controlled)
+        {
+            touchAimOwner = Controlled;
+            touchAim = Controlled.AimDir;
+        }
+        if (input.sqrMagnitude > 0.04f) touchAim = input.normalized;
+        Controlled.AimDir = touchAim;
+        if (Controlled.HasBall && !aiming) Controlled.AimDir = ShieldedAim(touchAim);
+
+        touch.SetContext(Controlled.HasBall, CanShootNow);
+        touch.SetCooldowns(Controlled.HasBall ? 0f : Controlled.StickCooldown01,
+                           Controlled.HasBall ? Controlled.JukeCooldown01 : 0f);
+
+        // XUTA / ROBA
+        if (aiming) TouchAimShot();
+        else if (shootPressed && !blocked)
+        {
+            if (Controlled.HasBall)
+            {
+                if (CanShootNow)
+                {
+                    aiming = true;
+                    aimingSkater = Controlled;
+                    bulletTime.Begin();
+                }
+            }
+            else StickAtBall();
+        }
+
+        // PASSA (sin bola el botón no se ve)
+        Vector2 passTarget = TouchPassTarget(input);
+        ShowPassPreview(passTarget);
+        if (passPressed && !blocked && Controlled.HasBall)
+        {
+            CancelAim();
+            DoPass(passTarget);
+        }
+
+        // REGAT / CANVI
+        if (actionPressed && !blocked)
+        {
+            if (Controlled.HasBall) Controlled.Juke(input);
+            else
+            {
+                CancelAim();
+                SwitchToClosestToBall();
+            }
+        }
+    }
+
+    // Mantener XUTA = apuntar; arrastrar desde el botón da la dirección; soltar = tiro.
+    // Sin arrastre el tiro va a la portería rival (y el tiro asistido lo lleva a una esquina).
+    void TouchAimShot()
+    {
+        if (Controlled != aimingSkater || !Controlled.HasBall || !CanShootNow)
+        {
+            CancelAim();
+            return;
+        }
+
+        Vector2 ballPos = Ball.Instance.rb.position;
+        Vector2 drag = touch.Shoot.Drag;
+        Vector2 shotDir = drag.sqrMagnitude > 0.0001f ? drag.normalized : TowardOpponentGoal(ballPos);
+        shotDir = AssistShot(ballPos, shotDir);
+
+        float range = Controlled.shootForce / Mathf.Max(Ball.Instance.rb.linearDamping, 0.01f);
+        bulletTime.SetAim(ballPos, shotDir, Controlled.wallLayer, range);
+
+        if (!touch.Shoot.Held)
+        {
+            bulletTime.End();
+            aiming = false;
+            Controlled.ShootExact(shotDir, Controlled.shootForce);
+        }
+    }
+
+    Vector2 TowardOpponentGoal(Vector2 from)
+    {
+        if (brain == null) brain = GetComponent<TeamBrain>();
+        Vector2 goal = brain != null ? brain.OppGoalPos
+                     : opponentGoal != null ? (Vector2)opponentGoal.position
+                     : from + touchAim;
+        Vector2 d = goal - from;
+        return d.sqrMagnitude > 0.0001f ? d.normalized : touchAim;
+    }
+
+    // A quién va el pase táctil: el compañero más alineado con el joystick (y, a igual dirección, el más
+    // cercano). Se devuelve su posición: PlanSmartPass la trata como "cursor encima del compañero".
+    // Sin nadie en esa dirección, un punto delante.
+    Vector2 TouchPassTarget(Vector2 stick)
+    {
+        Vector2 from = Controlled.transform.position;
+        bool usingStick = stick.sqrMagnitude > 0.09f;
+        Vector2 dir = usingStick ? stick.normalized : touchAim;
+        float maxAngle = usingStick ? touchPassAngle : touchPassAngleNoStick;
+
+        Skater best = null;
+        float bestScore = float.MaxValue;
+        foreach (Skater s in skaters)
+        {
+            if (s == Controlled) continue;
+            Vector2 to = (Vector2)s.transform.position - from;
+            float dist = to.magnitude;
+            if (dist < 0.5f) continue;
+            float ang = Vector2.Angle(dir, to);
+            if (ang > maxAngle) continue;
+            float score = ang + dist * 0.8f;
+            if (score < bestScore) { bestScore = score; best = s; }
+        }
+        return best != null ? (Vector2)best.transform.position : from + dir * touchPassDistance;
+    }
+
+    // Defensa asistida mantenida (clic derecho). Con el dedo no hay defensa asistida.
+    bool DefendHeld => !InputMode.IsTouch && Input.GetMouseButton(1);
 
     // Protección automática: con un rival cerca, la bola se lleva por el lado contrario a él (cuerpo en medio),
     // como hace la IA. Cuanto más cerca está el rival, más se aparta. El tiro y el pase siguen yendo al cursor.
@@ -299,7 +469,7 @@ public class TeamManager : MonoBehaviour
             bool newCarrier = carrier != lastRivalCarrier;
             lastRivalCarrier = carrier;
 
-            if (Time.time < nextAutoSwitch || Input.GetMouseButton(1)) return;   // no cambiar en plena defensa asistida
+            if (Time.time < nextAutoSwitch || DefendHeld) return;   // no cambiar en plena defensa asistida
 
             Skater best = BestDefender(carrier, null);
             if (best == null || best == Controlled) return;
@@ -456,15 +626,18 @@ public class TeamManager : MonoBehaviour
             smallStyle.fontSize = 11;
         }
 
+        GUIScale.Apply();   // HUD medido a 1920×1080: se escala a la pantalla (móvil, tableta, 4K...)
+        float sh = GUIScale.Height;
+
         float w = 220f;
-        float x = (Screen.width - w) * 0.5f;
+        float x = (GUIScale.Width - w) * 0.5f;
 
         // Barra de sprint (la de bullet time está justo debajo)
         Color sprintColor = Controlled.IsExhausted ? new Color(1f, 0.35f, 0.35f) : new Color(0.4f, 1f, 0.5f);
-        DrawBar(new Rect(x, Screen.height - 62f, w, 10f), Controlled.Stamina01, sprintColor, "SPRINT");
+        DrawBar(new Rect(x, sh - 62f, w, 10f), Controlled.Stamina01, sprintColor, "SPRINT");
 
         // Cooldowns (solo se ven mientras se recargan)
-        float y = Screen.height - 76f;
+        float y = sh - 76f;
         if (Controlled.JukeCooldown01 > 0f)
         {
             DrawBar(new Rect(x, y, w, 6f), 1f - Controlled.JukeCooldown01, new Color(1f, 0.9f, 0.3f), "REGAT");
@@ -475,9 +648,9 @@ public class TeamManager : MonoBehaviour
             DrawBar(new Rect(x, y, w, 6f), 1f - Controlled.StickCooldown01, Color.white, "STICK");
         }
 
-        if (showControlsHint)
+        if (showControlsHint && !InputMode.IsTouch)   // con el dedo, los botones ya dicen qué hacen
         {
-            GUI.Label(new Rect(10f, Screen.height - 24f, 900f, 20f),
+            GUI.Label(new Rect(10f, sh - 24f, 900f, 20f),
                 "WASD moure · Shift sprint · Clic esq: xutar (mantenir) / stick · Clic dret: passada / defensar (mantenir sense bola) · Espai: regat / canviar",
                 smallStyle);
         }

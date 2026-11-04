@@ -2,7 +2,8 @@ using UnityEngine;
 
 // Quick Time Event del portero del humano. Lo activa Goalkeeper con cada TIRO rival (uno por tiro):
 // ralentiza el tiempo y muestra una barra con una zona verde y una línea que la recorre.
-// Pulsar la tecla con la línea dentro de la zona verde = parada segura.
+// Pulsar la tecla con la línea dentro de la zona verde = parada segura. Con el dedo (InputMode táctil)
+// se pulsa el botón verde ATURA! que aparece en el sitio de XUTA.
 // Fallar o no pulsar = el portero reacciona solo, pero más tarde y leyendo peor el tiro.
 // Ponlo SOLO en el portero del equipo humano (en el rival se ignora igualmente).
 [RequireComponent(typeof(Goalkeeper))]
@@ -38,6 +39,9 @@ public class GoalkeeperQTE : MonoBehaviour
 
     // Goal lo usa: con un QTE abierto no puede haber gol (la bola espera en la línea)
     public static bool ProtectsGoal => running != null;
+
+    // Hay un QTE esperando la pulsación (TouchControls enseña entonces el botón verde ATURA!)
+    public static bool IsOpen => running != null;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetStatics() { running = null; resolvedFrame = -1; }
@@ -90,7 +94,8 @@ public class GoalkeeperQTE : MonoBehaviour
 
         float elapsed = Time.unscaledTime - startTime;
         cursor = elapsed / Mathf.Max(barTime, 0.1f);
-        if (elapsed >= inputGrace && Input.GetKeyDown(key))
+        bool pressed = Pressed();   // se lee siempre: una pulsación durante el margen inicial se descarta
+        if (elapsed >= inputGrace && pressed)
         {
             bool ok = Mathf.Abs(cursor - greenCenter) <= greenWidth * 0.5f;
             if (debugLog) Debug.Log($"QTE {(ok ? "ACIERTO" : "FALLO")}: pulsado en {cursor:P0} (zona verde {greenCenter - greenWidth * 0.5f:P0}-{greenCenter + greenWidth * 0.5f:P0})");
@@ -101,6 +106,13 @@ public class GoalkeeperQTE : MonoBehaviour
             if (debugLog) Debug.Log("QTE FALLO: no se ha pulsado a tiempo");
             Resolve(false);
         }
+    }
+
+    // Tecla o, en modo táctil, el botón verde ATURA! que TouchControls pone en el sitio de XUTA
+    bool Pressed()
+    {
+        if (TouchControls.QtePressed()) return true;
+        return Input.GetKeyDown(key);
     }
 
     void Resolve(bool ok)
@@ -141,7 +153,8 @@ public class GoalkeeperQTE : MonoBehaviour
             labelStyle.fontStyle = FontStyle.Bold;
         }
 
-        Rect bar = new Rect((Screen.width - barSize.x) * 0.5f, Screen.height * 0.7f, barSize.x, barSize.y);
+        GUIScale.Apply();
+        Rect bar = new Rect((GUIScale.Width - barSize.x) * 0.5f, GUIScale.Height * 0.7f, barSize.x, barSize.y);
 
         // Resultado: la barra desaparece y queda solo el veredicto, para que no parezca que el QTE sigue abierto
         if (State != QTEState.Running)
@@ -167,7 +180,8 @@ public class GoalkeeperQTE : MonoBehaviour
         float cx = inner.x + Mathf.Clamp01(cursor) * inner.width;
         Fill(new Rect(cx - 2f, bar.y - 4f, 4f, bar.height + 8f), Color.white);
 
-        string text = State == QTEState.Running ? "ATURA! [" + key + "]" : (lastOk ? "ATURADÀS!" : "FALLADA!");
+        string prompt = InputMode.IsTouch ? "ATURA! [botó verd]" : "ATURA! [" + key + "]";
+        string text = State == QTEState.Running ? prompt : (lastOk ? "ATURADÀS!" : "FALLADA!");
         GUI.color = State == QTEState.Running ? Color.white : (lastOk ? new Color(0.4f, 1f, 0.5f) : new Color(1f, 0.4f, 0.4f));
         GUI.Label(new Rect(bar.x, bar.y - 28f, bar.width, 24f), text, labelStyle);
         GUI.color = Color.white;

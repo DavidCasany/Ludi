@@ -119,8 +119,8 @@ public class MainMenuBuilder : EditorWindow
         CanvasScaler scaler = root.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920f, 1080f);
-        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-        scaler.matchWidthOrHeight = 0.5f;
+        // Expand: el lienzo mide al menos 1920×1080 en cualquier formato (móvil 20:9, tableta 4:3...)
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
 
         // ---------- Fondo ----------
         Image bg = CreateImage(root.transform, "Background", background != null ? Color.white : BackgroundColor,

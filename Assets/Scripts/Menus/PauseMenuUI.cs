@@ -242,8 +242,10 @@ public class PauseMenuUI : MonoBehaviour
 
     // ---------- Utilidades ----------
 
+    // Con el dedo no se deja nada seleccionado: se vería como pulsado
     static void Select(Selectable s)
     {
+        if (InputMode.IsTouch) return;
         if (EventSystem.current != null && s != null) EventSystem.current.SetSelectedGameObject(s.gameObject);
     }
 

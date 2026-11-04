@@ -268,6 +268,7 @@ public class CreditsUI : MonoBehaviour
 
     static bool AnyPressed()
     {
+        if (TouchInput.AnyBegan) return true;   // un toque también salta la animación
 #if ENABLE_INPUT_SYSTEM && !ENABLE_LEGACY_INPUT_MANAGER
         Keyboard k = Keyboard.current;
         Mouse m = Mouse.current;
