@@ -303,7 +303,6 @@ MonoBehaviour:
   greenWidthNear: 0.14
   nearDistance: 3
   farDistance: 12
-  barSize: {x: 320, y: 22}
   resultShowTime: 0.5
   debugLog: 1
 --- !u!1 &163244663
@@ -525,11 +524,6 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 129474552}
   m_SourcePrefab: {fileID: 100100000, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
---- !u!1 &272020953 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 178672772309614791, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
-  m_PrefabInstance: {fileID: 880688041}
-  m_PrefabAsset: {fileID: 0}
 --- !u!4 &275472249 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5175665479086675304, guid: 25c73d4cceb9c4d43b877821ccec285b, type: 3}
@@ -803,7 +797,6 @@ MonoBehaviour:
   shieldRadius: 2.6
   shieldStrength: 0.85
   stickClickRange: 1.1
-  showControlsHint: 1
   touchPassAngle: 50
   touchPassAngleNoStick: 75
   touchPassDistance: 10
@@ -1098,34 +1091,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: GoalKeeper
       objectReference: {fileID: 0}
-    - target: {fileID: 178672772309614791, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
-      propertyPath: m_IsActive
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 1497270498516365170, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
-      propertyPath: m_Color.b
-      value: 0.8624263
-      objectReference: {fileID: 0}
-    - target: {fileID: 1497270498516365170, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
-      propertyPath: m_Color.g
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1497270498516365170, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
-      propertyPath: m_Color.r
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 3386077717508655842, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
-      propertyPath: speed
-      value: 6
-      objectReference: {fileID: 0}
-    - target: {fileID: 3386077717508655842, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
-      propertyPath: anticipation
-      value: 0.2
-      objectReference: {fileID: 0}
-    - target: {fileID: 3386077717508655842, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
-      propertyPath: reactionTime
-      value: 0.22
-      objectReference: {fileID: 0}
     - target: {fileID: 6432086141029467960, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
       propertyPath: m_LocalPosition.x
       value: 12.55
@@ -1166,17 +1131,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 8883091130091971252, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
-      propertyPath: m_Enabled
-      value: 1
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 178672772309614791, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1951666718}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
 --- !u!1001 &906669154
 PrefabInstance:
@@ -1552,7 +1510,6 @@ MonoBehaviour:
   shieldRadius: 2.6
   shieldStrength: 0.85
   stickClickRange: 1.1
-  showControlsHint: 1
   touchPassAngle: 50
   touchPassAngleNoStick: 75
   touchPassDistance: 10
@@ -1925,7 +1882,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 3386077717508655842, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
   m_PrefabInstance: {fileID: 880688041}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 272020953}
+  m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 95c08426a3a7e724bbb49c46b17e7a8a, type: 3}
@@ -1936,30 +1893,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 6432086141029467960, guid: 0dfe30635b07d794386a93bba48371e9, type: 3}
   m_PrefabInstance: {fileID: 880688041}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1951666718
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 272020953}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5906c4c94d3a91945b486aefd01a1f64, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GoalkeeperQTE
-  slowTimeScale: 0.06
-  barTime: 0.9
-  key: 32
-  inputGrace: 0.25
-  arriveMargin: 0.75
-  greenWidthFar: 0.28
-  greenWidthNear: 0.14
-  nearDistance: 3
-  farDistance: 12
-  barSize: {x: 320, y: 22}
-  resultShowTime: 0.5
-  debugLog: 1
 --- !u!4 &1997207004 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5175665479086675304, guid: 25c73d4cceb9c4d43b877821ccec285b, type: 3}

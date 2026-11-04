@@ -47,6 +47,13 @@ public class Ball : MonoBehaviour
     [Header("Estela")]
     public bool showTrail = true;
     public float trailMinSpeed = 9f;
+    [Tooltip("A aquesta velocitat l'estela és al màxim (llarga, ampla i taronja si és un xut)")]
+    public float trailMaxSpeed = 30f;
+
+    [Header("Hit stop dels xuts")]
+    [Tooltip("Els xuts més ràpids que això congelen el joc un instant (HitStop)")]
+    public float shotHitStopSpeed = 18f;
+    public float shotHitStopMin = 0.03f, shotHitStopMax = 0.07f;
 
     // Estado del pase guiado
     Skater guideTarget;
@@ -54,7 +61,9 @@ public class Ball : MonoBehaviour
     Vector2 waypoint;
     float guideUntil;
 
-    TrailRenderer trail;
+    TrailRenderer trail, trailCore;
+    int hitStopShot = -1;
+    float shotTime = -10f;
 
     void Awake()
     {
@@ -66,7 +75,7 @@ public class Ball : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (trail != null) trail.emitting = Speed > trailMinSpeed;
+        CheckShotHitStop();
         SteerGuidedPass();
     }
 
@@ -177,6 +186,7 @@ public class Ball : MonoBehaviour
         IsShot = true;
         ShotTeam = team;
         ShotId++;
+        shotTime = Time.time;
         Shooter = shooter;
         passUntil = 0f;
 
@@ -221,9 +231,54 @@ public class Ball : MonoBehaviour
         rb.angularVelocity = 0f;
         rb.position = position;
         if (trail != null) trail.Clear();
+        if (trailCore != null) trailCore.Clear();
+    }
+
+    // Xut potent: una congelació molt curta just quan surt la bola (una vegada per xut)
+    void CheckShotHitStop()
+    {
+        if (!IsShot || ShotId == hitStopShot || Time.time - shotTime > 0.15f) return;
+        float sp = Speed;
+        if (sp < shotHitStopSpeed) return;
+        hitStopShot = ShotId;
+        float k = Mathf.InverseLerp(shotHitStopSpeed, trailMaxSpeed, sp);
+        HitStop.Do(Mathf.Lerp(shotHitStopMin, shotHitStopMax, k));
     }
 
     // ---------- Estela ----------
+
+    // Segons la velocitat: més llarga, més ampla i més opaca. Els xuts van de crema a taronja i porten
+    // un nucli blanc; els passis, blanc blavós. Amb la bola agafada no n'hi ha.
+    void Update()
+    {
+        if (trail == null) return;
+        float sp = IsHeld ? 0f : Speed;
+        bool on = sp > trailMinSpeed;
+        float k = Mathf.InverseLerp(trailMinSpeed, trailMaxSpeed, sp);
+
+        trail.emitting = on;
+        if (on)
+        {
+            trail.time = Mathf.Lerp(0.12f, 0.3f, k);
+            trail.widthMultiplier = Mathf.Lerp(0.75f, 1.2f, k);
+            Color head = IsShot ? Color.Lerp(new Color(1f, 0.93f, 0.7f), new Color(1f, 0.55f, 0.15f), k)
+                                : Color.Lerp(Color.white, new Color(0.72f, 0.9f, 1f), k);
+            float a = Mathf.Lerp(0.35f, 0.85f, k);
+            trail.startColor = new Color(head.r, head.g, head.b, a);
+            trail.endColor = new Color(head.r, head.g, head.b, 0f);
+        }
+
+        if (trailCore != null)
+        {
+            bool core = on && IsShot && k > 0.35f;
+            trailCore.emitting = core;
+            if (core)
+            {
+                trailCore.time = Mathf.Lerp(0.06f, 0.14f, k);
+                trailCore.startColor = new Color(1f, 1f, 1f, Mathf.Lerp(0.4f, 0.95f, k));
+            }
+        }
+    }
 
     void CreateTrail()
     {
@@ -235,6 +290,21 @@ public class Ball : MonoBehaviour
         trail.startColor = new Color(1f, 1f, 1f, 0.55f);
         trail.endColor = new Color(1f, 1f, 1f, 0f);
         trail.sortingOrder = 5;
+        trail.minVertexDistance = 0.05f;
         trail.emitting = false;
+
+        // Nucli blanc i estret dels xuts forts (un TrailRenderer per GameObject: va en un fill)
+        GameObject coreGo = new GameObject("TrailCore");
+        coreGo.transform.SetParent(transform, false);
+        trailCore = coreGo.AddComponent<TrailRenderer>();
+        trailCore.time = 0.1f;
+        trailCore.startWidth = 0.12f;
+        trailCore.endWidth = 0f;
+        trailCore.material = trail.material;
+        trailCore.startColor = Color.white;
+        trailCore.endColor = new Color(1f, 1f, 1f, 0f);
+        trailCore.sortingOrder = 6;
+        trailCore.minVertexDistance = 0.05f;
+        trailCore.emitting = false;
     }
 }

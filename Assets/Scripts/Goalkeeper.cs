@@ -59,6 +59,8 @@ public class Goalkeeper : MonoBehaviour
     [SerializeField] float maxDeflectAngle = 60f;
     [SerializeField] float minReboundAngle = 25f;         // ningún rebote sale recto hacia la zona de remate
     [SerializeField] float saveFlashTime = 0.25f;
+    [Tooltip("Congelació del joc en fer una parada (s reals, HitStop)")]
+    [SerializeField] float saveHitStop = 0.07f;
 
     [Header("Control y pase del portero (en vez de rebote)")]
     [Tooltip("Probabilidad de controlar la bola y pasarla a un compañero con un tiro lento")]
@@ -79,7 +81,21 @@ public class Goalkeeper : MonoBehaviour
     [SerializeField] float qteFailExtraDelay = 0.08f;     // QTE fallado: reacciona algo más tarde que la IA
     [SerializeField] float qteFailReadMultiplier = 2.5f;  // ... y lee peor por dónde va la bola
 
-    public float ReactionTime => reactionTime;
+    public float ReactionTime => EffReaction;
+
+    // "Porter en ratxa" (GoalkeeperStreak): 0 = normal, 1 = al màxim. Millora el porter sense tocar
+    // 'speed' ni 'reach', que són de les millores del torneig.
+    [Header("Porter en ratxa (GoalkeeperStreak)")]
+    [SerializeField, Range(0.2f, 1f)] float streakReaction = 0.55f;   // reacció x això al màxim
+    [SerializeField, Range(0f, 1f)] float streakReadError = 0.35f;   // error de lectura x això
+    [SerializeField, Range(1f, 2f)] float streakSpeed = 1.25f;       // estirada x això
+    [SerializeField] float streakReach = 0.15f;                      // alcanç extra (m)
+    public float Boost { get; set; }
+
+    float EffReaction => reactionTime * Mathf.Lerp(1f, streakReaction, Boost);
+    float EffReadError => readError * Mathf.Lerp(1f, streakReadError, Boost);
+    float EffSpeed => speed * Mathf.Lerp(1f, streakSpeed, Boost);
+    float EffReach => reach + streakReach * Boost;
     public float HalfWidth => col != null ? col.bounds.extents.y : 0.4f;   // lo usa TeamBrain para valorar tiros
 
     [Header("Visual")]
@@ -92,8 +108,10 @@ public class Goalkeeper : MonoBehaviour
 
     Rigidbody2D rb;
     Collider2D col;
-    Color baseColor;
-    float flashUntil;
+    Color[] baseColors;      // color de cada capa del kit (cada una el seu: samarreta, guants...)
+    bool colorFromTeam;      // SetColor ja ha posat el color de l'equip (Awake no el sobreescriu)
+    float flashStart = -10f;
+    static readonly Color FlashColor = new Color(1f, 0.93f, 0.5f);
     GoalkeeperQTE qte;   // opcional: solo en el portero del humano
     TeamManager owner;
     Goal myGoal;   // la portería que defiende (se mide en EnsureFit)
@@ -139,18 +157,15 @@ public class Goalkeeper : MonoBehaviour
     Vector2 heldVelocity;
 
     // Desplazamiento lateral máximo del centro: cuerpo tocando el palo + reach
-    float LateralLimit => Mathf.Max(0f, goalHalf - HalfWidth) + reach;
+    float LateralLimit => Mathf.Max(0f, goalHalf - HalfWidth) + EffReach;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         col = GetComponent<Collider2D>();
-        if (kitRenderers == null || kitRenderers.Length == 0)
-        {
-            SpriteRenderer first = GetComponentInChildren<SpriteRenderer>();
-            kitRenderers = first != null ? new[] { first } : new SpriteRenderer[0];
-        }
-        if (kitRenderers.Length > 0 && kitRenderers[0] != null) baseColor = kitRenderers[0].color;
+        EnsureKit();
+        if (!colorFromTeam) CaptureKitColors();
+        if (GetComponent<GoalkeeperStreak>() == null) gameObject.AddComponent<GoalkeeperStreak>();
         qte = GetComponent<GoalkeeperQTE>();
         owner = GetComponentInParent<TeamManager>();
 
@@ -191,13 +206,43 @@ public class Goalkeeper : MonoBehaviour
     // Color del equipo (lo usa el torneo)
     public void SetColor(Color c)
     {
-        baseColor = c;
-        Tint(c);
+        EnsureKit();
+        baseColors = new Color[kitRenderers.Length];
+        for (int i = 0; i < baseColors.Length; i++) baseColors[i] = c;
+        colorFromTeam = true;
+        ApplyKit(0f);
     }
 
-    void Tint(Color c)
+    void EnsureKit()
     {
-        foreach (SpriteRenderer r in kitRenderers) if (r != null) r.color = c;
+        if (kitRenderers != null && kitRenderers.Length > 0) return;
+        SpriteRenderer first = GetComponentInChildren<SpriteRenderer>();
+        kitRenderers = first != null ? new[] { first } : new SpriteRenderer[0];
+    }
+
+    // Guarda el color que té ara cada capa (el del prefab, si ningú n'ha posat cap)
+    void CaptureKitColors()
+    {
+        baseColors = new Color[kitRenderers.Length];
+        for (int i = 0; i < kitRenderers.Length; i++)
+            baseColors[i] = kitRenderers[i] != null ? kitRenderers[i].color : Color.white;
+    }
+
+    // flash 0 = el color de cada capa tal qual; 1 = tot groc del flaix
+    void ApplyKit(float flash)
+    {
+        if (baseColors == null || baseColors.Length != kitRenderers.Length) CaptureKitColors();
+        for (int i = 0; i < kitRenderers.Length; i++)
+            if (kitRenderers[i] != null) kitRenderers[i].color = Color.Lerp(baseColors[i], FlashColor, flash);
+    }
+
+    // El flaix de la parada s'apaga a poc a poc i SEMPRE torna al color de cada capa (abans es podia quedar
+    // groc, o els guants agafaven el color de la samarreta). Va a Update: no depèn de FixedUpdate.
+    void Update()
+    {
+        float t = (Time.unscaledTime - flashStart) / Mathf.Max(0.01f, saveFlashTime);
+        if (t > 1.5f) return;
+        ApplyKit(t < 1f ? (1f - t) * (1f - t) : 0f);
     }
 
     void FixedUpdate()
@@ -206,7 +251,7 @@ public class Goalkeeper : MonoBehaviour
 
         Ball ball = Ball.Instance;
         Vector2 target = startPos;
-        float moveSpeed = speed * positioningSpeedFactor;
+        float moveSpeed = EffSpeed * positioningSpeedFactor;
 
         if (ball != null && holdingBall)
         {
@@ -230,8 +275,8 @@ public class Goalkeeper : MonoBehaviour
                 {
                     tracking = true;
                     shotTime = Time.time;
-                    shotDelay = reactionTime + (IsScreened(ball, crossY) ? screenPenalty : 0f);
-                    readOffset = Random.Range(-readError, readError);
+                    shotDelay = EffReaction + (IsScreened(ball, crossY) ? screenPenalty : 0f);
+                    readOffset = Random.Range(-EffReadError, EffReadError);
                     lastDeflectId = ball.DeflectId;
                     deflected = false;
                     diveTarget = rb.position;
@@ -242,8 +287,8 @@ public class Goalkeeper : MonoBehaviour
                     lastDeflectId = ball.DeflectId;
                     deflected = true;
                     shotTime = Time.time;
-                    shotDelay = reactionTime + deflectReaction;
-                    readOffset = Random.Range(-readError, readError);
+                    shotDelay = EffReaction + deflectReaction;
+                    readOffset = Random.Range(-EffReadError, EffReadError);
                 }
 
                 // Un QTE por TIRO (no por "bola que viene"): aunque el anterior acabe de resolverse, un tiro nuevo abre otro
@@ -251,6 +296,7 @@ public class Goalkeeper : MonoBehaviour
                 {
                     lastQteShot = ball.ShotId;
                     shotTime = Time.time;   // la reacción cuenta desde este tiro
+                    qte.Assist = Boost;   // porter en ratxa: zona verda més ampla
                     qte.Begin(Vector2.Distance(ball.rb.position, startPos), timeToLine);
                 }
 
@@ -300,13 +346,13 @@ public class Goalkeeper : MonoBehaviour
                     {
                         // Aún no ha reaccionado. Tras un desvío sigue hacia donde iba: a contrapié
                         target = deflected ? diveTarget : rb.position;
-                        if (deflected) moveSpeed = speed;
+                        if (deflected) moveSpeed = EffSpeed;
                     }
                     else
                     {
                         target = InterceptPoint(ball) + new Vector2(0f, error);
                         diveTarget = target;
-                        moveSpeed = speed;
+                        moveSpeed = EffSpeed;
                     }
                 }
             }
@@ -323,7 +369,6 @@ public class Goalkeeper : MonoBehaviour
 
         rb.MovePosition(Vector2.MoveTowards(rb.position, target, moveSpeed * Time.fixedDeltaTime));
 
-        if (Time.time > flashUntil) Tint(baseColor);
     }
 
     // Bola congelada en la línea esperando el QTE. Devuelve true si este frame ya está resuelto.
@@ -589,9 +634,10 @@ public class Goalkeeper : MonoBehaviour
 
     void SaveVisual()
     {
-        Tint(Color.yellow);
-        flashUntil = Time.time + saveFlashTime;
+        flashStart = Time.unscaledTime;
+        ApplyKit(1f);
         Saved?.Invoke();
+        HitStop.Do(saveHitStop);   // la parada "pesa": el joc es congela un instant
     }
 
     public void ResetPosition()

@@ -27,6 +27,7 @@ public class GameManager : MonoBehaviour
 
     [Header("Tiempo de partido")]
     public float halfDuration = 180f;   // 3 minutos por parte
+    public float goalHitStop = 0.12f;   // congelació en marcar (s reals, HitStop)
     public float resetDelay = 2f;       // pausa tras un gol
     public float halfTimeBreak = 4f;    // pausa del descanso
     public float overtimeBreak = 3f;    // pausa antes del gol de oro
@@ -73,6 +74,9 @@ public class GameManager : MonoBehaviour
 
     // Se lanza una sola vez al terminar el partido: (goles local, goles visitante)
     public event Action<int, int> MatchFinished;
+
+    // Cada gol, amb l'equip que l'ha marcat (GoalkeeperStreak compta els que encaixa cada porter)
+    public event Action<Team> GoalScoredBy;
 
     float timeLeft;
     Goal[] goals;
@@ -215,6 +219,8 @@ public class GameManager : MonoBehaviour
 
         if (scorer == Team.Home) homeScore++;
         else awayScore++;
+        GoalScoredBy?.Invoke(scorer);
+        HitStop.Do(goalHitStop);   // el gol es congela un instant abans de la celebració
 
         // Gol de oro: el primer gol termina el partido (tras ver la celebraci�n)
         if (IsGoldenGoal)

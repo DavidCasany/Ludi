@@ -23,6 +23,8 @@ public class GoalkeeperQTE : MonoBehaviour
     [SerializeField] float nearDistance = 3f;
     [SerializeField] float farDistance = 12f;
 
+    [SerializeField, Range(1f, 2.5f)] float streakGreenBonus = 1.5f;   // zona verda x això amb el porter en ratxa
+
     [Header("Indicador")]
     [SerializeField] float resultShowTime = 0.5f;
 
@@ -57,6 +59,9 @@ public class GoalkeeperQTE : MonoBehaviour
     public float Cursor01 => cursor;
     public float GreenStart => greenCenter - greenWidth * 0.5f;
     public float GreenWidth => greenWidth;
+
+    // Porter en ratxa (0..1, el posa Goalkeeper abans de cada QTE): la zona verda creix fins a x streakGreenBonus
+    public float Assist { get; set; }
     public bool LastOk => lastOk;
     public bool ResultVisible => State != QTEState.Running && Time.unscaledTime < showUntil;
     public string KeyName => key == KeyCode.Space ? "ESPAI" : key.ToString().ToUpperInvariant();
@@ -73,6 +78,7 @@ public class GoalkeeperQTE : MonoBehaviour
 
         float t = Mathf.InverseLerp(nearDistance, farDistance, shotDistance);
         greenWidth = Mathf.Lerp(greenWidthNear, greenWidthFar, t);
+        greenWidth = Mathf.Min(0.6f, greenWidth * Mathf.Lerp(1f, streakGreenBonus, Assist));
         float half = greenWidth * 0.5f;
         greenCenter = Random.Range(Mathf.Max(0.3f, half + 0.05f), 1f - half - 0.03f);   // nunca pegada al inicio
 
@@ -86,7 +92,9 @@ public class GoalkeeperQTE : MonoBehaviour
         Vector2 toShot = ball != null ? (Vector2)(ball.transform.position - transform.position) : Vector2.right;
         if (meter != null) meter.Orient(toShot);
 
-        savedTimeScale = Time.timeScale;
+        // Si el xut acaba de congelar el joc (HitStop) en aquest mateix pas de física, el temps a guardar
+        // és el d'abans de congelar: si no, en acabar el QTE el joc es quedaria aturat (timeScale 0)
+        savedTimeScale = HitStop.TakeOver();
         savedFixedDelta = Time.fixedDeltaTime;
         float baseFixed = savedFixedDelta / Mathf.Max(savedTimeScale, 0.01f);
 
