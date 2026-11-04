@@ -1,7 +1,8 @@
 using UnityEngine;
 
 // Quick Time Event del portero del humano. Lo activa Goalkeeper con cada TIRO rival (uno por tiro):
-// ralentiza el tiempo y muestra una barra con una zona verde y una línea que la recorre.
+// ralentiza el tiempo y muestra, en forma de media luna alrededor del portero (GoalkeeperQTEMeter, estilo
+// NBA 2K), una franja que se llena y una zona verde: no hace falta apartar la vista de la jugada.
 // Pulsar la tecla con la línea dentro de la zona verde = parada segura. Con el dedo (InputMode táctil)
 // se pulsa el botón verde ATURA! que aparece en el sitio de XUTA.
 // Fallar o no pulsar = el portero reacciona solo, pero más tarde y leyendo peor el tiro.
@@ -22,8 +23,7 @@ public class GoalkeeperQTE : MonoBehaviour
     [SerializeField] float nearDistance = 3f;
     [SerializeField] float farDistance = 12f;
 
-    [Header("Barra")]
-    [SerializeField] Vector2 barSize = new Vector2(320f, 22f);
+    [Header("Indicador")]
     [SerializeField] float resultShowTime = 0.5f;
 
 
@@ -50,7 +50,22 @@ public class GoalkeeperQTE : MonoBehaviour
     float savedTimeScale = 1f, savedFixedDelta = 0.02f;
     float showUntil;
     bool lastOk;
-    GUIStyle labelStyle;
+    GoalkeeperQTEMeter meter;
+    Ball ball;
+
+    // Lo que dibuja GoalkeeperQTEMeter (recorrido de 0 a 1)
+    public float Cursor01 => cursor;
+    public float GreenStart => greenCenter - greenWidth * 0.5f;
+    public float GreenWidth => greenWidth;
+    public bool LastOk => lastOk;
+    public bool ResultVisible => State != QTEState.Running && Time.unscaledTime < showUntil;
+    public string KeyName => key == KeyCode.Space ? "ESPAI" : key.ToString().ToUpperInvariant();
+
+    void Awake()
+    {
+        meter = GetComponent<GoalkeeperQTEMeter>();
+        if (meter == null) meter = gameObject.AddComponent<GoalkeeperQTEMeter>();
+    }
 
     public void Begin(float shotDistance, float timeToGoal)
     {
@@ -65,6 +80,11 @@ public class GoalkeeperQTE : MonoBehaviour
         cursor = 0f;
         State = QTEState.Running;
         running = this;
+
+        // La mitja lluna s'obre cap a d'on ve la bola
+        if (ball == null) ball = FindFirstObjectByType<Ball>();
+        Vector2 toShot = ball != null ? (Vector2)(ball.transform.position - transform.position) : Vector2.right;
+        if (meter != null) meter.Orient(toShot);
 
         savedTimeScale = Time.timeScale;
         savedFixedDelta = Time.fixedDeltaTime;
@@ -140,61 +160,6 @@ public class GoalkeeperQTE : MonoBehaviour
     }
 
     void OnDisable() { Cancel(); }
-
-    void OnGUI()
-    {
-        if (State != QTEState.Running && Time.unscaledTime >= showUntil) return;
-
-        if (labelStyle == null)
-        {
-            labelStyle = new GUIStyle(GUI.skin.label);
-            labelStyle.alignment = TextAnchor.MiddleCenter;
-            labelStyle.fontSize = 16;
-            labelStyle.fontStyle = FontStyle.Bold;
-        }
-
-        GUIScale.Apply();
-        Rect bar = new Rect((GUIScale.Width - barSize.x) * 0.5f, GUIScale.Height * 0.7f, barSize.x, barSize.y);
-        // Panell metàl·lic que envolta el text i la barra (estil de l'art, HudSkin)
-        Rect panel = new Rect(bar.x - 22f, bar.y - 44f, bar.width + 44f, bar.height + 62f);
-
-        // Resultat: la barra desapareix i queda només el veredicte, perquè no sembli que el QTE continua obert
-        if (State != QTEState.Running)
-        {
-            Color resultColor = lastOk ? HudSkin.Green : HudSkin.Red;
-            HudSkin.SteelPanel(panel);
-            HudSkin.Bar(bar, 1f, resultColor);
-            labelStyle.fontSize = 22;
-            HudSkin.OutlinedLabel(new Rect(bar.x, bar.y - 38f, bar.width, 32f), lastOk ? "ATURADÀS!" : "FALLADA!", labelStyle, resultColor);
-            labelStyle.fontSize = 16;
-            return;
-        }
-
-        HudSkin.SteelPanel(panel);
-        HudSkin.Bar(bar, 0f, Color.white);   // només el fons de la barra
-
-        // Zona bona
-        Rect inner = new Rect(bar.x + 2f, bar.y + 2f, bar.width - 4f, bar.height - 4f);
-        float gx = inner.x + (greenCenter - greenWidth * 0.5f) * inner.width;
-        HudSkin.Bar(new Rect(gx - 2f, bar.y, greenWidth * inner.width + 4f, bar.height), 1f, HudSkin.Green);
-
-        // Cursor: pal crema amb contorn fosc
-        float cx = inner.x + Mathf.Clamp01(cursor) * inner.width;
-        Fill(new Rect(cx - 4f, bar.y - 7f, 8f, bar.height + 14f), HudSkin.Ink);
-        Fill(new Rect(cx - 2f, bar.y - 5f, 4f, bar.height + 10f), HudSkin.Paper);
-
-        labelStyle.fontSize = 18;
-        string prompt = InputMode.IsTouch ? "ATURA! [botó verd]" : "ATURA! [" + key + "]";
-        HudSkin.OutlinedLabel(new Rect(bar.x, bar.y - 36f, bar.width, 28f), prompt, labelStyle, HudSkin.Paper);
-        labelStyle.fontSize = 16;
-    }
-
-    static void Fill(Rect r, Color c)
-    {
-        GUI.color = c;
-        GUI.DrawTexture(r, Texture2D.whiteTexture);
-        GUI.color = Color.white;
-    }
 }
 
 public enum QTEState { Idle, Running, Success, Fail }
