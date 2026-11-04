@@ -67,7 +67,8 @@ public class MainMenuController : MonoBehaviour
         Bind(newTournamentButton, NewTournament);
         Bind(pvpButton, PlayPvP);
         Bind(pveButton, PlayPvE);
-        Bind(settingsButton, OpenSettings);
+        MuteSceneListener(settingsButton, nameof(OpenSettings));   // si l'escena ja el cridava, primer la volta
+        Bind(settingsButton, SpinThenOpenSettings);
         Bind(creditsButton, OpenCredits);
         Bind(quitButton, Quit);
     }
@@ -145,6 +146,39 @@ public class MainMenuController : MonoBehaviour
     }
     public void PlayPvE() => TryLoad(pveScene, "1 VS 1 · PvE", () => { MatchLaunch.Mode = MatchMode.PvE; return true; });
     public void OpenSettings() => TryLoad(settingsScene, "Ajustes", null);
+
+    // Engranatge: fa una volta (ràpida al principi i frenant) i després obre Configuració
+    [Header("Animació de l'engranatge")]
+    [SerializeField] float gearSpinTime = 0.45f;
+    [SerializeField] float gearSpinDegrees = 360f;
+    bool gearSpinning;
+
+    void SpinThenOpenSettings()
+    {
+        if (loading || gearSpinning || ConfirmDialog.IsOpen || ControlsScreen.IsOpen) return;
+        Transform icon = GearIcon();
+        if (icon == null || gearSpinTime <= 0f || !SceneReady(settingsScene)) { OpenSettings(); return; }
+        StartCoroutine(SpinGear(icon));
+    }
+
+    System.Collections.IEnumerator SpinGear(Transform icon)
+    {
+        gearSpinning = true;
+        Quaternion start = icon.localRotation;
+        for (float t = 0f; t < gearSpinTime; t += Time.unscaledDeltaTime)
+        {
+            float k = t / gearSpinTime;
+            k = 1f - (1f - k) * (1f - k) * (1f - k);              // surt de pressa i frena
+            icon.localRotation = start * Quaternion.Euler(0f, 0f, -gearSpinDegrees * k);   // sentit horari
+            float pop = 1f + 0.12f * Mathf.Sin(k * Mathf.PI);      // petit "pop" a mitja volta
+            icon.localScale = new Vector3(pop, pop, 1f);
+            yield return null;
+        }
+        icon.localRotation = start;
+        icon.localScale = Vector3.one;
+        gearSpinning = false;
+        OpenSettings();
+    }
     public void OpenCredits() => TryLoad(creditsScene, "Créditos", null);
 
     public void OpenControls()
@@ -325,7 +359,7 @@ public class MainMenuController : MonoBehaviour
         b.colors = UIArt.FrameColors();
 
         // La icona, dins de la vora metàl·lica
-        RectTransform icon = b.transform.Find("Icon") as RectTransform;
+        RectTransform icon = IconOf(b);
         if (icon != null)
         {
             icon.anchorMin = Vector2.zero;
@@ -334,6 +368,29 @@ public class MainMenuController : MonoBehaviour
             icon.offsetMin = new Vector2(pad, pad);
             icon.offsetMax = new Vector2(-pad, -pad);
         }
+    }
+
+    Transform GearIcon() => IconOf(settingsButton);
+
+    // La icona del botó: el fill "Icon" o, si es diu d'una altra manera, la primera imatge filla
+    static RectTransform IconOf(Button b)
+    {
+        if (b == null) return null;
+        Transform t = b.transform.Find("Icon");
+        if (t != null) return t as RectTransform;
+        foreach (Image img in b.GetComponentsInChildren<Image>(true))
+            if (img.gameObject != b.gameObject) return img.rectTransform;
+        return null;
+    }
+
+    // Apaga una crida a 'method' d'aquest controlador posada a mà a l'On Click() de l'Inspector:
+    // si no, obriria l'escena a l'instant i no es veuria l'animació
+    void MuteSceneListener(Button b, string method)
+    {
+        if (b == null) return;
+        for (int i = 0; i < b.onClick.GetPersistentEventCount(); i++)
+            if (b.onClick.GetPersistentTarget(i) == this && b.onClick.GetPersistentMethodName(i) == method)
+                b.onClick.SetPersistentListenerState(i, UnityEngine.Events.UnityEventCallState.Off);
     }
 
     static void Bind(Button b, UnityEngine.Events.UnityAction action)
