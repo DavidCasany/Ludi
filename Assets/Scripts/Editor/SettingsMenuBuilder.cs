@@ -13,13 +13,12 @@ using UnityEngine.InputSystem.UI;
 //  - Crea Assets/Resources/SettingsData.asset si no existe (valores por defecto y resoluciones)
 //  - Monta la UI con todas las referencias y la navegación de teclado/mando conectadas
 //
-// Distribución (sigue el blocking, sin panel que lo encierre):
-//   arriba ........ título AJUSTES + barra de acento
-//   centro ........ dos columnas:
-//                     izquierda: AUDIO (música, efectos) · PANTALLA (resolución, pantalla completa) · JUEGO (flechas)
-//                     derecha:   CONTROLS (modo de control, tamaño / opacidad / lado de los controles táctiles)
-//   abajo ......... botón VOLVER + "Esc · Tornar"
-// Dos columnas para que quepa todo sin scroll también en 4:3 (tabletas) y en móviles muy alargados.
+// Distribució (mateix estil que la pantalla de CONTROLS):
+//   targeta metàl·lica centrada amb el títol CONFIGURACIÓ a dalt a l'esquerra
+//   tres columnes de targetes de paper amb capçalera fosca:
+//     ÀUDIO (música, efectes) + JOC (fletxes) · PANTALLA (resolució, pantalla completa) · CONTROLS (tàctils)
+//   a baix: botó TORNAR + "Esc · Tornar"
+// Hi cap tot sense scroll també en 4:3 (tauletes) i en mòbils molt allargats.
 // En la web el desplegable de resolución pasa a ser "Resolució de renderitzat" (lo hace SettingsMenuUI).
 // Todo son GameObjects normales: después se puede retocar a mano.
 public static class SettingsMenuBuilder
@@ -29,15 +28,20 @@ public static class SettingsMenuBuilder
     const string DataPath = DataFolder + "/SettingsData.asset";
 
     // Medidas a 1920×1080 (las más útiles para retocar están luego en la jerarquía, ver instrucciones)
-    const float ColumnWidth = 700f;
-    const float ColumnGap = 90f;       // entre las dos columnas (2 × 700 + 90 cabe en 4:3)
-    const float ColumnSpacing = 14f;
-    const float SectionGap = 22f;     // aire extra encima de cada sección (menos la primera)
-    const float LabelHeight = 40f;
-    const float SliderHeight = 32f;
-    const float DropdownHeight = 64f;
-    const float ToggleRowHeight = 60f;
-    const float ToggleBoxSize = 48f;
+    // Targeta i columnes com la pantalla de CONTROLS (1680 × 940, tres columnes de paper)
+    const float CardWidth = 1680f, CardHeight = 940f;
+    const float BodyTop = 190f, BodySide = 50f;
+    const float ColumnGap = 30f;
+    const float ColumnWidth = (CardWidth - BodySide * 2f - ColumnGap * 2f) / 3f;
+    const float ColumnSpacing = 14f;   // entre elements d'una targeta
+    const float SectionGap = 24f;      // entre targetes d'una columna
+    const float HeaderHeight = 48f;
+    const float LabelHeight = 36f;
+    const float SliderHeight = 30f;
+    const float DropdownHeight = 60f;
+    const float ToggleRowHeight = 56f;
+    const float ToggleBoxSize = 44f;
+    const float LabelSize = 26f;
 
     static readonly Color BackgroundColor = new Color(0.07f, 0.09f, 0.13f, 0.97f);
     static readonly Color Surface = new Color(0.16f, 0.21f, 0.28f);           // pistas, cajas, desplegable
@@ -47,7 +51,9 @@ public static class SettingsMenuBuilder
     static readonly Color TextSoft = new Color(0.62f, 0.68f, 0.77f);
     static readonly Color Accent = new Color(0.95f, 0.47f, 0.17f);
     static readonly Color AccentPressed = new Color(0.75f, 0.35f, 0.1f);
-    static readonly Color AccentLine = new Color(0.95f, 0.47f, 0.17f, 0.35f);
+    static readonly Color PanelColor = new Color(0.11f, 0.15f, 0.2f);
+    static readonly Color OnPaper = UIArt.Ink;          // text sobre les targetes de paper
+    static readonly Color ValueColor = UIArt.ArtRed;    // percentatges
 
     static Sprite uiSprite, knobSprite, checkSprite;
 
@@ -108,87 +114,85 @@ public static class SettingsMenuBuilder
         Image bg = CreateImage(root.transform, "Background", BackgroundColor, null);
         Stretch(bg.rectTransform, 0f);   // tapa el partido cuando se abre desde la pausa y bloquea los clics
 
-        // ---------- Cabecera (arriba, centrada) ----------
-        GameObject header = new GameObject("Header", typeof(RectTransform));
-        header.transform.SetParent(root.transform, false);
-        Place((RectTransform)header.transform, new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(ColumnWidth, 120f));
-        // (el título usa el ancho de una columna: con dos columnas sigue centrado arriba)
-        VerticalLayoutGroup hv = header.AddComponent<VerticalLayoutGroup>();
-        hv.childAlignment = TextAnchor.UpperCenter;
-        hv.spacing = 4f;
-        hv.childControlWidth = hv.childControlHeight = true;
-        hv.childForceExpandWidth = hv.childForceExpandHeight = false;
+        // ---------- Targeta metàl·lica (mateix estil que la pantalla de CONTROLS) ----------
+        Image card = CreateImage(root.transform, "Card", Color.white, UIArt.SteelPanel);
+        card.raycastTarget = true;
+        if (UIArt.SteelPanel != null)
+        {
+            card.type = Image.Type.Sliced;
+            card.pixelsPerUnitMultiplier = UIArt.PanelSpriteBorder / 40f;
+        }
+        else
+        {
+            card.sprite = uiSprite;
+            card.type = Image.Type.Sliced;
+            card.color = PanelColor;
+        }
+        Place(card.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(CardWidth, CardHeight));
+        Transform c = card.transform;
 
-        TextMeshProUGUI title = CreateText(header.transform, "Title", "CONFIGURACIÓ", 84f, FontStyles.Bold, TextMain,
-                                           TextAlignmentOptions.Center);
-        title.characterSpacing = 6f;
-        title.enableAutoSizing = true;              // "CONFIGURACIÓ" es más largo que "AJUSTES"
-        title.fontSizeMin = 40f;
-        title.fontSizeMax = 84f;
+        // Capçalera a dalt a l'esquerra: barra d'accent, títol i subtítol
+        Image bar = CreateImage(c, "AccentBar", Accent, null);
+        Place(bar.rectTransform, new Vector2(0f, 1f), new Vector2(70f, -44f), new Vector2(110f, 8f));
+
+        TextMeshProUGUI title = CreateText(c, "Title", "CONFIGURACIÓ", 72f, FontStyles.Bold, TextMain,
+                                           TextAlignmentOptions.Left);
         title.textWrappingMode = TextWrappingModes.NoWrap;
-        SetSize(title.gameObject, ColumnWidth, 100f, 0f);
+        GameFonts.Style(title, GameFonts.Role.Title);
+        Place(title.rectTransform, new Vector2(0f, 1f), new Vector2(66f, -58f), new Vector2(900f, 84f));
 
-        Image bar = CreateImage(header.transform, "AccentBar", Accent, null);
-        SetSize(bar.gameObject, 120f, 6f, 0f);
+        TextMeshProUGUI subtitle = CreateText(c, "Subtitle", "So, pantalla i controls", 26f, FontStyles.Normal, TextSoft,
+                                              TextAlignmentOptions.Left);
+        GameFonts.Style(subtitle, GameFonts.Role.Text);
+        Place(subtitle.rectTransform, new Vector2(0f, 1f), new Vector2(70f, -140f), new Vector2(900f, 36f));
 
-        // ---------- Opciones (centro): dos columnas alineadas arriba ----------
-        GameObject options = new GameObject("Options", typeof(RectTransform));
-        options.transform.SetParent(root.transform, false);
-        Place((RectTransform)options.transform, new Vector2(0.5f, 0.5f), new Vector2(0f, -10f),
-              new Vector2(ColumnWidth * 2f + ColumnGap, 0f));
-        HorizontalLayoutGroup oh = options.AddComponent<HorizontalLayoutGroup>();
-        oh.spacing = ColumnGap;
-        oh.childAlignment = TextAnchor.UpperCenter;
-        oh.childControlWidth = oh.childControlHeight = true;
-        oh.childForceExpandWidth = oh.childForceExpandHeight = false;
-        ContentSizeFitter of = options.AddComponent<ContentSizeFitter>();
-        of.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
-        of.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        // ---------- Opcions: tres columnes de targetes de paper ----------
+        Transform col0 = CreateColumn(c, "Column0", 0);
+        Transform col1 = CreateColumn(c, "Column1", 1);
+        Transform col2 = CreateColumn(c, "Column2", 2);
 
-        Transform column = CreateColumn(options.transform, "ColumnLeft");
-        Transform right = CreateColumn(options.transform, "ColumnRight");
-
-        CreateSection(column, "ÀUDIO", true);
+        Transform audio = CreateSection(col0, "ÀUDIO");
         TextMeshProUGUI musicValue, sfxValue;
-        Slider music = CreateSliderBlock(column, "Musica", "Música", uiRes, out musicValue);
-        Slider sfx = CreateSliderBlock(column, "Efectes", "Efectes", uiRes, out sfxValue);
+        Slider music = CreateSliderBlock(audio, "Musica", "Música", uiRes, out musicValue);
+        Slider sfx = CreateSliderBlock(audio, "Efectes", "Efectes de so", uiRes, out sfxValue);
 
-        CreateSection(column, "PANTALLA", false);
-        TMP_Dropdown dropdown = CreateDropdownBlock(column, "Resolucion", "Resolució", tmpRes);
-        Toggle fullscreen = CreateToggleRow(column, "PantallaCompleta", "Pantalla completa");
+        Transform game = CreateSection(col0, "JOC");
+        Toggle arrows = CreateToggleRow(game, "FlechasPase", "Fletxes de passada");
 
-        CreateSection(column, "JOC", false);
-        Toggle arrows = CreateToggleRow(column, "FlechasPase", "Mostra les fletxes de passada");
+        Transform screen = CreateSection(col1, "PANTALLA");
+        TMP_Dropdown dropdown = CreateDropdownBlock(screen, "Resolucion", "Resolució", tmpRes);
+        Toggle fullscreen = CreateToggleRow(screen, "PantallaCompleta", "Pantalla completa");
 
-        // Columna derecha: controles (sobre todo para móvil y tableta)
-        CreateSection(right, "CONTROLS", true);
-        TMP_Dropdown controlMode = CreateDropdownBlock(right, "ModeControl", "Mode de control", tmpRes);
+        // Tercera columna: controls (sobretot per a mòbil i tauleta)
+        Transform controls = CreateSection(col2, "CONTROLS");
+        TMP_Dropdown controlMode = CreateDropdownBlock(controls, "ModeControl", "Mode de control", tmpRes);
         TextMeshProUGUI touchScaleValue, touchOpacityValue;
-        Slider touchScale = CreateSliderBlock(right, "MidaControls", "Mida dels botons tàctils", uiRes, out touchScaleValue);
+        Slider touchScale = CreateSliderBlock(controls, "MidaControls", "Mida dels botons tàctils", uiRes, out touchScaleValue);
         touchScale.minValue = GameSettings.TouchScaleMin;
         touchScale.maxValue = GameSettings.TouchScaleMax;
         touchScale.value = 1f;
         touchScaleValue.text = "100 %";
-        Slider touchOpacity = CreateSliderBlock(right, "OpacitatControls", "Opacitat dels botons tàctils", uiRes,
+        Slider touchOpacity = CreateSliderBlock(controls, "OpacitatControls", "Opacitat dels botons", uiRes,
                                                 out touchOpacityValue);
         touchOpacity.minValue = GameSettings.TouchOpacityMin;
         touchOpacity.maxValue = GameSettings.TouchOpacityMax;
         touchOpacity.value = 0.7f;
         touchOpacityValue.text = "70 %";
-        Toggle leftHanded = CreateToggleRow(right, "Esquerrans", "Joystick a la dreta (esquerrans)");
+        Toggle leftHanded = CreateToggleRow(controls, "Esquerrans", "Joystick a la dreta");
         leftHanded.isOn = false;
 
-        // ---------- Volver (abajo, centrado) ----------
-        Button back = CreateButton(root.transform, "Volver", "TORNAR");
-        Place((RectTransform)back.transform, new Vector2(0.5f, 0f), new Vector2(0f, 90f), new Vector2(400f, 90f));
+        // ---------- Tornar (a baix, centrat dins la targeta) ----------
+        Button back = CreateButton(c, "Volver", "TORNAR");
+        Place((RectTransform)back.transform, new Vector2(0.5f, 0f), new Vector2(0f, 34f), new Vector2(340f, 84f));
 
-        TextMeshProUGUI hint = CreateText(root.transform, "Hint", "Esc · Tornar", 22f, FontStyles.Normal, TextSoft,
-                                          TextAlignmentOptions.Center);
-        Place(hint.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(400f, 36f));
+        TextMeshProUGUI hint = CreateText(c, "Hint", "Esc · Tornar", 22f, FontStyles.Normal, TextSoft,
+                                          TextAlignmentOptions.Right);
+        GameFonts.Style(hint, GameFonts.Role.Text);
+        Place(hint.rectTransform, new Vector2(1f, 0f), new Vector2(-70f, 58f), new Vector2(300f, 36f));
 
         // ---------- Navegación con teclado/mando: de arriba abajo, en el orden visual ----------
         // (izquierda/derecha en los sliders cambian el volumen; eso lo hace el propio Slider)
-        Selectable[] order = { music, sfx, dropdown, fullscreen, arrows,
+        Selectable[] order = { music, sfx, arrows, dropdown, fullscreen,
                                controlMode, touchScale, touchOpacity, leftHanded, back };
         for (int i = 0; i < order.Length; i++)
         {
@@ -226,34 +230,63 @@ public static class SettingsMenuBuilder
 
     // ---------- Bloques de la columna ----------
 
-    static Transform CreateColumn(Transform parent, string name)
+    // Columna i (0, 1, 2) dins de la targeta: les targetes de paper s'apilen de dalt a baix
+    static Transform CreateColumn(Transform parent, string name, int index)
     {
         GameObject col = new GameObject(name, typeof(RectTransform));
         col.transform.SetParent(parent, false);
+        RectTransform rt = (RectTransform)col.transform;
+        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0f, 1f);
+        rt.anchoredPosition = new Vector2(BodySide + index * (ColumnWidth + ColumnGap), -BodyTop);
+        rt.sizeDelta = new Vector2(ColumnWidth, 0f);
+
         VerticalLayoutGroup v = col.AddComponent<VerticalLayoutGroup>();
-        v.spacing = ColumnSpacing;
+        v.spacing = SectionGap;
         v.childAlignment = TextAnchor.UpperCenter;
         v.childControlWidth = v.childControlHeight = true;
         v.childForceExpandWidth = true;
         v.childForceExpandHeight = false;
-        // Solo el ancho: la altura la da el VerticalLayoutGroup (un LayoutElement con altura la pisaría)
-        LayoutElement le = col.AddComponent<LayoutElement>();
-        le.minWidth = le.preferredWidth = ColumnWidth;
+        col.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
         return col.transform;
     }
 
-    // Título de sección en el color de acento con una línea fina debajo
-    static void CreateSection(Transform parent, string text, bool first)
+    // Targeta de paper amb capçalera fosca (franja tinta i títol blanc). Torna on van els controls.
+    static Transform CreateSection(Transform parent, string text)
     {
-        GameObject block = NewBlock(parent, "Seccion_" + text, 6f, first ? 0 : (int)SectionGap);
+        Image paper = CreateImage(parent, "Seccion_" + text, Color.white, UIArt.PaperPanel);
+        paper.raycastTarget = false;
+        if (UIArt.PaperPanel != null)
+        {
+            paper.type = Image.Type.Sliced;
+            paper.pixelsPerUnitMultiplier = UIArt.PanelSpriteBorder / 26f;
+        }
+        else
+        {
+            paper.sprite = uiSprite;
+            paper.type = Image.Type.Sliced;
+            paper.color = UIArt.Paper;
+        }
+        VerticalLayoutGroup v = paper.gameObject.AddComponent<VerticalLayoutGroup>();
+        v.padding = new RectOffset(12, 12, 10, 20);
+        v.spacing = 10f;
+        v.childControlWidth = v.childControlHeight = true;
+        v.childForceExpandWidth = true;
+        v.childForceExpandHeight = false;
 
-        TextMeshProUGUI t = CreateText(block.transform, "Text", text, 24f, FontStyles.Bold, Accent,
-                                       TextAlignmentOptions.BottomLeft);
-        t.characterSpacing = 8f;
-        SetSize(t.gameObject, -1f, 34f, 1f);
+        Image strip = CreateImage(paper.transform, "Header", UIArt.Ink, uiSprite);
+        strip.type = Image.Type.Sliced;
+        strip.raycastTarget = false;
+        SetSize(strip.gameObject, -1f, HeaderHeight, 1f);
 
-        Image line = CreateImage(block.transform, "Line", AccentLine, null);
-        SetSize(line.gameObject, -1f, 2f, 1f);
+        TextMeshProUGUI t = CreateText(strip.transform, "Text", text, 30f, FontStyles.Bold, Color.white,
+                                       TextAlignmentOptions.Center);
+        GameFonts.Style(t, GameFonts.Role.Button);
+        Stretch(t.rectTransform, 4f);
+
+        // Contingut amb una mica més de marge que la capçalera
+        GameObject content = NewBlock(paper.transform, "Content", ColumnSpacing, 4);
+        content.GetComponent<VerticalLayoutGroup>().padding = new RectOffset(14, 14, 4, 0);
+        return content.transform;
     }
 
     // Etiqueta y porcentaje en una línea, la pista del slider debajo
@@ -263,12 +296,14 @@ public static class SettingsMenuBuilder
         GameObject block = NewBlock(parent, name, 6f, 0);
 
         GameObject line = NewRow(block.transform, "Header", LabelHeight, 10f);
-        TextMeshProUGUI l = CreateText(line.transform, "Label", label, 32f, FontStyles.Normal, TextMain,
+        TextMeshProUGUI l = CreateText(line.transform, "Label", label, LabelSize, FontStyles.Normal, OnPaper,
                                        TextAlignmentOptions.MidlineLeft);
+        GameFonts.Style(l, GameFonts.Role.Text);
         SetSize(l.gameObject, -1f, LabelHeight, 1f);
-        valueLabel = CreateText(line.transform, "Value", "80 %", 30f, FontStyles.Bold, Accent,
+        valueLabel = CreateText(line.transform, "Value", "80 %", LabelSize, FontStyles.Bold, ValueColor,
                                 TextAlignmentOptions.MidlineRight);
-        SetSize(valueLabel.gameObject, 120f, LabelHeight, 0f);
+        GameFonts.Style(valueLabel, GameFonts.Role.Text);
+        SetSize(valueLabel.gameObject, 100f, LabelHeight, 0f);
 
         GameObject go = DefaultControls.CreateSlider(res);
         go.name = "Slider";
@@ -303,8 +338,9 @@ public static class SettingsMenuBuilder
     {
         GameObject block = NewBlock(parent, name, 8f, 0);
 
-        TextMeshProUGUI l = CreateText(block.transform, "Label", label, 32f, FontStyles.Normal, TextMain,
+        TextMeshProUGUI l = CreateText(block.transform, "Label", label, LabelSize, FontStyles.Normal, OnPaper,
                                        TextAlignmentOptions.MidlineLeft);
+        GameFonts.Style(l, GameFonts.Role.Text);
         SetSize(l.gameObject, -1f, LabelHeight, 1f);
 
         GameObject go = TMP_DefaultControls.CreateDropdown(res);
@@ -315,7 +351,9 @@ public static class SettingsMenuBuilder
         TMP_Dropdown dd = go.GetComponent<TMP_Dropdown>();
         dd.image.color = Color.white;               // el color real lo pone el ColorBlock
         dd.colors = ButtonColors(Surface, SurfaceHover, Accent);
-        dd.captionText.fontSize = 30f;
+        dd.captionText.fontSize = 26f;
+        GameFonts.Style(dd.captionText, GameFonts.Role.Text);
+        GameFonts.Style(dd.itemText, GameFonts.Role.Text);
         dd.captionText.color = TextMain;
         dd.captionText.rectTransform.offsetMin = new Vector2(24f, dd.captionText.rectTransform.offsetMin.y);
         dd.itemText.fontSize = 28f;
@@ -371,8 +409,9 @@ public static class SettingsMenuBuilder
         check.raycastTarget = false;
         Stretch(check.rectTransform, 9f);
 
-        TextMeshProUGUI t = CreateText(row.transform, "Label", label, 32f, FontStyles.Normal, TextMain,
+        TextMeshProUGUI t = CreateText(row.transform, "Label", label, LabelSize, FontStyles.Normal, OnPaper,
                                        TextAlignmentOptions.MidlineLeft);
+        GameFonts.Style(t, GameFonts.Role.Text);
         SetSize(t.gameObject, -1f, ToggleRowHeight, 1f);
 
         Toggle toggle = row.AddComponent<Toggle>();
@@ -394,6 +433,7 @@ public static class SettingsMenuBuilder
         TextMeshProUGUI t = CreateText(img.transform, "Text", label, 36f, FontStyles.Bold, TextMain,
                                        TextAlignmentOptions.Center);
         t.characterSpacing = 4f;
+        GameFonts.Style(t, GameFonts.Role.Button);
         Stretch(t.rectTransform, 0f);
         return b;
     }

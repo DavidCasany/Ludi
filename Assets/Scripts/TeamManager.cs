@@ -11,7 +11,6 @@ public enum Team { Home, Away }
 //   Clic izq. ...... con bola: mantener = bullet time + apuntar, soltar = tirar
 //                    sin bola: golpe de stick (robar / interceptar hacia el cursor)
 //   Clic der. ...... con bola: pase hacia el cursor (se ajusta a un compañero cercano al cursor)
-//                    sin bola (mantener): defensa asistida (DefendAssist)
 //   Espacio ........ con bola: regate | sin bola: cambiar al jugador más cercano a la bola
 //   (Conduciendo, con un rival cerca, tu jugador protege la bola con el cuerpo automáticamente)
 //
@@ -22,7 +21,7 @@ public enum Team { Home, Away }
 //                    (sin arrastrar, el tiro va a portería con el tiro asistido) | sin bola: stick
 //   PASSA .......... con bola: pase hacia el joystick (al compañero en esa dirección); sin bola no sale
 //   REGAT / CANVI .. como Espacio
-//   (La defensa asistida es solo de ratón: con el dedo se defiende con el joystick, ROBA y CANVI)
+//   (Sin bola se defiende moviéndote, con el stick y cambiando de jugador: no hay defensa asistida)
 public class TeamManager : MonoBehaviour
 {
     public Team team;
@@ -59,9 +58,6 @@ public class TeamManager : MonoBehaviour
     [Tooltip("El clic solo golpea si la bola está a menos de stickReach x esto")]
     public float stickClickRange = 1.1f;
 
-    [Header("HUD")]
-    public bool showControlsHint = true;
-
     [Header("Táctil")]
     [Tooltip("Pase con el joystick: busca compañero a menos de estos grados de la dirección del joystick")]
     public float touchPassAngle = 50f;
@@ -80,9 +76,6 @@ public class TeamManager : MonoBehaviour
     BulletTime bulletTime;
     bool aiming;
     Skater aimingSkater;
-
-    // Defensa asistida (clic derecho mantenido sin bola)
-    DefendAssist defendAssist;
 
     // Táctil
     TouchControls touch;
@@ -105,9 +98,6 @@ public class TeamManager : MonoBehaviour
         {
             bulletTime = GetComponent<BulletTime>();
             if (bulletTime == null) bulletTime = gameObject.AddComponent<BulletTime>();
-
-            defendAssist = GetComponent<DefendAssist>();
-            if (defendAssist == null) defendAssist = gameObject.AddComponent<DefendAssist>();
         }
     }
 
@@ -166,10 +156,6 @@ public class TeamManager : MonoBehaviour
             CancelAim();
             DoPass(mouse);
         }
-
-        // Defensa asistida: mantener clic derecho sin bola
-        if (!Controlled.HasBall && Input.GetMouseButton(1) && defendAssist != null)
-            defendAssist.Tick(Controlled, input, ownGoal);
 
         if (Input.GetKeyDown(KeyCode.Space) && !GoalkeeperQTE.BlocksInput)
         {
@@ -374,9 +360,6 @@ public class TeamManager : MonoBehaviour
         return best != null ? (Vector2)best.transform.position : from + dir * touchPassDistance;
     }
 
-    // Defensa asistida mantenida (clic derecho). Con el dedo no hay defensa asistida.
-    bool DefendHeld => !InputMode.IsTouch && Input.GetMouseButton(1);
-
     // Protección automática: con un rival cerca, la bola se lleva por el lado contrario a él (cuerpo en medio),
     // como hace la IA. Cuanto más cerca está el rival, más se aparta. El tiro y el pase siguen yendo al cursor.
     Vector2 ShieldedAim(Vector2 aim)
@@ -469,7 +452,7 @@ public class TeamManager : MonoBehaviour
             bool newCarrier = carrier != lastRivalCarrier;
             lastRivalCarrier = carrier;
 
-            if (Time.time < nextAutoSwitch || DefendHeld) return;   // no cambiar en plena defensa asistida
+            if (Time.time < nextAutoSwitch) return;
 
             Skater best = BestDefender(carrier, null);
             if (best == null || best == Controlled) return;
@@ -655,14 +638,7 @@ public class TeamManager : MonoBehaviour
         }
         if (stick)
             DrawBar(new Rect(x, y, w, 10f), 1f - Controlled.StickCooldown01, HudSkin.Paper, "STICK");
-
-        if (showControlsHint && !InputMode.IsTouch)   // con el dedo, los botones ya dicen qué hacen
-        {
-            const string hint = "WASD moure · Shift sprint · Clic esq: xutar (mantenir) / stick · Clic dret: passada / defensar (mantenir sense bola) · Espai: regat / canviar";
-            float tw = smallStyle.CalcSize(new GUIContent(hint)).x;
-            HudSkin.SteelPanel(new Rect(6f, H - 38f, tw + 28f, 32f), 0.92f);
-            HudSkin.OutlinedLabel(new Rect(20f, H - 36f, tw + 10f, 26f), hint, smallStyle, HudSkin.Paper);
-        }
+        // (La barra de controls d'abans ja no hi és: ara hi ha la pantalla CONTROLS al menú i a la pausa)
     }
 
     void DrawBar(Rect r, float fill, Color color, string label)

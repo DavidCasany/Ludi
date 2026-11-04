@@ -29,6 +29,8 @@ public class PauseMenuUI : MonoBehaviour
     [SerializeField] Button settingsButton;
     [SerializeField] Button bracketButton;
     [SerializeField] Button quitButton;
+    [Tooltip("Botó CONTROLS (pantalla de com es juga). Buit = es crea sol sota CONFIGURACIÓ")]
+    [SerializeField] Button controlsButton;
 
     [Header("Confirmación")]
     [SerializeField] GameObject confirmRoot;
@@ -53,6 +55,8 @@ public class PauseMenuUI : MonoBehaviour
 
         resumeButton.onClick.AddListener(() => controller.Resume());
         settingsButton.onClick.AddListener(OpenSettings);
+        if (controlsButton == null) controlsButton = ControlsScreen.CloneButton(settingsButton, "Controls", "CONTROLS", false);
+        if (controlsButton != null) controlsButton.onClick.AddListener(OpenControls);
         bracketButton.onClick.AddListener(AskBracket);
         quitButton.onClick.AddListener(AskQuit);
         confirmYesButton.onClick.AddListener(ConfirmYes);
@@ -95,6 +99,7 @@ public class PauseMenuUI : MonoBehaviour
         confirmRoot.SetActive(false);
         pendingAction = null;
         panelGroup.interactable = true;
+        ControlsScreen.Hide();   // si es reprèn el partit amb els controls oberts
 
         if (paused)
         {
@@ -121,6 +126,8 @@ public class PauseMenuUI : MonoBehaviour
     public bool HandleBack()
     {
         if (settingsOpen) return true;   // la escena de ajustes gestiona su propio "volver"
+        // La pantalla de controls es tanca sola amb Esc (aquest frame o el mateix en què l'ha tancada)
+        if (ControlsScreen.IsOpen || ControlsScreen.ClosedThisFrame) return true;
         if (confirmRoot.activeSelf)
         {
             CloseConfirm();
@@ -184,6 +191,17 @@ public class PauseMenuUI : MonoBehaviour
         settingsOpen = true;
         SetMenuVisible(false, false);
         SceneManager.LoadSceneAsync(settingsScene, LoadSceneMode.Additive);
+    }
+
+    void OpenControls()
+    {
+        if (ControlsScreen.IsOpen) return;
+        panelGroup.interactable = false;
+        ControlsScreen.Show(() =>
+        {
+            panelGroup.interactable = true;
+            Select(controlsButton);
+        });
     }
 
     // Cuando la escena de ajustes se descarga (su botón "Volver"), reaparece la pausa

@@ -140,9 +140,11 @@ public class ScoreboardHUD : MonoBehaviour
         bannerSub = UIKit.Text(banner, "Sub", "", 28f, Color.white, FontStyles.Bold);
         PlaceIn(bannerSub.rectTransform, 50f, 160f, 770f, 196f);
 
-        // ---------- Avís del saque (a baix) ----------
+        // ---------- Avís del saque (a baix, per SOBRE del panell d'esprint) ----------
+        // El panell d'esprint i bullet time es dibuixa amb OnGUI, que sempre queda per damunt dels Canvas:
+        // per això l'avís va més amunt (el panell ocupa uns 110 px de baix) en lloc de darrere seu.
         Image hintBg = ArtImage(root, "KickoffHint", "hud_banner", Paper, 18f);
-        UIKit.Place(hintBg.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 34f), new Vector2(760f, 84f));
+        UIKit.Place(hintBg.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 135f), new Vector2(1040f, 84f));
         hintGroup = hintBg.gameObject.AddComponent<CanvasGroup>();
         hintGroup.alpha = 0f;
         hintText = UIKit.Text(hintBg.transform, "Text", "", 30f, Ink, FontStyles.Bold);

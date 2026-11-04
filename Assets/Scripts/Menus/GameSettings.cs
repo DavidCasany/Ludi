@@ -298,7 +298,7 @@ public static class GameSettings
         SettingsData d = Data;
         Vector2Int res = d == null || d.DefaultToNative ? NativeResolution() : d.DefaultResolution;
         Fullscreen = d == null || d.DefaultFullscreen;
-        MusicVolume = d != null ? d.DefaultMusicVolume : 0.8f;
+        MusicVolume = d != null ? d.DefaultMusicVolume : 0.05f;
         SfxVolume = d != null ? d.DefaultSfxVolume : 0.8f;
         PassArrows = d == null || d.DefaultPassArrows;
         Controls = d != null ? d.DefaultControls : ControlPreference.Auto;

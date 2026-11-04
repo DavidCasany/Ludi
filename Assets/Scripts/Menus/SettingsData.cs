@@ -12,7 +12,7 @@ public class SettingsData : ScriptableObject
     [SerializeField] bool defaultToNative = true;
     [SerializeField] Vector2Int defaultResolution = new Vector2Int(1920, 1080);
     [SerializeField] bool defaultFullscreen = true;
-    [SerializeField, Range(0f, 1f)] float defaultMusicVolume = 0.8f;
+    [SerializeField, Range(0f, 1f)] float defaultMusicVolume = 0.05f;
     [SerializeField, Range(0f, 1f)] float defaultSfxVolume = 0.8f;
     [SerializeField] bool defaultPassArrows = true;
 

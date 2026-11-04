@@ -212,6 +212,7 @@ public static class UIKit
         t.raycastTarget = false;
         t.textWrappingMode = TextWrappingModes.NoWrap;
         t.overflowMode = TextOverflowModes.Ellipsis;
+        GameFonts.Style(t, size >= 56f ? GameFonts.Role.Title : GameFonts.Role.Text);   // fonts del joc
         return t;
     }
 
@@ -226,6 +227,7 @@ public static class UIKit
 
         TextMeshProUGUI t = Text(img.transform, "Label", label, fontSize, TextMain, FontStyles.Bold);
         t.characterSpacing = 4f;
+        GameFonts.Style(t, GameFonts.Role.Button);   // Display + contorn (treu també l'espaiat extra)
         Stretch(t.rectTransform, 8f);
 
         // Con el arte disponible, marco metálico dibujado (el principal se distingue por el texto naranja)

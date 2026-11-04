@@ -47,6 +47,8 @@ public class MainMenuController : MonoBehaviour
     [SerializeField] Button settingsButton;
     [SerializeField] Button creditsButton;
     [SerializeField] Button quitButton;
+    [Tooltip("Botó CONTROLS (pantalla de com es juga). Buit = es crea sol just abans de CRÈDITS")]
+    [SerializeField] Button controlsButton;
 
     [Header("Navegación con teclado / mando")]
     [Tooltip("Filas del menú de arriba abajo: la raíz de cada SplitMenuButton o el botón simple")]
@@ -58,6 +60,8 @@ public class MainMenuController : MonoBehaviour
 
     void Awake()
     {
+        EnsureControlsButton();
+        Bind(controlsButton, OpenControls);
         Bind(continueTournamentButton, ContinueTournament);
         Bind(newTournamentButton, NewTournament);
         Bind(pvpButton, PlayPvP);
@@ -83,7 +87,7 @@ public class MainMenuController : MonoBehaviour
         // Con ratón no queremos nada seleccionado al empezar (abriría Torneo solo).
         // La primera vez que se usa teclado/mando sin nada seleccionado, se selecciona la primera fila.
         EventSystem es = EventSystem.current;
-        if (loading || es == null || rowSelectables.Count == 0) return;
+        if (loading || es == null || rowSelectables.Count == 0 || ControlsScreen.IsOpen) return;
 
         GameObject current = es.currentSelectedGameObject;
         if (current != null && current.activeInHierarchy) return;
@@ -141,6 +145,27 @@ public class MainMenuController : MonoBehaviour
     public void PlayPvE() => TryLoad(pveScene, "1 VS 1 · PvE", () => { MatchLaunch.Mode = MatchMode.PvE; return true; });
     public void OpenSettings() => TryLoad(settingsScene, "Ajustes", null);
     public void OpenCredits() => TryLoad(creditsScene, "Créditos", null);
+
+    public void OpenControls()
+    {
+        if (loading || ConfirmDialog.IsOpen || ControlsScreen.IsOpen) return;
+        ControlsScreen.Show(() => UIKit.Select(controlsButton));
+    }
+
+    // Si l'escena no té botó de CONTROLS, se'n fa una còpia de CRÈDITS (mateix estil) just a sobre
+    // i s'afegeix a la navegació amb teclat/mando
+    void EnsureControlsButton()
+    {
+        if (controlsButton != null || creditsButton == null) return;
+        controlsButton = ControlsScreen.CloneButton(creditsButton, "Controls", "CONTROLS", true);
+        if (controlsButton == null || rows == null) return;
+
+        int i = Array.IndexOf(rows, creditsButton.gameObject);
+        if (i < 0) return;
+        List<GameObject> list = new List<GameObject>(rows);
+        list.Insert(i, controlsButton.gameObject);
+        rows = list.ToArray();
+    }
 
     public void Quit()
     {
