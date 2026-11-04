@@ -56,7 +56,7 @@ public class TournamentHubUI : MonoBehaviour
         BuildTopBar(config, next);
 
         // Cuadro
-        Image panel = UIKit.Image(screen, "BracketPanel", UIKit.Panel, 18f);
+        Image panel = UIKit.SteelPanel(screen, "BracketPanel", 32f);
         UIKit.Stretch(panel.rectTransform, Margin, Margin + BottomBarH + Gap, Margin + SideW + Gap, TopBarH + 10f);
         RectTransform content = BuildScroll(panel.rectTransform);
         BracketView.Result r = BracketView.Build(content, b, player, next);
@@ -126,7 +126,7 @@ public class TournamentHubUI : MonoBehaviour
 
     void BuildSidePanel(int player)
     {
-        Image panel = UIKit.Image(screen, "SidePanel", UIKit.Panel, 18f);
+        Image panel = UIKit.SteelPanel(screen, "SidePanel", 32f);
         RectTransform rt = panel.rectTransform;
         rt.anchorMin = new Vector2(1f, 0f);
         rt.anchorMax = new Vector2(1f, 1f);
@@ -262,7 +262,7 @@ public class TournamentHubUI : MonoBehaviour
 
     void BuildBottomBar(TournamentConfig config, BracketMatch next)
     {
-        Image bar = UIKit.Image(screen, "BottomBar", UIKit.Panel, 18f);
+        Image bar = UIKit.SteelPanel(screen, "BottomBar", 28f);
         RectTransform rt = bar.rectTransform;
         rt.anchorMin = new Vector2(0f, 0f);
         rt.anchorMax = new Vector2(1f, 0f);
@@ -442,7 +442,7 @@ public class TournamentHubUI : MonoBehaviour
 
     static RectTransform Card(RectTransform parent, float w, float h)
     {
-        Image card = UIKit.Image(parent, "Card", UIKit.Panel, 22f, true);
+        Image card = UIKit.SteelPanel(parent, "Card", 36f, true);
         UIKit.Place(card.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(w, h));
         return card.rectTransform;
     }

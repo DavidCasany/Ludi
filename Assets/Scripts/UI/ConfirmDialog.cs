@@ -33,7 +33,7 @@ public class ConfirmDialog : MonoBehaviour
         Image dim = UIKit.Image(root, "Dim", UIKit.Alpha(Color.black, 0.65f), 0f, true);
         UIKit.Stretch(dim.rectTransform, 0f);
 
-        Image card = UIKit.Image(root, "Card", UIKit.Panel, 22f, true);
+        Image card = UIKit.SteelPanel(root, "Card", 36f, true);
         UIKit.Place(card.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(860f, 380f));
 
         Image bar = UIKit.Image(card.transform, "Accent", UIKit.Accent, 3f);

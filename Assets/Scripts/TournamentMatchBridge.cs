@@ -56,7 +56,7 @@ public class TournamentMatchBridge : MonoBehaviour
         TeamData playerData = TournamentSession.Team(player);
         TeamData rivalData = TournamentSession.Team(rival);
 
-        gameManager.ConfigureMatch(playerData.ShortName, rivalData.ShortName, true);
+        gameManager.ConfigureMatch(playerData, rivalData, true);
         TeamDataApplier.ApplyMatch(gameManager.home, playerData, gameManager.away, rivalData);   // equipacions + IA
 
         // Mejoras roguelite de cada equipo (el rival también ha ido eligiendo)

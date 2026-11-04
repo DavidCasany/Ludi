@@ -186,8 +186,12 @@ public static class BracketView
             UIKit.Stretch(frame.rectTransform, isNext ? -3f : -2f);
         }
 
-        Color bodyColor = m.IsDone ? UIKit.Panel : (m.IsReady ? UIKit.Surface : UIKit.Alpha(UIKit.Surface, 0.55f));
-        Image body = UIKit.Image(holder, "Body", bodyColor, 10f, true);
+        // Caixa amb el marc metàl·lic de l'art: jugat = més fosc, pendent = mig transparent
+        Image body = UIKit.SteelPanel(holder, "Body", 12f, true);
+        if (UIArt.SteelPanel != null)
+            body.color = m.IsDone ? new Color(0.72f, 0.74f, 0.8f) : (m.IsReady ? Color.white : UIKit.Alpha(Color.white, 0.55f));
+        else
+            body.color = m.IsDone ? UIKit.Panel : (m.IsReady ? UIKit.Surface : UIKit.Alpha(UIKit.Surface, 0.55f));
         UIKit.Stretch(body.rectTransform, 0f);
         holder.gameObject.AddComponent<HoverPop>().Scale = 1.04f;
 

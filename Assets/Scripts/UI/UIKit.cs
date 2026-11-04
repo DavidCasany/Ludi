@@ -147,6 +147,40 @@ public static class UIKit
         return img;
     }
 
+    // Panell metàl·lic de l'art (marc amb cargols, interior fosc). 'border' = gruix de la vora en
+    // píxels de referència. Sense l'art, rectangle arrodonit del color Panel com abans.
+    public static Image SteelPanel(Transform parent, string name, float border = 32f, bool raycast = false)
+    {
+        Image img = Image(parent, name, Panel, 0f, raycast);
+        SetSteel(img, border);
+        return img;
+    }
+
+    public static Image PaperPanel(Transform parent, string name, float border = 32f, bool raycast = false)
+    {
+        Image img = Image(parent, name, UIArt.Paper, 0f, raycast);
+        SetPaper(img, border);
+        return img;
+    }
+
+    public static void SetSteel(Image img, float border = 32f) => SetArtPanel(img, UIArt.SteelPanel, Panel, border);
+    public static void SetPaper(Image img, float border = 32f) => SetArtPanel(img, UIArt.PaperPanel, UIArt.Paper, border);
+
+    static void SetArtPanel(Image img, Sprite art, Color fallback, float border)
+    {
+        if (art == null)
+        {
+            img.color = fallback;
+            SetRounded(img, Mathf.Max(8f, border * 0.6f));
+            return;
+        }
+        img.sprite = art;
+        img.type = UnityEngine.UI.Image.Type.Sliced;
+        img.fillCenter = true;
+        img.color = Color.white;
+        img.pixelsPerUnitMultiplier = UIArt.PanelSpriteBorder / Mathf.Max(1f, border);
+    }
+
     public static void SetRounded(Image img, float radius)
     {
         img.sprite = Rounded;

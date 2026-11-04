@@ -56,6 +56,14 @@ public class GameManager : MonoBehaviour
     public string HomeName => homeName;
     public string AwayName => awayName;
     public Team PlayerTeam => playerTeam;
+    public float TimeLeft => timeLeft;
+    public Team KickoffTeam => kickoffTeam;
+
+    // Datos de los equipos (escudo y colores para el marcador). Null si el partido no los ha recibido.
+    public TeamData HomeData { get; private set; }
+    public TeamData AwayData { get; private set; }
+
+    ScoreboardHUD scoreboard;   // marcador y carteles (GOL!, DESCANS...) con el estilo del arte
 
     // Sorteo dibujado por otra pantalla (CoinTossScreen): GameManager decide el resultado y espera
     // a que la pantalla llame a CompleteCoinToss() para empezar el saque
@@ -86,9 +94,18 @@ public class GameManager : MonoBehaviour
         timeLeft = halfDuration;
         playerTeam = home.humanControlled ? Team.Home : Team.Away;
         if (useCoinTossScreen) CoinTossScreen.Create(this);
+        scoreboard = ScoreboardHUD.Create(this);
     }
 
     // Lo llama quien organiza el partido (p. ej. el torneo) antes de que empiece
+    public void ConfigureMatch(TeamData homeTeam, TeamData awayTeam, bool mustHaveWinner)
+    {
+        HomeData = homeTeam;
+        AwayData = awayTeam;
+        ConfigureMatch(homeTeam != null ? homeTeam.ShortName : homeName,
+                       awayTeam != null ? awayTeam.ShortName : awayName, mustHaveWinner);
+    }
+
     public void ConfigureMatch(string homeTeamName, string awayTeamName, bool mustHaveWinner)
     {
         homeName = homeTeamName;
@@ -302,6 +319,15 @@ public class GameManager : MonoBehaviour
     void OnGUI()
     {
         if (PauseController.IsPaused || HudVisibility.Hidden) return;
+
+        // Con el marcador nuevo (ScoreboardHUD) aqui solo queda el sorteo antiguo, por si no hay pantalla de moneda
+        if (scoreboard != null)
+        {
+            if (State == MatchState.CoinToss && !CoinTossHandledExternally) DrawCoinToss();
+            else if (State == MatchState.CoinResult && !CoinTossHandledExternally) DrawCoinResult();
+            return;
+        }
+
         GUIStyle hud = new GUIStyle(GUI.skin.label) { fontSize = 28, fontStyle = FontStyle.Bold };
         GUI.Label(new Rect(10, 10, 700, 40), $"{homeName} {homeScore} - {awayScore} {awayName}", hud);
         string clock = IsGoldenGoal ? "PRÒRROGA · GOL D'OR" : $"{Half}a PART   {FormatTime(timeLeft)}";

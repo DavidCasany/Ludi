@@ -453,47 +453,51 @@ public class TeamManager : MonoBehaviour
         if (smallStyle == null)
         {
             smallStyle = new GUIStyle(GUI.skin.label);
-            smallStyle.fontSize = 11;
+            smallStyle.fontSize = 12;
+            smallStyle.fontStyle = FontStyle.Bold;
+            smallStyle.alignment = TextAnchor.MiddleLeft;
         }
+
+        GUI.depth = 2;   // el panell queda per sota de la barra de bullet time (BulletTime, profunditat 0)
 
         float w = 220f;
         float x = (Screen.width - w) * 0.5f;
+        float H = Screen.height;
 
-        // Barra de sprint (la de bullet time está justo debajo)
-        Color sprintColor = Controlled.IsExhausted ? new Color(1f, 0.35f, 0.35f) : new Color(0.4f, 1f, 0.5f);
-        DrawBar(new Rect(x, Screen.height - 62f, w, 10f), Controlled.Stamina01, sprintColor, "SPRINT");
+        // Quantes barres de recàrrega es veuen (només mentre es recarreguen)
+        bool juke = Controlled.JukeCooldown01 > 0f, stick = Controlled.StickCooldown01 > 0f;
+        float top = H - 62f - (juke ? 14f : 0f) - (stick ? 14f : 0f);
 
-        // Cooldowns (solo se ven mientras se recargan)
-        float y = Screen.height - 76f;
-        if (Controlled.JukeCooldown01 > 0f)
+        // Panell metàl·lic darrere de totes les barres (inclosa la de bullet time, a H - 40)
+        HudSkin.SteelPanel(new Rect(x - 18f, top - 16f, w + 18f + 8f + 64f + 14f, H - 14f - (top - 16f)));
+
+        // Barra d'esprint (la de bullet time és just a sota)
+        Color sprintColor = Controlled.IsExhausted ? HudSkin.Red : HudSkin.Green;
+        DrawBar(new Rect(x, H - 62f, w, 14f), Controlled.Stamina01, sprintColor, "SPRINT");
+
+        // Recàrregues
+        float y = H - 76f;
+        if (juke)
         {
-            DrawBar(new Rect(x, y, w, 6f), 1f - Controlled.JukeCooldown01, new Color(1f, 0.9f, 0.3f), "REGAT");
-            y -= 12f;
+            DrawBar(new Rect(x, y, w, 10f), 1f - Controlled.JukeCooldown01, HudSkin.Yellow, "REGAT");
+            y -= 14f;
         }
-        if (Controlled.StickCooldown01 > 0f)
-        {
-            DrawBar(new Rect(x, y, w, 6f), 1f - Controlled.StickCooldown01, Color.white, "STICK");
-        }
+        if (stick)
+            DrawBar(new Rect(x, y, w, 10f), 1f - Controlled.StickCooldown01, HudSkin.Paper, "STICK");
 
         if (showControlsHint)
         {
-            GUI.Label(new Rect(10f, Screen.height - 24f, 900f, 20f),
-                "WASD moure · Shift sprint · Clic esq: xutar (mantenir) / stick · Clic dret: passada / defensar (mantenir sense bola) · Espai: regat / canviar",
-                smallStyle);
+            const string hint = "WASD moure · Shift sprint · Clic esq: xutar (mantenir) / stick · Clic dret: passada / defensar (mantenir sense bola) · Espai: regat / canviar";
+            float tw = smallStyle.CalcSize(new GUIContent(hint)).x;
+            HudSkin.SteelPanel(new Rect(6f, H - 38f, tw + 28f, 32f), 0.92f);
+            HudSkin.OutlinedLabel(new Rect(20f, H - 36f, tw + 10f, 26f), hint, smallStyle, HudSkin.Paper);
         }
     }
 
     void DrawBar(Rect r, float fill, Color color, string label)
     {
-        GUI.color = new Color(0f, 0f, 0f, 0.6f);
-        GUI.DrawTexture(r, Texture2D.whiteTexture);
-
-        GUI.color = color;
-        GUI.DrawTexture(new Rect(r.x + 1f, r.y + 1f, (r.width - 2f) * Mathf.Clamp01(fill), r.height - 2f),
-                        Texture2D.whiteTexture);
-        GUI.color = Color.white;
-
-        GUI.Label(new Rect(r.xMax + 6f, r.y - 5f, 90f, 18f), label, smallStyle);
+        HudSkin.Bar(r, fill, color);
+        HudSkin.OutlinedLabel(new Rect(r.xMax + 8f, r.center.y - 10f, 70f, 20f), label, smallStyle, HudSkin.Paper);
     }
 
         // Tiro asistido: si apuntas cerca de una esquina, el tiro va a esa esquina (como hace la IA)

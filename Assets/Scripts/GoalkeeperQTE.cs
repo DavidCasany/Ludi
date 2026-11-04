@@ -142,35 +142,37 @@ public class GoalkeeperQTE : MonoBehaviour
         }
 
         Rect bar = new Rect((Screen.width - barSize.x) * 0.5f, Screen.height * 0.7f, barSize.x, barSize.y);
+        // Panell metàl·lic que envolta el text i la barra (estil de l'art, HudSkin)
+        Rect panel = new Rect(bar.x - 22f, bar.y - 44f, bar.width + 44f, bar.height + 62f);
 
-        // Resultado: la barra desaparece y queda solo el veredicto, para que no parezca que el QTE sigue abierto
+        // Resultat: la barra desapareix i queda només el veredicte, perquè no sembli que el QTE continua obert
         if (State != QTEState.Running)
         {
-            Color resultColor = lastOk ? new Color(0.4f, 1f, 0.5f) : new Color(1f, 0.4f, 0.4f);
-            Fill(bar, new Color(resultColor.r, resultColor.g, resultColor.b, 0.85f));
+            Color resultColor = lastOk ? HudSkin.Green : HudSkin.Red;
+            HudSkin.SteelPanel(panel);
+            HudSkin.Bar(bar, 1f, resultColor);
             labelStyle.fontSize = 22;
-            GUI.color = resultColor;
-            GUI.Label(new Rect(bar.x, bar.y - 34f, bar.width, 30f), lastOk ? "ATURADÀS!" : "FALLADA!", labelStyle);
-            GUI.color = Color.white;
+            HudSkin.OutlinedLabel(new Rect(bar.x, bar.y - 38f, bar.width, 32f), lastOk ? "ATURADÀS!" : "FALLADA!", labelStyle, resultColor);
             labelStyle.fontSize = 16;
             return;
         }
 
-        Fill(bar, new Color(0f, 0f, 0f, 0.75f));
+        HudSkin.SteelPanel(panel);
+        HudSkin.Bar(bar, 0f, Color.white);   // només el fons de la barra
 
+        // Zona bona
         Rect inner = new Rect(bar.x + 2f, bar.y + 2f, bar.width - 4f, bar.height - 4f);
-        Fill(inner, new Color(0.25f, 0.25f, 0.3f, 0.95f));
-
         float gx = inner.x + (greenCenter - greenWidth * 0.5f) * inner.width;
-        Fill(new Rect(gx, inner.y, greenWidth * inner.width, inner.height), new Color(0.3f, 0.9f, 0.4f));
+        HudSkin.Bar(new Rect(gx - 2f, bar.y, greenWidth * inner.width + 4f, bar.height), 1f, HudSkin.Green);
 
+        // Cursor: pal crema amb contorn fosc
         float cx = inner.x + Mathf.Clamp01(cursor) * inner.width;
-        Fill(new Rect(cx - 2f, bar.y - 4f, 4f, bar.height + 8f), Color.white);
+        Fill(new Rect(cx - 4f, bar.y - 7f, 8f, bar.height + 14f), HudSkin.Ink);
+        Fill(new Rect(cx - 2f, bar.y - 5f, 4f, bar.height + 10f), HudSkin.Paper);
 
-        string text = State == QTEState.Running ? "ATURA! [" + key + "]" : (lastOk ? "ATURADÀS!" : "FALLADA!");
-        GUI.color = State == QTEState.Running ? Color.white : (lastOk ? new Color(0.4f, 1f, 0.5f) : new Color(1f, 0.4f, 0.4f));
-        GUI.Label(new Rect(bar.x, bar.y - 28f, bar.width, 24f), text, labelStyle);
-        GUI.color = Color.white;
+        labelStyle.fontSize = 18;
+        HudSkin.OutlinedLabel(new Rect(bar.x, bar.y - 36f, bar.width, 28f), "ATURA! [" + key + "]", labelStyle, HudSkin.Paper);
+        labelStyle.fontSize = 16;
     }
 
     static void Fill(Rect r, Color c)

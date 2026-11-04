@@ -215,15 +215,13 @@ public class Feedback : MonoBehaviour
             float y = Screen.height - sp.y - 60f - 50f * t;   // sube mientras se desvanece
             float alpha = 1f - t * t;
 
+            // Etiqueta metàl·lica petita darrere del text (estil de l'art, HudSkin)
+            float tw = style.CalcSize(new GUIContent(p.text)).x;
+            Rect tag = new Rect(x - tw * 0.5f - 16f, y - 19f, tw + 32f, 38f);
+            HudSkin.SteelPanel(tag, alpha * 0.95f);
+
             Rect r = new Rect(x - 120f, y - 15f, 240f, 30f);
-
-            style.normal.textColor = new Color(0f, 0f, 0f, alpha);
-            GUI.Label(new Rect(r.x + 2f, r.y + 2f, r.width, r.height), p.text, style);
-
-            Color c = p.color;
-            c.a = alpha;
-            style.normal.textColor = c;
-            GUI.Label(r, p.text, style);
+            HudSkin.OutlinedLabel(r, p.text, style, p.color, alpha);
         }
     }
 }

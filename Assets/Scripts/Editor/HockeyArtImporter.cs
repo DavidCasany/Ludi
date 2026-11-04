@@ -26,6 +26,21 @@ public class HockeyArtImporter : AssetPostprocessor
         ti.spritePixelsPerUnit = 100f;
         ti.wrapMode = TextureWrapMode.Clamp;
 
+        // Panells i barres de la interfície (Tools/gen_ui_sprites.py): 9-slice
+        string file = System.IO.Path.GetFileNameWithoutExtension(assetPath);
+        float border = file == "ui_steel" || file == "ui_paper" ? 64f
+                     : file == "ui_steel_s" || file == "ui_paper_s" ? 28f
+                     : file == "ui_track" || file == "ui_fill" ? 9f : 0f;
+        if (border > 0f)
+        {
+            TextureImporterSettings st = new TextureImporterSettings();
+            ti.ReadTextureSettings(st);
+            st.spriteMeshType = SpriteMeshType.FullRect;
+            ti.SetTextureSettings(st);
+            ti.spriteBorder = new Vector4(border, border, border, border);
+            ti.filterMode = FilterMode.Bilinear;
+        }
+
         if (assetPath.EndsWith("ButtonFrame.png"))
         {
             TextureImporterSettings s = new TextureImporterSettings();

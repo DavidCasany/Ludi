@@ -21,6 +21,7 @@ public class BulletTime : MonoBehaviour
     public Color lineColor = new Color(1f, 0.9f, 0.2f, 0.9f);
 
     public bool Active { get; private set; }
+    GUIStyle labelStyle;
 
     float energy;
     float baseFixedDelta;
@@ -160,12 +161,10 @@ public class BulletTime : MonoBehaviour
         float w = 220f, h = 14f;
         Rect r = new Rect((Screen.width - w) * 0.5f, Screen.height - 40f, w, h);
 
-        GUI.color = new Color(0f, 0f, 0f, 0.6f);
-        GUI.DrawTexture(r, Texture2D.whiteTexture);
-
-        GUI.color = Active ? lineColor : Color.white;
-        GUI.DrawTexture(new Rect(r.x + 2f, r.y + 2f, (w - 4f) * Mathf.Clamp01(energy / maxAimTime), h - 4f),
-                        Texture2D.whiteTexture);
-        GUI.color = Color.white;
+        // Mateix estil que la barra d'esprint (HudSkin): groc mentre s'apunta, crema si està carregant
+        HudSkin.Bar(r, energy / maxAimTime, Active ? HudSkin.Yellow : HudSkin.Paper);
+        if (labelStyle == null)
+            labelStyle = new GUIStyle(GUI.skin.label) { fontSize = 12, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleLeft };
+        HudSkin.OutlinedLabel(new Rect(r.xMax + 8f, r.center.y - 10f, 70f, 20f), "APUNTAR", labelStyle, HudSkin.Paper);
     }
 }

@@ -2207,7 +2207,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+  m_Sprite: {fileID: 21300000, guid: 7076516b572f53ecbe31c93b5da636d8, type: 3}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -2216,7 +2216,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 2
 --- !u!222 &633589020
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -2246,11 +2246,11 @@ MonoBehaviour:
     m_SelectOnRight: {fileID: 0}
   m_Transition: 1
   m_Colors:
-    m_NormalColor: {r: 0.11, g: 0.15, b: 0.2, a: 1}
-    m_HighlightedColor: {r: 0.16, g: 0.21, b: 0.28, a: 1}
-    m_PressedColor: {r: 0.75, g: 0.35, b: 0.1, a: 1}
-    m_SelectedColor: {r: 0.16, g: 0.21, b: 0.28, a: 1}
-    m_DisabledColor: {r: 0.11, g: 0.15, b: 0.2, a: 0.35}
+    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
+    m_HighlightedColor: {r: 1, g: 0.84, b: 0.66, a: 1}
+    m_PressedColor: {r: 0.78, g: 0.72, b: 0.66, a: 1}
+    m_SelectedColor: {r: 1, g: 0.84, b: 0.66, a: 1}
+    m_DisabledColor: {r: 0.42, g: 0.44, b: 0.48, a: 0.95}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.08
   m_SpriteState:
@@ -5602,7 +5602,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+  m_Sprite: {fileID: 21300000, guid: 7076516b572f53ecbe31c93b5da636d8, type: 3}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -5611,7 +5611,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 2
 --- !u!222 &1681714873
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -5641,11 +5641,11 @@ MonoBehaviour:
     m_SelectOnRight: {fileID: 0}
   m_Transition: 1
   m_Colors:
-    m_NormalColor: {r: 0.11, g: 0.15, b: 0.2, a: 1}
-    m_HighlightedColor: {r: 0.16, g: 0.21, b: 0.28, a: 1}
-    m_PressedColor: {r: 0.75, g: 0.35, b: 0.1, a: 1}
-    m_SelectedColor: {r: 0.16, g: 0.21, b: 0.28, a: 1}
-    m_DisabledColor: {r: 0.11, g: 0.15, b: 0.2, a: 0.35}
+    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
+    m_HighlightedColor: {r: 1, g: 0.84, b: 0.66, a: 1}
+    m_PressedColor: {r: 0.78, g: 0.72, b: 0.66, a: 1}
+    m_SelectedColor: {r: 1, g: 0.84, b: 0.66, a: 1}
+    m_DisabledColor: {r: 0.42, g: 0.44, b: 0.48, a: 0.95}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.08
   m_SpriteState:
@@ -6997,11 +6997,11 @@ MonoBehaviour:
     m_SelectOnRight: {fileID: 0}
   m_Transition: 1
   m_Colors:
-    m_NormalColor: {r: 0.16, g: 0.21, b: 0.28, a: 1}
-    m_HighlightedColor: {r: 0.24, g: 0.31, b: 0.41, a: 1}
-    m_PressedColor: {r: 0.75, g: 0.35, b: 0.1, a: 1}
-    m_SelectedColor: {r: 0.95, g: 0.47, b: 0.17, a: 1}
-    m_DisabledColor: {r: 0.16, g: 0.21, b: 0.28, a: 0.35}
+    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
+    m_HighlightedColor: {r: 1, g: 0.84, b: 0.66, a: 1}
+    m_PressedColor: {r: 0.78, g: 0.72, b: 0.66, a: 1}
+    m_SelectedColor: {r: 1, g: 0.84, b: 0.66, a: 1}
+    m_DisabledColor: {r: 0.42, g: 0.44, b: 0.48, a: 0.95}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.08
   m_SpriteState:
@@ -7040,7 +7040,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+  m_Sprite: {fileID: 21300000, guid: 7076516b572f53ecbe31c93b5da636d8, type: 3}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -7049,7 +7049,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 2.909
 --- !u!222 &2118664448
 CanvasRenderer:
   m_ObjectHideFlags: 0

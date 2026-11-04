@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 #if ENABLE_INPUT_SYSTEM && !ENABLE_LEGACY_INPUT_MANAGER
 using UnityEngine.InputSystem;
 #endif
@@ -21,7 +22,7 @@ public class FriendlyMatchEndScreen : MonoBehaviour
     bool visible;
     bool loading;
     float shownAt;
-    GUIStyle buttonStyle;
+    Button rematchButton, menuButton;
 
     bool Ready => visible && !loading && Time.unscaledTime - shownAt >= inputDelay;
 
@@ -41,32 +42,38 @@ public class FriendlyMatchEndScreen : MonoBehaviour
 
         visible = true;
         shownAt = Time.unscaledTime;   // unscaled: funciona aunque el tiempo esté ralentizado o parado
+        BuildButtons();
+    }
+
+    // Botons amb el marc de l'art (UIKit.Button), sota el cartell FINAL del marcador (ScoreboardHUD)
+    void BuildButtons()
+    {
+        Canvas canvas = UIKit.CreateCanvas("FriendlyMatchEnd", 60);
+        RectTransform row = UIKit.Rect(canvas.transform, "Buttons");
+        UIKit.Place(row, new Vector2(0.5f, 0.5f), new Vector2(0f, -170f), new Vector2(640f, 96f));
+
+        rematchButton = UIKit.Button(row, "Revenja", "REVENJA", true, 34f);
+        UIKit.Place((RectTransform)rematchButton.transform, new Vector2(0f, 0.5f), Vector2.zero, new Vector2(300f, 96f));
+        rematchButton.onClick.AddListener(Rematch);
+
+        menuButton = UIKit.Button(row, "Menu", "MENÚ", false, 34f);
+        UIKit.Place((RectTransform)menuButton.transform, new Vector2(1f, 0.5f), Vector2.zero, new Vector2(300f, 96f));
+        menuButton.onClick.AddListener(GoToMenu);
+
+        rematchButton.interactable = menuButton.interactable = false;   // s'activen passat inputDelay
     }
 
     void Update()
     {
+        if (rematchButton != null && Ready && !rematchButton.interactable)
+        {
+            rematchButton.interactable = menuButton.interactable = true;
+            UIKit.Select(rematchButton);
+        }
         if (!Ready) return;
 
         if (ConfirmPressed()) Rematch();
         else if (BackPressed()) GoToMenu();
-    }
-
-    void OnGUI()
-    {
-        if (!visible) return;
-
-        GUI.depth = -10;   // menor profundidad = se dibuja encima del OnGUI del GameManager
-
-        if (buttonStyle == null)   // GUI.skin solo existe dentro de OnGUI: se crea una vez aquí
-            buttonStyle = new GUIStyle(GUI.skin.button) { fontSize = 32, fontStyle = FontStyle.Bold };
-
-        float w = 260f, h = 70f, gap = 30f;
-        float y = Mathf.Min(Screen.height * 0.5f + 230f, Screen.height - h - 20f);
-
-        GUI.enabled = Ready;
-        if (GUI.Button(new Rect(Screen.width * 0.5f - w - gap * 0.5f, y, w, h), "REVENJA", buttonStyle)) Rematch();
-        if (GUI.Button(new Rect(Screen.width * 0.5f + gap * 0.5f, y, w, h), "MENÚ", buttonStyle)) GoToMenu();
-        GUI.enabled = true;
     }
 
     void Rematch()

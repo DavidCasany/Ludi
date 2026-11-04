@@ -7,18 +7,32 @@ using UnityEngine;
 // Si falta una imagen, quien la usa vuelve al aspecto anterior.
 public static class UIArt
 {
-    static Sprite buttonFrame, upgradeCard, goal;
-    static bool loadedButton, loadedCard, loadedGoal;
+    static Sprite buttonFrame, upgradeCard, goal, steelPanel, paperPanel;
+    static bool loadedButton, loadedCard, loadedGoal, loadedSteel, loadedPaper;
 
     public static Sprite ButtonFrame => Load(ref buttonFrame, ref loadedButton, "Art/ButtonFrame");
     public static Sprite UpgradeCard => Load(ref upgradeCard, ref loadedCard, "Art/UpgradeCard");
     public static Sprite Goal => Load(ref goal, ref loadedGoal, "Art/Goal");
 
+    // Panells comuns amb l'estil de l'art (9-slice, vora de 64 px). Els genera Tools/gen_ui_sprites.py
+    //   SteelPanel: marc metàl·lic amb cargols (com els botons) i interior fosc -> text clar a sobre
+    //   PaperPanel: paper crema amb contorn marró (com la targeta) -> text fosc a sobre
+    public static Sprite SteelPanel => Load(ref steelPanel, ref loadedSteel, "Art/HUD/ui_steel");
+    public static Sprite PaperPanel => Load(ref paperPanel, ref loadedPaper, "Art/HUD/ui_paper");
+    public const float PanelSpriteBorder = 64f;
+
+    // Colors de l'art (per a text i detalls sobre aquests panells)
+    public static readonly Color Ink = new Color32(45, 56, 64, 255);        // blau nit del patí de la targeta
+    public static readonly Color InkBrown = new Color32(114, 89, 73, 255);  // contorn de la targeta
+    public static readonly Color Paper = new Color32(243, 234, 218, 255);
+    public static readonly Color Steel = new Color32(82, 103, 129, 255);
+    public static readonly Color ArtRed = new Color32(167, 68, 59, 255);
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetStatics()
     {
-        buttonFrame = upgradeCard = goal = null;
-        loadedButton = loadedCard = loadedGoal = false;
+        buttonFrame = upgradeCard = goal = steelPanel = paperPanel = null;
+        loadedButton = loadedCard = loadedGoal = loadedSteel = loadedPaper = false;
     }
 
     static Sprite Load(ref Sprite cache, ref bool tried, string path)
