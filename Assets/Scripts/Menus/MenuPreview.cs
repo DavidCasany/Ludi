@@ -4,6 +4,7 @@ using UnityEngine.UI;
 // Imagen ilustrativa del menú. Muestra el sprite del botón que tiene el ratón encima; si no hay ninguno,
 // el del botón seleccionado con teclado/mando; y si tampoco, la imagen por defecto.
 // Hace un fundido entre dos Images (una detrás y otra delante) para que el cambio no sea un corte seco.
+// La de detrás se desvanece a la vez y se oculta al acabar: con imágenes con transparencia no se superponen.
 public class MenuPreview : MonoBehaviour
 {
     [SerializeField] Image backImage;
@@ -12,13 +13,24 @@ public class MenuPreview : MonoBehaviour
     [SerializeField] float fadeDuration = 0.15f;
 
     MenuPreviewTrigger hovered, selected;
-    Sprite shown;
+    Sprite shown, previous;
+
+    // Opacitat amb què es veu ara una imatge (0 si no es veu). La fan servir els efectes que van
+    // a sobre d'una imatge concreta (VsBannerFX, ConfettiBurst) per aparèixer i desaparèixer amb ella.
+    public float AlphaOf(Sprite s)
+    {
+        if (s == null) return 0f;
+        if (s == shown) return frontImage.enabled ? frontImage.color.a : 0f;
+        if (s == previous && backImage.enabled) return backImage.color.a;
+        return 0f;
+    }
     bool dirty, fading;
+    float backStartAlpha = 1f;
 
     void Awake()
     {
         shown = defaultSprite;
-        SetImage(backImage, defaultSprite, 1f);
+        SetImage(backImage, null, 0f);      // detrás solo hay algo durante un fundido
         SetImage(frontImage, defaultSprite, 1f);
     }
 
@@ -55,14 +67,19 @@ public class MenuPreview : MonoBehaviour
         {
             a = 1f;
             fading = false;
+            SetImage(backImage, null, 0f);  // fundido terminado: la imagen vieja desaparece del todo
         }
         SetAlpha(frontImage, a);
+        if (backImage.enabled) SetAlpha(backImage, backStartAlpha * (1f - a));   // la vieja se va mientras entra la nueva
     }
 
     void StartFade(Sprite next)
     {
-        SetImage(backImage, shown, 1f);    // lo que se veía pasa detrás
+        // Lo que se ve ahora (con su transparencia actual, por si se cambia a mitad de un fundido) pasa detrás
+        backStartAlpha = frontImage.enabled ? frontImage.color.a : 0f;
+        SetImage(backImage, shown, backStartAlpha);
         SetImage(frontImage, next, 0f);    // lo nuevo aparece delante con un fundido
+        previous = shown;
         shown = next;
         fading = true;
     }
