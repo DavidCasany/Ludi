@@ -16,7 +16,7 @@ using UnityEngine.InputSystem.UI;
 // Distribució (mateix estil que la pantalla de CONTROLS):
 //   targeta metàl·lica centrada amb el títol CONFIGURACIÓ a dalt a l'esquerra
 //   tres columnes de targetes de paper amb capçalera fosca:
-//     ÀUDIO (música, efectes) + JOC (fletxes) · PANTALLA (resolució, pantalla completa) · CONTROLS (tàctils)
+//     ÀUDIO (música, efectes) + JOC (fletxes) · PANTALLA (monitor, resolució, pantalla completa) · CONTROLS (tàctils)
 //   a baix: botó TORNAR + "Esc · Tornar"
 // Hi cap tot sense scroll també en 4:3 (tauletes) i en mòbils molt allargats.
 // En la web el desplegable de resolución pasa a ser "Resolució de renderitzat" (lo hace SettingsMenuUI).
@@ -160,6 +160,8 @@ public static class SettingsMenuBuilder
         Toggle arrows = CreateToggleRow(game, "FlechasPase", "Fletxes de passada");
 
         Transform screen = CreateSection(col1, "PANTALLA");
+        // Monitor: només es veu si l'ordinador té més d'una pantalla (ho decideix SettingsMenuUI)
+        TMP_Dropdown monitor = CreateDropdownBlock(screen, "Monitor", "Pantalla on es juga", tmpRes);
         TMP_Dropdown dropdown = CreateDropdownBlock(screen, "Resolucion", "Resolució", tmpRes);
         Toggle fullscreen = CreateToggleRow(screen, "PantallaCompleta", "Pantalla completa");
 
@@ -192,7 +194,7 @@ public static class SettingsMenuBuilder
 
         // ---------- Navegación con teclado/mando: de arriba abajo, en el orden visual ----------
         // (izquierda/derecha en los sliders cambian el volumen; eso lo hace el propio Slider)
-        Selectable[] order = { music, sfx, arrows, dropdown, fullscreen,
+        Selectable[] order = { music, sfx, arrows, monitor, dropdown, fullscreen,
                                controlMode, touchScale, touchOpacity, leftHanded, back };
         for (int i = 0; i < order.Length; i++)
         {
@@ -204,6 +206,7 @@ public static class SettingsMenuBuilder
 
         // ---------- Script ----------
         SettingsMenuUI ui = root.AddComponent<SettingsMenuUI>();
+        Wire(ui, "monitorDropdown", monitor);
         Wire(ui, "resolutionDropdown", dropdown);
         Wire(ui, "fullscreenToggle", fullscreen);
         Wire(ui, "musicSlider", music);

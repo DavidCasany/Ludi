@@ -17,6 +17,8 @@ using UnityEngine.InputSystem;
 public class SettingsMenuUI : MonoBehaviour
 {
     [Header("Controles")]
+    [Tooltip("Opcional: monitor on es mostra el joc (només surt si n'hi ha més d'un)")]
+    [SerializeField] TMP_Dropdown monitorDropdown;
     [SerializeField] TMP_Dropdown resolutionDropdown;
     [SerializeField] Toggle fullscreenToggle;
     [SerializeField] Slider musicSlider;
@@ -66,6 +68,7 @@ public class SettingsMenuUI : MonoBehaviour
             SetupRenderResolution();
             if (!WebPlatform.FullscreenSupported()) Hide(fullscreenToggle, false);   // iPhone: Safari no lo permite
         }
+        SetupMonitors();
         resolutionDropdown.onValueChanged.AddListener(OnResolutionChanged);
         fullscreenToggle.onValueChanged.AddListener(OnFullscreenChanged);
         musicSlider.onValueChanged.AddListener(OnMusicChanged);
@@ -90,7 +93,8 @@ public class SettingsMenuUI : MonoBehaviour
     {
         if (leaving) return;
 
-        bool listOpen = resolutionDropdown.IsExpanded || (controlModeDropdown != null && controlModeDropdown.IsExpanded);
+        bool listOpen = resolutionDropdown.IsExpanded || (controlModeDropdown != null && controlModeDropdown.IsExpanded) ||
+                        (monitorDropdown != null && monitorDropdown.IsExpanded);
         if (BackPressed() && !listOpen)   // con la lista abierta, Esc solo la cierra
         {
             Back();
@@ -116,7 +120,44 @@ public class SettingsMenuUI : MonoBehaviour
         SetPercent(musicValue, GameSettings.MusicVolume);
         SetPercent(sfxValue, GameSettings.SfxVolume);
         RefreshControls();
+        RefreshMonitors();
     }
+
+    // ---------- Monitor (ordinador amb dues pantalles o més) ----------
+
+    void SetupMonitors()
+    {
+        if (monitorDropdown == null) return;
+        if (!GameSettings.CanChooseMonitor)
+        {
+            Hide(monitorDropdown, true);   // una sola pantalla, web o mòbil: no cal triar
+            monitorDropdown = null;
+            return;
+        }
+        monitorDropdown.onValueChanged.AddListener(GameSettings.SetMonitor);
+    }
+
+    void RefreshMonitors()
+    {
+        if (monitorDropdown == null) return;
+        List<DisplayInfo> list = GameSettings.Monitors();
+        List<string> options = new List<string>();
+        for (int i = 0; i < list.Count; i++) options.Add($"Pantalla {i + 1} · {list[i].width} × {list[i].height}");
+
+        monitorDropdown.ClearOptions();
+        monitorDropdown.AddOptions(options);
+        monitorDropdown.SetValueWithoutNotify(GameSettings.CurrentMonitor());
+        monitorDropdown.RefreshShownValue();
+    }
+
+    // En acabar de moure's la finestra, la llista de resolucions és la del monitor nou
+    void OnDisplayChanged()
+    {
+        if (this != null) Refresh();
+    }
+
+    void OnEnable() => GameSettings.DisplayChanged += OnDisplayChanged;
+    void OnDisable() => GameSettings.DisplayChanged -= OnDisplayChanged;
 
     void RefreshResolutions()
     {

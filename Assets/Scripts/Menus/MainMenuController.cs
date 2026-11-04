@@ -61,6 +61,7 @@ public class MainMenuController : MonoBehaviour
     void Awake()
     {
         EnsureControlsButton();
+        ApplyIconFrame(settingsButton);
         Bind(controlsButton, OpenControls);
         Bind(continueTournamentButton, ContinueTournament);
         Bind(newTournamentButton, NewTournament);
@@ -304,6 +305,35 @@ public class MainMenuController : MonoBehaviour
 #else
         return Mathf.Abs(Input.GetAxisRaw("Vertical")) > 0.5f || Mathf.Abs(Input.GetAxisRaw("Horizontal")) > 0.5f;
 #endif
+    }
+
+    // Botó d'icona (l'engranatge): el mateix metall amb cargols que la resta de botons (ui_steel en 9-slice)
+    // i els mateixos tints al passar-hi el ratolí. El marc ample dels botons de text no hi cabria quadrat.
+    static void ApplyIconFrame(Button b)
+    {
+        if (b == null || UIArt.SteelPanel == null) return;
+        Image img = b.targetGraphic as Image;
+        if (img == null) return;
+
+        img.sprite = UIArt.SteelPanel;
+        img.type = Image.Type.Sliced;
+        img.fillCenter = true;
+        img.color = Color.white;
+        float size = Mathf.Min(((RectTransform)b.transform).rect.width, ((RectTransform)b.transform).rect.height);
+        float border = Mathf.Max(12f, size * 0.26f);   // vora proporcional: els cargols no es deformen
+        img.pixelsPerUnitMultiplier = UIArt.PanelSpriteBorder / border;
+        b.colors = UIArt.FrameColors();
+
+        // La icona, dins de la vora metàl·lica
+        RectTransform icon = b.transform.Find("Icon") as RectTransform;
+        if (icon != null)
+        {
+            icon.anchorMin = Vector2.zero;
+            icon.anchorMax = Vector2.one;
+            float pad = border * 0.8f;
+            icon.offsetMin = new Vector2(pad, pad);
+            icon.offsetMax = new Vector2(-pad, -pad);
+        }
     }
 
     static void Bind(Button b, UnityEngine.Events.UnityAction action)

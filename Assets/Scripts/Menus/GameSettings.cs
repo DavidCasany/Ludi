@@ -25,17 +25,19 @@ public static class GameSettings
     const string KeyTouchOpacity = "settings_touch_opacity";
     const string KeyTouchLeft = "settings_touch_left";
     const string KeyRenderScale = "settings_render_scale";
+    const string KeyMonitor = "settings_monitor";
+    const string KeyMonitorName = "settings_monitor_name";
     const string KeyVersion = "settings_version";
 
     // Súbelo cuando cambien los valores por defecto o el formato: los ajustes guardados con otra versión
     // (p. ej. los de las pruebas en el editor) se descartan y se vuelve a los de SettingsData.
-    const int Version = 2;
+    const int Version = 3;   // 3: música al 5 % i efectes al 80 % per defecte
 
     // Las claves nuevas (controles táctiles, render web) no obligan a subir Version: si faltan en un guardado
     // antiguo se usa el valor por defecto
     static readonly string[] AllKeys = { KeyWidth, KeyHeight, KeyFullscreen, KeyMusic, KeySfx, KeyArrows,
                                          KeyControls, KeyTouchScale, KeyTouchOpacity, KeyTouchLeft, KeyRenderScale,
-                                         KeyVersion };
+                                         KeyMonitor, KeyMonitorName, KeyVersion };
 
     // Límites de los controles táctiles (los usan también los sliders de Configuració)
     public const float TouchScaleMin = 0.7f, TouchScaleMax = 1.4f;
@@ -57,8 +59,15 @@ public static class GameSettings
     // Solo web: resolución interna del canvas respecto a la de la pantalla (0 = automática)
     public static float RenderScale { get; private set; }
 
+    // Monitor on es mostra el joc (índex dins de Monitors()). -1 = el que triï el sistema
+    public static int Monitor { get; private set; } = -1;
+    static string monitorName = "";
+
     // Se lanza tras cualquier cambio (lo escuchan los AudioVolume, por ejemplo)
     public static event Action Changed;
+
+    // Quan la finestra acaba de canviar de monitor (la llista de resolucions pot ser una altra)
+    public static event Action DisplayChanged;
 
     static SettingsData data;
     static bool loaded;
@@ -76,6 +85,7 @@ public static class GameSettings
     static void ResetStatics()
     {
         Changed = null;
+        DisplayChanged = null;
         data = null;
         loaded = false;
     }
@@ -103,6 +113,7 @@ public static class GameSettings
         if (IsNativeMobile) return;   // siempre pantalla completa a la resolución del dispositivo
         ClampToAvailable();   // p. ej. se guardó 2560×1440 y ahora el monitor es de 1920×1080
         ApplyDisplay();
+        RestoreMonitor();
     }
 
     // ---------- Cambios ----------
@@ -195,6 +206,85 @@ public static class GameSettings
         Save();
     }
 
+    // ---------- Monitors (ordinador amb més d'una pantalla) ----------
+
+    // Pantalles connectades, en l'ordre del sistema. A la web i al mòbil no n'hi ha cap per triar.
+    public static List<DisplayInfo> Monitors()
+    {
+        List<DisplayInfo> list = new List<DisplayInfo>();
+        if (!IsWeb && !IsNativeMobile) Screen.GetDisplayLayout(list);
+        return list;
+    }
+
+    public static bool CanChooseMonitor => Monitors().Count > 1;
+
+    // Índex del monitor on és ara la finestra del joc
+    public static int CurrentMonitor()
+    {
+        List<DisplayInfo> list = Monitors();
+        DisplayInfo now = Screen.mainWindowDisplayInfo;
+        for (int i = 0; i < list.Count; i++)
+            if (SameMonitor(list[i], now)) return i;
+        return 0;
+    }
+
+    static bool SameMonitor(DisplayInfo a, DisplayInfo b) =>
+        a.name == b.name && a.width == b.width && a.height == b.height && a.workArea.x == b.workArea.x &&
+        a.workArea.y == b.workArea.y;
+
+    // Mou la finestra al monitor 'index'. En pantalla completa passa a la resolució nativa d'aquell monitor;
+    // en finestra es queda la mateixa mida (si hi cap) i es centra. A l'editor no fa res (no hi ha finestra).
+    public static void SetMonitor(int index)
+    {
+        List<DisplayInfo> list = Monitors();
+        if (index < 0 || index >= list.Count) return;
+
+        Monitor = index;
+        monitorName = list[index].name;
+        Save();
+        MoveTo(list[index]);
+    }
+
+    static void RestoreMonitor()
+    {
+        if (Monitor < 0) return;
+        List<DisplayInfo> list = Monitors();
+        if (list.Count < 2) return;
+
+        // Primer pel nom (l'ordre pot canviar si es connecten pantalles); si no, per l'índex
+        int index = list.FindIndex(d => d.name == monitorName);
+        if (index < 0) index = Monitor < list.Count ? Monitor : -1;
+        if (index < 0 || SameMonitor(list[index], Screen.mainWindowDisplayInfo)) return;
+        MoveTo(list[index]);
+    }
+
+    static void MoveTo(DisplayInfo d)
+    {
+#if UNITY_EDITOR
+        Debug.Log($"[GameSettings] Monitor: «{d.name}». A l'editor no es mou la finestra: prova-ho al joc compilat.");
+#else
+        Vector2Int pos = Vector2Int.zero;
+        if (!Fullscreen)
+        {
+            int w = Mathf.Min(Width, d.workArea.width), h = Mathf.Min(Height, d.workArea.height);
+            pos = new Vector2Int(Mathf.Max(0, (d.workArea.width - w) / 2), Mathf.Max(0, (d.workArea.height - h) / 2));
+        }
+        AsyncOperation op = Screen.MoveMainWindowTo(d, pos);
+        op.completed += _ =>
+        {
+            if (Fullscreen)
+            {
+                Width = d.width;
+                Height = d.height;
+            }
+            ClampToAvailable();
+            ApplyDisplay();
+            Save();
+            DisplayChanged?.Invoke();
+        };
+#endif
+    }
+
     // ---------- Resoluciones ----------
 
     // Resolución real del monitor. En el editor Display.main devuelve el tamaño de la Game view,
@@ -205,6 +295,9 @@ public static class GameSettings
         Resolution r = Screen.currentResolution;
         return new Vector2Int(r.width, r.height);
 #else
+        // La del monitor on és la finestra (amb dues pantalles poden ser diferents)
+        DisplayInfo d = Screen.mainWindowDisplayInfo;
+        if (d.width > 0 && d.height > 0) return new Vector2Int(d.width, d.height);
         return new Vector2Int(Display.main.systemWidth, Display.main.systemHeight);
 #endif
     }
@@ -291,6 +384,8 @@ public static class GameSettings
         TouchOpacity = Mathf.Clamp(PlayerPrefs.GetFloat(KeyTouchOpacity, TouchOpacity), TouchOpacityMin, TouchOpacityMax);
         TouchLeftHanded = PlayerPrefs.GetInt(KeyTouchLeft, TouchLeftHanded ? 1 : 0) == 1;
         RenderScale = Mathf.Clamp(PlayerPrefs.GetFloat(KeyRenderScale, RenderScale), 0f, 1f);
+        Monitor = PlayerPrefs.GetInt(KeyMonitor, -1);
+        monitorName = PlayerPrefs.GetString(KeyMonitorName, "");
     }
 
     static void LoadDefaults()
@@ -300,6 +395,8 @@ public static class GameSettings
         Fullscreen = d == null || d.DefaultFullscreen;
         MusicVolume = d != null ? d.DefaultMusicVolume : 0.05f;
         SfxVolume = d != null ? d.DefaultSfxVolume : 0.8f;
+        Monitor = -1;
+        monitorName = "";
         PassArrows = d == null || d.DefaultPassArrows;
         Controls = d != null ? d.DefaultControls : ControlPreference.Auto;
         TouchScale = d != null ? Mathf.Clamp(d.DefaultTouchScale, TouchScaleMin, TouchScaleMax) : 1f;
@@ -332,6 +429,8 @@ public static class GameSettings
         PlayerPrefs.SetFloat(KeyTouchOpacity, TouchOpacity);
         PlayerPrefs.SetInt(KeyTouchLeft, TouchLeftHanded ? 1 : 0);
         PlayerPrefs.SetFloat(KeyRenderScale, RenderScale);
+        PlayerPrefs.SetInt(KeyMonitor, Monitor);
+        PlayerPrefs.SetString(KeyMonitorName, monitorName);
         PlayerPrefs.SetInt(KeyVersion, Version);
         PlayerPrefs.Save();
         Changed?.Invoke();
