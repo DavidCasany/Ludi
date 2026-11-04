@@ -12,7 +12,7 @@ public class VsBannerFX : MenuPreviewFX
     [Header("Capes")]
     [SerializeField] Image boltGlow;
     [SerializeField] RectTransform letters;
-    [Tooltip("Centre de les lletres VS a la imatge (0..1)")]
+    [Tooltip("Centre de les lletres VS a la textura (0..1)")]
     [SerializeField] Vector2 lettersCenter = new Vector2(0.507f, 0.509f);
 
     [Header("Llamp")]
@@ -87,7 +87,7 @@ public class VsBannerFX : MenuPreviewFX
             // molla amortida: salta a punchScale i torna rebotant (per sota d'1 no baixa: Max(1, s))
             float punch = t >= 0f && t < 1f ? (punchScale - 1f) * Mathf.Exp(-5f * t) * Mathf.Cos(t * 10f) : 0f;
             float s = 1f + punch + breathe * Mathf.Sin(now * 2.4f);
-            ScaleAround(letters, Mathf.Max(1f, s), ImagePoint(lettersCenter));
+            ScaleAround(letters, Mathf.Max(1f, s), TexturePoint(lettersCenter));
         }
 
         // ---------- Sacsejada ----------

@@ -45,10 +45,30 @@ public abstract class MenuPreviewFX : MonoBehaviour
         return new Rect(r.center.x - w * 0.5f, r.center.y - h * 0.5f, w, h);
     }
 
-    // Punt de la imatge (u, v de 0 a 1, origen a baix a l'esquerra) en coordenades locals
+    // Punt del SPRITE (u, v de 0 a 1, origen a baix a l'esquerra) en coordenades locals
     protected Vector2 ImagePoint(Vector2 uv)
     {
         Rect d = DrawnRect();
         return new Vector2(d.x + uv.x * d.width, d.y + uv.y * d.height);
+    }
+
+    // Punt de la TEXTURA sencera (u, v de 0 a 1) en coordenades locals. Diferent d'ImagePoint quan el sprite
+    // és un retall de la textura (Sprite Mode: Multiple, o un rectangle editat al Sprite Editor).
+    protected Vector2 TexturePoint(Vector2 uv)
+    {
+        Rect d = DrawnRect();
+        if (forSprite == null || forSprite.texture == null) return new Vector2(d.x + uv.x * d.width, d.y + uv.y * d.height);
+        Rect sr = forSprite.rect;
+        float tw = forSprite.texture.width, th = forSprite.texture.height;
+        return new Vector2(d.x + (uv.x * tw - sr.x) / sr.width * d.width,
+                           d.y + (uv.y * th - sr.y) / sr.height * d.height);
+    }
+
+    // Píxels de pantalla (locals) per cada "alçada de textura" (1 = tota l'alçada de la textura)
+    protected float TextureHeightToLocal()
+    {
+        Rect d = DrawnRect();
+        if (forSprite == null || forSprite.texture == null) return d.height;
+        return d.height * forSprite.texture.height / forSprite.rect.height;
     }
 }
