@@ -289,9 +289,9 @@ public class ScoreboardHUD : MonoBehaviour
 
         bool kickoff = st == MatchState.Kickoff;
         if (kickoff)
-            hintText.text = gm.KickoffTeam == gm.PlayerTeam
-                ? "TREUS TU: passa-la a un company (clic dret)"
-                : "Treu el rival";
+            hintText.text = gm.KickoffTeam != gm.PlayerTeam ? "Treu el rival"
+                : InputMode.IsTouch ? "TREUS TU: passa-la a un company (botó PASSA)"
+                : "TREUS TU: passa-la a un company (clic dret)";
         hintGroup.alpha = Mathf.MoveTowards(hintGroup.alpha, kickoff ? 1f : 0f, Time.unscaledDeltaTime * 5f);
     }
 
