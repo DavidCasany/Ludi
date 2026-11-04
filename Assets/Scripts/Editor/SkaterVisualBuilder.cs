@@ -61,6 +61,9 @@ public static class SkaterVisualBuilder
             Transform tip = Child(pivot, "BladeTip");
             if (newTip) tip.localPosition = GuessBladeTip(stick.sprite);
 
+            // Indicador del jugador controlat: anell neó als peus en lloc del quadrat
+            SetupControlRing(root, missing);
+
             // La física no gira: el que gira és Visual
             Rigidbody2D rb = root.GetComponent<Rigidbody2D>();
             if (rb != null) rb.constraints |= RigidbodyConstraints2D.FreezeRotation;
@@ -89,6 +92,31 @@ public static class SkaterVisualBuilder
                              ". Quan arribin, torna a executar Hockey > Muntar capes del jugador.");
         else
             Debug.Log("Capes del jugador muntades a " + PrefabPath + ". Revisa la posició de BladeTip (fill de StickPivot).");
+    }
+
+    static void SetupControlRing(GameObject root, List<string> missing)
+    {
+        Skater skater = root.GetComponent<Skater>();
+        GameObject indicator = skater != null ? skater.controlIndicator : null;
+        if (indicator == null)
+        {
+            Transform t = root.transform.Find("Controling");
+            if (t != null) indicator = t.gameObject;
+        }
+        if (indicator == null) return;
+
+        Sprite ring = AssetDatabase.LoadAssetAtPath<Sprite>(SpriteFolder + "control_ring.png");
+        if (ring == null) { missing.Add("control_ring.png"); return; }
+
+        indicator.transform.localPosition = Vector3.zero;
+        indicator.transform.localRotation = Quaternion.identity;
+        indicator.transform.localScale = Vector3.one;
+
+        SpriteRenderer sr = indicator.GetComponent<SpriteRenderer>();
+        if (sr == null) sr = indicator.AddComponent<SpriteRenderer>();
+        sr.sprite = ring;
+        sr.sortingOrder = -2;   // per sota de tots els jugadors (els seus SortingGroup van a 0)
+        if (indicator.GetComponent<ControlRing>() == null) indicator.AddComponent<ControlRing>();
     }
 
     static Transform Child(Transform parent, string name)

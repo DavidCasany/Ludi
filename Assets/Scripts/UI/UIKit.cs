@@ -280,9 +280,11 @@ public static class UIKit
 
     public static string Hex(Color c) => "#" + ColorUtility.ToHtmlStringRGB(c);
 
+    // Selecció per defecte per a teclat/mando. Amb ratolí no selecciona res (es veuria com en hover):
+    // queda pendent fins a la primera tecla de navegació (ho gestiona NavigationSelector).
     public static void Select(Selectable s)
     {
-        if (EventSystem.current != null && s != null) EventSystem.current.SetSelectedGameObject(s.gameObject);
+        if (EventSystem.current != null && s != null) NavigationSelector.Request(s);
     }
 
     // ---------- Input (mismo patrón que el resto de menús) ----------

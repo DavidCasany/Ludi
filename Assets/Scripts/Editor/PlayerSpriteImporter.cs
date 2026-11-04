@@ -9,11 +9,16 @@ using UnityEngine;
 // es respecta. Per tornar-la a aplicar: esborra el .meta del PNG (o clic dret > Reimport després d'esborrar-lo).
 public class PlayerSpriteImporter : AssetPostprocessor
 {
-    // Llenç de 512 px amb el tors de ~200 px d'ample -> el tors fa 1 unitat, igual que el collider del Skater (1x1)
-    public const float PixelsPerUnit = 200f;
+    // Llenç de 1024 px amb el tors de 396 px d'ample -> el tors fa 1 unitat, igual que el collider del Skater (1x1)
+    public const float PixelsPerUnit = 396f;
 
-    static bool Applies(string path) =>
-        path.StartsWith("Assets/Sprites/Player/") || path.StartsWith("Assets/Sprites/Patterns/");
+    static bool Applies(string path) => Normalized(path);
+
+    static bool Normalized(string path)
+    {
+        path = path.Replace('\\', '/');
+        return path.StartsWith("Assets/Sprites/Player/") || path.StartsWith("Assets/Sprites/Patterns/");
+    }
 
     void OnPreprocessTexture()
     {

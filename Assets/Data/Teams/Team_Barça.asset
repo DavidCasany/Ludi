@@ -18,8 +18,8 @@ MonoBehaviour:
   primaryColor: {r: 0.6981132, g: 0.02733428, b: 0, a: 1}
   secondaryColor: {r: 0, g: 0.031115515, b: 0.4528302, a: 1}
   alternateColor: {r: 0.9245283, g: 0.34691975, b: 0, a: 1}
-  jerseyPattern: {fileID: 0}
-  alternatePattern: {fileID: 0}
+  jerseyPattern: {fileID: 21300000, guid: 006722c2bcfcadf478c060ed21e4e655, type: 3}
+  alternatePattern: {fileID: 21300000, guid: fd5435845c511d44598a69606bd136c2, type: 3}
   goalkeeperColor: {r: 1, g: 0.87355345, b: 0, a: 1}
   rating: 100
   aiSkill: 1

@@ -15,11 +15,11 @@ MonoBehaviour:
   teamName: HC Sant Just
   shortName: STJ
   crest: {fileID: 1307654884251346905, guid: 7346085ac15b82b46bd0c3518075763b, type: 3}
-  primaryColor: {r: 0.77965736, g: 0, b: 1, a: 1}
-  secondaryColor: {r: 1, g: 1, b: 1, a: 1}
+  primaryColor: {r: 0, g: 0.38648844, b: 1, a: 1}
+  secondaryColor: {r: 0.93808126, g: 1, b: 0, a: 1}
   alternateColor: {r: 1, g: 1, b: 1, a: 1}
-  jerseyPattern: {fileID: 0}
+  jerseyPattern: {fileID: 21300000, guid: db258ad54cbd55547844fc01e2c8cd7e, type: 3}
   alternatePattern: {fileID: 0}
-  goalkeeperColor: {r: 1, g: 0, b: 0.592762, a: 1}
+  goalkeeperColor: {r: 1, g: 0, b: 0.75357676, a: 1}
   rating: 60
   aiSkill: 0.3

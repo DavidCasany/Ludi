@@ -15,11 +15,11 @@ MonoBehaviour:
   teamName: CE Noia Freixenet
   shortName: NOI
   crest: {fileID: -4841367866839695880, guid: 42575ebcaac549f4a8604dbafa8a133e, type: 3}
-  primaryColor: {r: 1, g: 0.40435505, b: 0, a: 1}
-  secondaryColor: {r: 1, g: 1, b: 1, a: 1}
-  alternateColor: {r: 1, g: 1, b: 1, a: 1}
+  primaryColor: {r: 1, g: 0.04700273, b: 0, a: 1}
+  secondaryColor: {r: 0, g: 0, b: 0, a: 1}
+  alternateColor: {r: 1, g: 0.86162764, b: 0.4198113, a: 1}
   jerseyPattern: {fileID: 0}
   alternatePattern: {fileID: 0}
-  goalkeeperColor: {r: 1, g: 0.9618751, b: 0, a: 1}
+  goalkeeperColor: {r: 0.15003248, g: 0.8962264, b: 0, a: 1}
   rating: 60
   aiSkill: 0.6

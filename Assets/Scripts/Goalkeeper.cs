@@ -82,9 +82,16 @@ public class Goalkeeper : MonoBehaviour
     public float ReactionTime => reactionTime;
     public float HalfWidth => col != null ? col.bounds.extents.y : 0.4f;   // lo usa TeamBrain para valorar tiros
 
+    [Header("Visual")]
+    [Tooltip("Capes que es pinten amb el color del porter i fan el flaix de les parades (samarreta, guants). " +
+             "Buit = el primer SpriteRenderer que trobi (el quadrat antic)")]
+    [SerializeField] SpriteRenderer[] kitRenderers;
+
+    // Avisa quan el porter fa una parada (GoalkeeperVisual hi canvia de postura)
+    public event System.Action Saved;
+
     Rigidbody2D rb;
     Collider2D col;
-    SpriteRenderer sr;
     Color baseColor;
     float flashUntil;
     GoalkeeperQTE qte;   // opcional: solo en el portero del humano
@@ -138,8 +145,12 @@ public class Goalkeeper : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         col = GetComponent<Collider2D>();
-        sr = GetComponentInChildren<SpriteRenderer>();
-        if (sr != null) baseColor = sr.color;
+        if (kitRenderers == null || kitRenderers.Length == 0)
+        {
+            SpriteRenderer first = GetComponentInChildren<SpriteRenderer>();
+            kitRenderers = first != null ? new[] { first } : new SpriteRenderer[0];
+        }
+        if (kitRenderers.Length > 0 && kitRenderers[0] != null) baseColor = kitRenderers[0].color;
         qte = GetComponent<GoalkeeperQTE>();
         owner = GetComponentInParent<TeamManager>();
 
@@ -181,7 +192,12 @@ public class Goalkeeper : MonoBehaviour
     public void SetColor(Color c)
     {
         baseColor = c;
-        if (sr != null) sr.color = c;
+        Tint(c);
+    }
+
+    void Tint(Color c)
+    {
+        foreach (SpriteRenderer r in kitRenderers) if (r != null) r.color = c;
     }
 
     void FixedUpdate()
@@ -307,7 +323,7 @@ public class Goalkeeper : MonoBehaviour
 
         rb.MovePosition(Vector2.MoveTowards(rb.position, target, moveSpeed * Time.fixedDeltaTime));
 
-        if (sr != null && Time.time > flashUntil) sr.color = baseColor;
+        if (Time.time > flashUntil) Tint(baseColor);
     }
 
     // Bola congelada en la línea esperando el QTE. Devuelve true si este frame ya está resuelto.
@@ -573,9 +589,9 @@ public class Goalkeeper : MonoBehaviour
 
     void SaveVisual()
     {
-        if (sr == null) return;
-        sr.color = Color.yellow;
+        Tint(Color.yellow);
         flashUntil = Time.time + saveFlashTime;
+        Saved?.Invoke();
     }
 
     public void ResetPosition()

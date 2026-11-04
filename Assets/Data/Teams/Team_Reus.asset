@@ -15,10 +15,10 @@ MonoBehaviour:
   teamName: Reus Deportiu Virginies
   shortName: REU
   crest: {fileID: 5288294909157949305, guid: 59e412d0218c2d548b26f00ed73d7be8, type: 3}
-  primaryColor: {r: 0, g: 0, b: 0, a: 1}
-  secondaryColor: {r: 1, g: 1, b: 1, a: 1}
+  primaryColor: {r: 0.9528302, g: 0, b: 0, a: 1}
+  secondaryColor: {r: 0, g: 0, b: 0, a: 1}
   alternateColor: {r: 1, g: 1, b: 1, a: 1}
-  jerseyPattern: {fileID: 0}
+  jerseyPattern: {fileID: 21300000, guid: db258ad54cbd55547844fc01e2c8cd7e, type: 3}
   alternatePattern: {fileID: 0}
   goalkeeperColor: {r: 0.2924528, g: 0.2924528, b: 0.2924528, a: 1}
   rating: 80

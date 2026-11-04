@@ -1246,7 +1246,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 87d012d350f64874c8a8db637718824f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MenuPreviewTrigger
-  previewSprite: {fileID: 0}
+  previewSprite: {fileID: 21300000, guid: b77dd1902f8aa354f82a9ac9c9e50a9e, type: 3}
   preview: {fileID: 261124411}
 --- !u!114 &435017974
 MonoBehaviour:
@@ -3615,7 +3615,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 87d012d350f64874c8a8db637718824f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MenuPreviewTrigger
-  previewSprite: {fileID: 0}
+  previewSprite: {fileID: -7427771395507404989, guid: f20b5b8556acd6443bc9ee2d917889aa, type: 3}
   preview: {fileID: 261124411}
 --- !u!114 &1999543910
 MonoBehaviour:

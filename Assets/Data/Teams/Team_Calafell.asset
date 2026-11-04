@@ -15,10 +15,10 @@ MonoBehaviour:
   teamName: CP Calafell
   shortName: CAL
   crest: {fileID: -8198920128388688387, guid: f388be3bf93d2b04a8ffd52e155bc5cf, type: 3}
-  primaryColor: {r: 0.99814713, g: 1, b: 0, a: 1}
+  primaryColor: {r: 0, g: 0.764151, b: 0.20960833, a: 1}
   secondaryColor: {r: 1, g: 1, b: 1, a: 1}
-  alternateColor: {r: 1, g: 1, b: 1, a: 1}
-  jerseyPattern: {fileID: 0}
+  alternateColor: {r: 0.0990566, g: 0.6073106, b: 1, a: 1}
+  jerseyPattern: {fileID: 21300000, guid: db258ad54cbd55547844fc01e2c8cd7e, type: 3}
   alternatePattern: {fileID: 0}
   goalkeeperColor: {r: 1, g: 1, b: 1, a: 1}
   rating: 70
