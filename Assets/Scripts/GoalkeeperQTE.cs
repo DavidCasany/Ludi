@@ -39,14 +39,25 @@ public class GoalkeeperQTE : MonoBehaviour
     static int resolvedFrame = -1;
     public static bool BlocksInput => running != null || resolvedFrame == Time.frameCount;
 
-    // Goal lo usa: con un QTE abierto no puede haber gol (la bola espera en la línea)
-    public static bool ProtectsGoal => running != null;
+    // Goal lo usa: con un QTE abierto no puede haber gol (la bola espera en la línea).
+    // Y con un QTE ACERTADO tampoco, hasta que el portero haga la parada: a velocidad normal un tiro fuerte
+    // puede cruzar la línea en un solo paso de física, antes de que el portero llegue a despejarla.
+    public static bool ProtectsGoal => running != null || (pendingSave != null && Time.unscaledTime < pendingSaveUntil);
+    static GoalkeeperQTE pendingSave;
+    static float pendingSaveUntil;
+    const float PendingSaveTimeout = 1f;   // s reales: si el tiro se va fuera, la protección no se queda puesta
+
+    // La llama Goalkeeper en cuanto despeja la bola del QTE acertado
+    public void SaveDone()
+    {
+        if (pendingSave == this) pendingSave = null;
+    }
 
     // Hay un QTE esperando la pulsación (TouchControls enseña entonces el botón verde ATURA!)
     public static bool IsOpen => running != null;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void ResetStatics() { running = null; resolvedFrame = -1; }
+    static void ResetStatics() { running = null; resolvedFrame = -1; pendingSave = null; }
 
     float startTime, cursor, greenCenter, greenWidth;
     float savedTimeScale = 1f, savedFixedDelta = 0.02f;
@@ -149,6 +160,11 @@ public class GoalkeeperQTE : MonoBehaviour
         resolvedFrame = Time.frameCount;
         lastOk = ok;
         showUntil = Time.unscaledTime + resultShowTime;
+        if (ok)
+        {
+            pendingSave = this;
+            pendingSaveUntil = Time.unscaledTime + PendingSaveTimeout;
+        }
         RestoreTime();
     }
 
@@ -157,12 +173,13 @@ public class GoalkeeperQTE : MonoBehaviour
     {
         if (State == QTEState.Running) RestoreTime();
         State = QTEState.Idle;
+        SaveDone();
     }
 
     void RestoreTime()
     {
         if (running != this) return;
-        Time.timeScale = savedTimeScale;
+        Time.timeScale = savedTimeScale > 0.01f ? savedTimeScale : 1f;   // mai deixar el joc aturat
         Time.fixedDeltaTime = savedFixedDelta;
         running = null;
     }

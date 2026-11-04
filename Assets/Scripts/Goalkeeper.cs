@@ -556,6 +556,7 @@ public class Goalkeeper : MonoBehaviour
     {
         // QTE acertado: el portero SIEMPRE controla y saca la bola jugada. Si no, depende de lo fuerte del tiro.
         bool qteSave = qte != null && qte.State == QTEState.Success && !deflected;
+        if (qte != null) qte.SaveDone();   // el gol ja no cal protegir-lo: la bola surt despejada
         float control = Mathf.Lerp(controlChanceSlow, controlChanceFast,
                                    Mathf.InverseLerp(slowShotSpeed, fastShotSpeed, incomingSpeed));
         if ((qteSave || Random.value < control) && TryKeeperPass(ball))
