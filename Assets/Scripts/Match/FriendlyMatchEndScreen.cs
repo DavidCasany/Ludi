@@ -5,8 +5,8 @@ using UnityEngine.UI;
 using UnityEngine.InputSystem;
 #endif
 
-// Pantalla final de un amistoso (1vs1): botones REVANCHA y MENÚ encima del
-// "FIN DEL PARTIDO" que dibuja el GameManager.
+// Pantalla final de un amistoso (1vs1): botones REVANCHA y MENÚ debajo del
+// cartel FINAL del marcador (ScoreboardHUD).
 // En el torneo no aparece: allí MatchBootstrapper está desactivado y
 // TournamentMatchBridge se encarga de volver al cuadro.
 // No choca con la pausa: PauseController no deja pausar con el partido en FullTime.
@@ -50,14 +50,17 @@ public class FriendlyMatchEndScreen : MonoBehaviour
     {
         Canvas canvas = UIKit.CreateCanvas("FriendlyMatchEnd", 60);
         RectTransform row = UIKit.Rect(canvas.transform, "Buttons");
-        UIKit.Place(row, new Vector2(0.5f, 0.5f), new Vector2(0f, -170f), new Vector2(640f, 96f));
+        // Amb el dit, botons més grans (del port a mòbil). Són botons de Canvas: responen al toc sols
+        bool touch = InputMode.IsTouch;
+        Vector2 size = touch ? new Vector2(340f, 116f) : new Vector2(300f, 96f);
+        UIKit.Place(row, new Vector2(0.5f, 0.5f), new Vector2(0f, -170f - (touch ? 10f : 0f)), new Vector2(size.x * 2f + 40f, size.y));
 
-        rematchButton = UIKit.Button(row, "Revenja", "REVENJA", true, 34f);
-        UIKit.Place((RectTransform)rematchButton.transform, new Vector2(0f, 0.5f), Vector2.zero, new Vector2(300f, 96f));
+        rematchButton = UIKit.Button(row, "Revenja", "REVENJA", true, touch ? 38f : 34f);
+        UIKit.Place((RectTransform)rematchButton.transform, new Vector2(0f, 0.5f), Vector2.zero, size);
         rematchButton.onClick.AddListener(Rematch);
 
-        menuButton = UIKit.Button(row, "Menu", "MENÚ", false, 34f);
-        UIKit.Place((RectTransform)menuButton.transform, new Vector2(1f, 0.5f), Vector2.zero, new Vector2(300f, 96f));
+        menuButton = UIKit.Button(row, "Menu", "MENÚ", false, touch ? 38f : 34f);
+        UIKit.Place((RectTransform)menuButton.transform, new Vector2(1f, 0.5f), Vector2.zero, size);
         menuButton.onClick.AddListener(GoToMenu);
 
         rematchButton.interactable = menuButton.interactable = false;   // s'activen passat inputDelay

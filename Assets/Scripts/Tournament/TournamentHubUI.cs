@@ -319,9 +319,10 @@ public class TournamentHubUI : MonoBehaviour
         if (TournamentSession.UpgradesEnabled)
         {
             int n = TournamentSession.UpgradeIdsOf(rival).Count;
-            TextMeshProUGUI info = UIKit.Text(bar.transform, "RivalInfo",
-                "El rival porta " + n + (n == 1 ? " millora" : " millores") + "  ·  Enter per jugar",
+            string upgrades = "El rival porta " + n + (n == 1 ? " millora" : " millores");
+            TextMeshProUGUI info = UIKit.Text(bar.transform, "RivalInfo", upgrades + "  ·  Enter per jugar",
                 17f, UIKit.TextFaint, FontStyles.Normal, TextAlignmentOptions.Left);
+            InputHint.Attach(info, upgrades);   // con el dedo, sin la parte del Enter
             UIKit.PlaceTopLeft(info.rectTransform, 32f, 126f, 1100f, 24f);
         }
 

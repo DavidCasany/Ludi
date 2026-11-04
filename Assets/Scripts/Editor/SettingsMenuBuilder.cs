@@ -15,8 +15,12 @@ using UnityEngine.InputSystem.UI;
 //
 // Distribución (sigue el blocking, sin panel que lo encierre):
 //   arriba ........ título AJUSTES + barra de acento
-//   centro ........ columna: AUDIO (música, efectos) · PANTALLA (resolución, pantalla completa) · JUEGO (flechas)
+//   centro ........ dos columnas:
+//                     izquierda: AUDIO (música, efectos) · PANTALLA (resolución, pantalla completa) · JUEGO (flechas)
+//                     derecha:   CONTROLS (modo de control, tamaño / opacidad / lado de los controles táctiles)
 //   abajo ......... botón VOLVER + "Esc · Tornar"
+// Dos columnas para que quepa todo sin scroll también en 4:3 (tabletas) y en móviles muy alargados.
+// En la web el desplegable de resolución pasa a ser "Resolució de renderitzat" (lo hace SettingsMenuUI).
 // Todo son GameObjects normales: después se puede retocar a mano.
 public static class SettingsMenuBuilder
 {
@@ -25,7 +29,8 @@ public static class SettingsMenuBuilder
     const string DataPath = DataFolder + "/SettingsData.asset";
 
     // Medidas a 1920×1080 (las más útiles para retocar están luego en la jerarquía, ver instrucciones)
-    const float ColumnWidth = 760f;
+    const float ColumnWidth = 700f;
+    const float ColumnGap = 90f;       // entre las dos columnas (2 × 700 + 90 cabe en 4:3)
     const float ColumnSpacing = 14f;
     const float SectionGap = 22f;     // aire extra encima de cada sección (menos la primera)
     const float LabelHeight = 40f;
@@ -97,8 +102,8 @@ public static class SettingsMenuBuilder
         CanvasScaler scaler = root.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920f, 1080f);
-        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-        scaler.matchWidthOrHeight = 0.5f;
+        // Expand: el lienzo mide al menos 1920×1080 en cualquier formato (móvil 20:9, tableta 4:3...)
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
 
         Image bg = CreateImage(root.transform, "Background", BackgroundColor, null);
         Stretch(bg.rectTransform, 0f);   // tapa el partido cuando se abre desde la pausa y bloquea los clics
@@ -107,6 +112,7 @@ public static class SettingsMenuBuilder
         GameObject header = new GameObject("Header", typeof(RectTransform));
         header.transform.SetParent(root.transform, false);
         Place((RectTransform)header.transform, new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(ColumnWidth, 120f));
+        // (el título usa el ancho de una columna: con dos columnas sigue centrado arriba)
         VerticalLayoutGroup hv = header.AddComponent<VerticalLayoutGroup>();
         hv.childAlignment = TextAnchor.UpperCenter;
         hv.spacing = 4f;
@@ -125,28 +131,52 @@ public static class SettingsMenuBuilder
         Image bar = CreateImage(header.transform, "AccentBar", Accent, null);
         SetSize(bar.gameObject, 120f, 6f, 0f);
 
-        // ---------- Columna de opciones (centro) ----------
-        GameObject column = new GameObject("Options", typeof(RectTransform));
-        column.transform.SetParent(root.transform, false);
-        Place((RectTransform)column.transform, new Vector2(0.5f, 0.5f), new Vector2(0f, -10f), new Vector2(ColumnWidth, 0f));
-        VerticalLayoutGroup cv = column.AddComponent<VerticalLayoutGroup>();
-        cv.spacing = ColumnSpacing;
-        cv.childControlWidth = cv.childControlHeight = true;
-        cv.childForceExpandWidth = true;
-        cv.childForceExpandHeight = false;
-        column.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        // ---------- Opciones (centro): dos columnas alineadas arriba ----------
+        GameObject options = new GameObject("Options", typeof(RectTransform));
+        options.transform.SetParent(root.transform, false);
+        Place((RectTransform)options.transform, new Vector2(0.5f, 0.5f), new Vector2(0f, -10f),
+              new Vector2(ColumnWidth * 2f + ColumnGap, 0f));
+        HorizontalLayoutGroup oh = options.AddComponent<HorizontalLayoutGroup>();
+        oh.spacing = ColumnGap;
+        oh.childAlignment = TextAnchor.UpperCenter;
+        oh.childControlWidth = oh.childControlHeight = true;
+        oh.childForceExpandWidth = oh.childForceExpandHeight = false;
+        ContentSizeFitter of = options.AddComponent<ContentSizeFitter>();
+        of.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+        of.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-        CreateSection(column.transform, "ÀUDIO", true);
+        Transform column = CreateColumn(options.transform, "ColumnLeft");
+        Transform right = CreateColumn(options.transform, "ColumnRight");
+
+        CreateSection(column, "ÀUDIO", true);
         TextMeshProUGUI musicValue, sfxValue;
-        Slider music = CreateSliderBlock(column.transform, "Musica", "Música", uiRes, out musicValue);
-        Slider sfx = CreateSliderBlock(column.transform, "Efectes", "Efectes", uiRes, out sfxValue);
+        Slider music = CreateSliderBlock(column, "Musica", "Música", uiRes, out musicValue);
+        Slider sfx = CreateSliderBlock(column, "Efectes", "Efectes", uiRes, out sfxValue);
 
-        CreateSection(column.transform, "PANTALLA", false);
-        TMP_Dropdown dropdown = CreateDropdownBlock(column.transform, "Resolucion", "Resolució", tmpRes);
-        Toggle fullscreen = CreateToggleRow(column.transform, "PantallaCompleta", "Pantalla completa");
+        CreateSection(column, "PANTALLA", false);
+        TMP_Dropdown dropdown = CreateDropdownBlock(column, "Resolucion", "Resolució", tmpRes);
+        Toggle fullscreen = CreateToggleRow(column, "PantallaCompleta", "Pantalla completa");
 
-        CreateSection(column.transform, "JOC", false);
-        Toggle arrows = CreateToggleRow(column.transform, "FlechasPase", "Mostra les fletxes de passada");
+        CreateSection(column, "JOC", false);
+        Toggle arrows = CreateToggleRow(column, "FlechasPase", "Mostra les fletxes de passada");
+
+        // Columna derecha: controles (sobre todo para móvil y tableta)
+        CreateSection(right, "CONTROLS", true);
+        TMP_Dropdown controlMode = CreateDropdownBlock(right, "ModeControl", "Mode de control", tmpRes);
+        TextMeshProUGUI touchScaleValue, touchOpacityValue;
+        Slider touchScale = CreateSliderBlock(right, "MidaControls", "Mida dels botons tàctils", uiRes, out touchScaleValue);
+        touchScale.minValue = GameSettings.TouchScaleMin;
+        touchScale.maxValue = GameSettings.TouchScaleMax;
+        touchScale.value = 1f;
+        touchScaleValue.text = "100 %";
+        Slider touchOpacity = CreateSliderBlock(right, "OpacitatControls", "Opacitat dels botons tàctils", uiRes,
+                                                out touchOpacityValue);
+        touchOpacity.minValue = GameSettings.TouchOpacityMin;
+        touchOpacity.maxValue = GameSettings.TouchOpacityMax;
+        touchOpacity.value = 0.7f;
+        touchOpacityValue.text = "70 %";
+        Toggle leftHanded = CreateToggleRow(right, "Esquerrans", "Joystick a la dreta (esquerrans)");
+        leftHanded.isOn = false;
 
         // ---------- Volver (abajo, centrado) ----------
         Button back = CreateButton(root.transform, "Volver", "TORNAR");
@@ -158,7 +188,8 @@ public static class SettingsMenuBuilder
 
         // ---------- Navegación con teclado/mando: de arriba abajo, en el orden visual ----------
         // (izquierda/derecha en los sliders cambian el volumen; eso lo hace el propio Slider)
-        Selectable[] order = { music, sfx, dropdown, fullscreen, arrows, back };
+        Selectable[] order = { music, sfx, dropdown, fullscreen, arrows,
+                               controlMode, touchScale, touchOpacity, leftHanded, back };
         for (int i = 0; i < order.Length; i++)
         {
             Navigation nav = new Navigation { mode = Navigation.Mode.Explicit };
@@ -176,6 +207,12 @@ public static class SettingsMenuBuilder
         Wire(ui, "sfxSlider", sfx);
         Wire(ui, "sfxValue", sfxValue);
         Wire(ui, "passArrowsToggle", arrows);
+        Wire(ui, "controlModeDropdown", controlMode);
+        Wire(ui, "touchScaleSlider", touchScale);
+        Wire(ui, "touchScaleValue", touchScaleValue);
+        Wire(ui, "touchOpacitySlider", touchOpacity);
+        Wire(ui, "touchOpacityValue", touchOpacityValue);
+        Wire(ui, "leftHandedToggle", leftHanded);
         Wire(ui, "backButton", back);
 
         Undo.RegisterCreatedObjectUndo(root, "Crear menú de ajustes");
@@ -188,6 +225,22 @@ public static class SettingsMenuBuilder
     }
 
     // ---------- Bloques de la columna ----------
+
+    static Transform CreateColumn(Transform parent, string name)
+    {
+        GameObject col = new GameObject(name, typeof(RectTransform));
+        col.transform.SetParent(parent, false);
+        VerticalLayoutGroup v = col.AddComponent<VerticalLayoutGroup>();
+        v.spacing = ColumnSpacing;
+        v.childAlignment = TextAnchor.UpperCenter;
+        v.childControlWidth = v.childControlHeight = true;
+        v.childForceExpandWidth = true;
+        v.childForceExpandHeight = false;
+        // Solo el ancho: la altura la da el VerticalLayoutGroup (un LayoutElement con altura la pisaría)
+        LayoutElement le = col.AddComponent<LayoutElement>();
+        le.minWidth = le.preferredWidth = ColumnWidth;
+        return col.transform;
+    }
 
     // Título de sección en el color de acento con una línea fina debajo
     static void CreateSection(Transform parent, string text, bool first)

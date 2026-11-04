@@ -319,6 +319,7 @@ public class GameManager : MonoBehaviour
     void OnGUI()
     {
         if (PauseController.IsPaused || HudVisibility.Hidden) return;
+        GUIScale.Apply();   // HUD medido a 1920x1080: se escala a cualquier pantalla (movil, tableta...)
 
         // Con el marcador nuevo (ScoreboardHUD) aqui solo queda el sorteo antiguo, por si no hay pantalla de moneda
         if (scoreboard != null)
@@ -352,10 +353,11 @@ public class GameManager : MonoBehaviour
         DrawCentered("Tria cara o creu", 40, -90f);
 
         GUIStyle btn = new GUIStyle(GUI.skin.button) { fontSize = 36, fontStyle = FontStyle.Bold };
-        float w = 220f, h = 80f, y = Screen.height * 0.5f - 10f;
+        float w = 220f, h = 80f, y = GUIScale.Height * 0.5f - 10f, cx = GUIScale.Width * 0.5f;
 
-        if (GUI.Button(new Rect(Screen.width * 0.5f - w - 20f, y, w, h), "CARA", btn)) ChooseCoin(true);
-        if (GUI.Button(new Rect(Screen.width * 0.5f + 20f, y, w, h), "CREU", btn)) ChooseCoin(false);
+        // GUIScale.Button = GUI.Button que tambien responde a toques (movil / tableta)
+        if (GUIScale.Button(new Rect(cx - w - 20f, y, w, h), "CARA", btn)) ChooseCoin(true);
+        if (GUIScale.Button(new Rect(cx + 20f, y, w, h), "CREU", btn)) ChooseCoin(false);
     }
 
     void DrawCoinResult()
@@ -367,11 +369,12 @@ public class GameManager : MonoBehaviour
 
     void DrawKickoffHint()
     {
+        string how = InputMode.IsTouch ? "(botó PASSA)" : "(clic dret)";
         string text = kickoffTeam == playerTeam
-            ? "TREUS TU: passa-la a un company (clic dret)"
+            ? "TREUS TU: passa-la a un company " + how
             : "Treu el rival";
 
-        DrawCentered(text, 36, 100f - Screen.height * 0.5f);
+        DrawCentered(text, 36, 100f - GUIScale.Height * 0.5f);
     }
 
     void DrawGoalScreen()
@@ -404,7 +407,7 @@ public class GameManager : MonoBehaviour
     void DrawDim(float alpha)
     {
         GUI.color = new Color(0f, 0f, 0f, alpha);
-        GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
+        GUI.DrawTexture(new Rect(0, 0, GUIScale.Width, GUIScale.Height), Texture2D.whiteTexture);
         GUI.color = Color.white;
     }
 
@@ -418,7 +421,7 @@ public class GameManager : MonoBehaviour
         };
         style.normal.textColor = Color.white;
 
-        GUI.Label(new Rect(0, Screen.height * 0.5f + yOffset - 100f, Screen.width, 200f), text, style);
+        GUI.Label(new Rect(0, GUIScale.Height * 0.5f + yOffset - 100f, GUIScale.Width, 200f), text, style);
     }
 
     string FormatTime(float seconds)

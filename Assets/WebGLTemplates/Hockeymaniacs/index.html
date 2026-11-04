@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#12151c">
+<title>{{{ PRODUCT_NAME }}}</title>
+<style>
+  html, body { margin: 0; width: 100%; height: 100%; background: #12151c; overflow: hidden;
+               font-family: Arial, sans-serif; overscroll-behavior: none; -webkit-user-select: none; user-select: none;
+               -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; touch-action: none; }
+  /* Toda la ventana, con el formato limitado entre 4:3 y 21:9 (el juego se adapta a cualquiera de ellos) */
+  #unity-canvas { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+                  width: min(100vw, 233.34vh); height: min(100vh, 75vw);
+                  background: #12151c; outline: none; display: block; touch-action: none; }
+  @supports (height: 100dvh) {
+    /* dvh = alto real sin la barra del navegador del móvil */
+    #unity-canvas { width: min(100vw, 233.34dvh); height: min(100dvh, 75vw); }
+  }
+  #loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center;
+             justify-content: center; color: #e8ecf3; gap: 18px; text-align: center; padding: 16px; }
+  #loading h1 { margin: 0; font-size: clamp(28px, 7vw, 48px); letter-spacing: 6px; }
+  #loading h1 span { color: #f2782b; }
+  #bar { width: min(320px, 70vw); height: 10px; border-radius: 5px; background: #2a3242; overflow: hidden; }
+  #fill { width: 0; height: 100%; background: #f2782b; transition: width .15s; }
+  #fs { position: absolute; right: 12px; bottom: 12px; padding: 8px 14px; border: 0; border-radius: 8px;
+        background: #2a3242; color: #e8ecf3; cursor: pointer; font-size: 14px; display: none; z-index: 5; }
+  #fs:hover { background: #f2782b; }
+  /* En móvil/tableta abajo están los botones del juego: el de pantalla completa va arriba en el centro */
+  @media (pointer: coarse) { #fs { right: auto; bottom: auto; left: 50%; top: 8px; transform: translateX(-50%);
+                                   opacity: .8; font-size: 13px; } }
+  #rotate { display: none; position: fixed; inset: 0; z-index: 20; background: #12151c; color: #e8ecf3;
+            flex-direction: column; align-items: center; justify-content: center; gap: 22px; text-align: center; }
+  #rotate .phones { display: flex; gap: 28px; align-items: center; }
+  #rotate .tall { width: 46px; height: 80px; border-radius: 10px; background: #4a5363; }
+  #rotate .wide { width: 80px; height: 46px; border-radius: 10px; background: #f2782b; }
+  #rotate b { font-size: 26px; letter-spacing: 3px; }
+  #rotate p { margin: 0; color: #9aa5b8; }
+  @media (orientation: portrait) and (pointer: coarse) { #rotate { display: flex; } }
+</style>
+</head>
+<body>
+<canvas id="unity-canvas" tabindex="-1"></canvas>
+<div id="loading"><h1>HOCKEY<span>MANIACS</span></h1><div id="bar"><div id="fill"></div></div><p id="msg">Carregant…</p></div>
+<div id="rotate"><div class="phones"><div class="tall"></div><div class="wide"></div></div><b>GIRA EL DISPOSITIU</b><p>El joc es juga en horitzontal</p></div>
+<button id="fs">Pantalla completa</button>
+<script>
+function ludiRatio() {
+  var f = 0;
+  try { var v = localStorage.getItem('ludi_render_scale'); if (v !== null) f = parseFloat(v) || 0; } catch (e) {}
+  var dpr = window.devicePixelRatio || 1;
+  return Math.max(0.5, f > 0 ? dpr * f : Math.min(dpr, 2));
+}
+function ludiCoarse() { return !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches); }
+function ludiFsSupported() { return !!(document.fullscreenEnabled || document.webkitFullscreenEnabled); }
+function ludiInFs() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+function ludiReady(instance, canvas) {
+  var loading = document.getElementById('loading');
+  if (loading) loading.remove();
+  var fs = document.getElementById('fs');
+  function refresh() { fs.style.display = ludiFsSupported() && !ludiInFs() ? 'block' : 'none'; }
+  fs.onclick = function (e) { e.preventDefault(); instance.SetFullscreen(1); };
+  document.addEventListener('fullscreenchange', refresh);
+  document.addEventListener('webkitfullscreenchange', refresh);
+  refresh();
+  // Móvil / tableta: el primer toque en el juego pide pantalla completa (Android la bloquea en horizontal)
+  if (ludiCoarse() && ludiFsSupported()) {
+    var first = function () {
+      canvas.removeEventListener('touchend', first);
+      if (!ludiInFs()) instance.SetFullscreen(1);
+    };
+    canvas.addEventListener('touchend', first);
+  }
+  document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  canvas.focus();
+}
+function ludiProgress(p) { var f = document.getElementById('fill'); if (f) f.style.width = (100 * p) + '%'; }
+function ludiError(e) { var m = document.getElementById('msg'); if (m) m.textContent = 'No s\'ha pogut carregar el joc: ' + e; }
+function ludiBanner(text, type) { (type === 'error' ? console.error : console.warn)(text); }
+</script>
+<script src="Build/{{{ LOADER_FILENAME }}}"></script>
+<script>
+(function () {
+  var canvas = document.getElementById('unity-canvas');
+  var config = {
+    dataUrl: "Build/{{{ DATA_FILENAME }}}",
+    frameworkUrl: "Build/{{{ FRAMEWORK_FILENAME }}}",
+#if USE_THREADS
+    workerUrl: "Build/{{{ WORKER_FILENAME }}}",
+#endif
+#if USE_WASM
+    codeUrl: "Build/{{{ CODE_FILENAME }}}",
+#endif
+#if MEMORY_FILENAME
+    memoryUrl: "Build/{{{ MEMORY_FILENAME }}}",
+#endif
+#if SYMBOLS_FILENAME
+    symbolsUrl: "Build/{{{ SYMBOLS_FILENAME }}}",
+#endif
+    streamingAssetsUrl: "StreamingAssets",
+    companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
+    productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
+    productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
+    devicePixelRatio: ludiRatio(),
+    showBanner: ludiBanner
+  };
+  createUnityInstance(canvas, config, ludiProgress)
+    .then(function (instance) { ludiReady(instance, canvas); })
+    .catch(ludiError);
+})();
+</script>
+</body>
+</html>

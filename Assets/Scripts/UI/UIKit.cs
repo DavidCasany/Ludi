@@ -96,7 +96,7 @@ public static class UIKit
 
     // ---------- Canvas ----------
 
-    // Canvas de pantalla completa a 1920×1080 (se adapta a cualquier resolución)
+    // Canvas de pantalla completa a 1920×1080 (se adapta a cualquier resolución y formato: ver ResponsiveCanvas)
     public static Canvas CreateCanvas(string name, int sortingOrder)
     {
         GameObject go = new GameObject(name, typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler),
@@ -108,8 +108,8 @@ public static class UIKit
         CanvasScaler scaler = go.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920f, 1080f);
-        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-        scaler.matchWidthOrHeight = 0.5f;
+        // Expand: el lienzo mide al menos 1920×1080 en cualquier formato (móvil 20:9, tableta 4:3...)
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
 
         EnsureEventSystem();
         return canvas;

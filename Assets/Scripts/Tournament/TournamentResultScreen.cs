@@ -105,6 +105,7 @@ public class TournamentResultScreen : MonoBehaviour
 
         TextMeshProUGUI hint = UIKit.Text(root, "Hint", "Enter · Continuar", 20f, UIKit.TextFaint);
         UIKit.Place(hint.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 14f), new Vector2(400f, 28f));
+        InputHint.Attach(hint, null);   // con el dedo no hay Enter: se oculta
 
         if (draft != null) draft.Begin();   // puede completarse en el acto si no quedan mejoras disponibles
         else UIKit.Select(continueButton);

@@ -15,6 +15,13 @@ public class GameCamera : MonoBehaviour
     public float sizeSmooth = 3f;
     public float viewMargin = 3f;        // espacio extra para ver al jugador controlado y la bola a la vez
 
+    [Header("Formatos de pantalla")]
+    [Tooltip("Aspecto para el que estan pensados baseSize y maxSize (16:9)")]
+    public float referenceAspect = 16f / 9f;
+    [Range(0f, 1f), Tooltip("En pantallas mas cuadradas (tableta 4:3) se ve menos de lado: se aleja un poco " +
+                            "para compensarlo. 0 = nada, 1 = mismo ancho visible que en 16:9")]
+    public float narrowAspectZoomOut = 0.5f;
+
     [Header("Seguimiento")]
     public float followSmooth = 4.5f;    // mayor = más pegada a la acción
     [Range(0f, 1f)] public float ballWeight = 0.7f;   // peso de la bola frente al jugador controlado
@@ -110,7 +117,8 @@ public class GameCamera : MonoBehaviour
 
         // ---------- Zoom ----------
         float speed = ball.rb.linearVelocity.magnitude;
-        float desiredSize = baseSize + speedZoom * Mathf.Clamp01(speed / 25f);
+        float aspectK = AspectFactor();
+        float desiredSize = (baseSize + speedZoom * Mathf.Clamp01(speed / 25f)) * aspectK;
 
         if (ctrl != null)
         {
@@ -120,7 +128,7 @@ public class GameCamera : MonoBehaviour
             float needW = (Mathf.Abs(d.x) * 0.5f + viewMargin) / cam.aspect;
             desiredSize = Mathf.Max(desiredSize, needH, needW);
         }
-        desiredSize = Mathf.Clamp(desiredSize, baseSize, maxSize);
+        desiredSize = Mathf.Clamp(desiredSize, baseSize * aspectK, maxSize * aspectK);
 
         if (!initialized)
         {
@@ -148,6 +156,14 @@ public class GameCamera : MonoBehaviour
         }
 
         transform.position = new Vector3(smoothPos.x + shake.x, smoothPos.y + shake.y, transform.position.z);
+    }
+
+    // 1 en 16:9 o mas ancho (movil 20:9 ya ve mas de lado). Por debajo, crece hacia ref/aspect.
+    float AspectFactor()
+    {
+        float a = Mathf.Max(0.1f, cam.aspect);
+        if (a >= referenceAspect) return 1f;
+        return 1f + narrowAspectZoomOut * (referenceAspect / a - 1f);
     }
 
     static float ApplyDeadZone(float v, float zone)

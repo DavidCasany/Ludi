@@ -194,6 +194,7 @@ public class Feedback : MonoBehaviour
         if (cam == null) cam = Camera.main;
         if (cam == null) return;
 
+        GUIScale.Apply();
         if (style == null)
         {
             style = new GUIStyle(GUI.skin.label);
@@ -211,8 +212,9 @@ public class Feedback : MonoBehaviour
             Vector3 sp = cam.WorldToScreenPoint(p.pos);
             if (sp.z < 0f) continue;
 
-            float x = sp.x;
-            float y = Screen.height - sp.y - 60f - 50f * t;   // sube mientras se desvanece
+            Vector2 gp = GUIScale.FromScreen(sp);             // a unidades de OnGUI (escaladas)
+            float x = gp.x;
+            float y = gp.y - 60f - 50f * t;   // sube mientras se desvanece
             float alpha = 1f - t * t;
 
             // Etiqueta metàl·lica petita darrere del text (estil de l'art, HudSkin)

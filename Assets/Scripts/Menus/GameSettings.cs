@@ -2,11 +2,16 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
+// Automàtic = según el dispositivo y lo último que se ha usado (InputMode); los otros lo fuerzan
+public enum ControlPreference { Auto = 0, KeyboardMouse = 1, Touch = 2 }
+
 // Ajustes actuales del juego. Estático: cualquier escena los lee sin referencias
 // (GameSettings.MusicVolume, GameSettings.PassArrows...).
 //  - Se cargan de PlayerPrefs al arrancar el juego, antes de la primera escena, y se aplican.
 //  - Cada Set... aplica el cambio al momento, lo guarda y lanza Changed.
 //  - Si nunca se ha guardado nada, se usan los valores por defecto de SettingsData.
+//  - Web / móvil: la resolución la pone la página (en su lugar hay "resolución de render") y se añaden
+//    los ajustes del modo de control y de los controles táctiles.
 public static class GameSettings
 {
     const string KeyWidth = "settings_width";
@@ -15,13 +20,29 @@ public static class GameSettings
     const string KeyMusic = "settings_music";
     const string KeySfx = "settings_sfx";
     const string KeyArrows = "settings_pass_arrows";
+    const string KeyControls = "settings_controls";
+    const string KeyTouchScale = "settings_touch_scale";
+    const string KeyTouchOpacity = "settings_touch_opacity";
+    const string KeyTouchLeft = "settings_touch_left";
+    const string KeyRenderScale = "settings_render_scale";
     const string KeyVersion = "settings_version";
 
     // Súbelo cuando cambien los valores por defecto o el formato: los ajustes guardados con otra versión
     // (p. ej. los de las pruebas en el editor) se descartan y se vuelve a los de SettingsData.
     const int Version = 2;
 
-    static readonly string[] AllKeys = { KeyWidth, KeyHeight, KeyFullscreen, KeyMusic, KeySfx, KeyArrows, KeyVersion };
+    // Las claves nuevas (controles táctiles, render web) no obligan a subir Version: si faltan en un guardado
+    // antiguo se usa el valor por defecto
+    static readonly string[] AllKeys = { KeyWidth, KeyHeight, KeyFullscreen, KeyMusic, KeySfx, KeyArrows,
+                                         KeyControls, KeyTouchScale, KeyTouchOpacity, KeyTouchLeft, KeyRenderScale,
+                                         KeyVersion };
+
+    // Límites de los controles táctiles (los usan también los sliders de Configuració)
+    public const float TouchScaleMin = 0.7f, TouchScaleMax = 1.4f;
+    public const float TouchOpacityMin = 0.25f, TouchOpacityMax = 1f;
+
+    // Escalas de render que ofrece el desplegable en la web (0 = automática)
+    public static readonly float[] RenderScales = { 0f, 1f, 0.75f, 0.5f };
 
     public static int Width { get; private set; }
     public static int Height { get; private set; }
@@ -29,6 +50,12 @@ public static class GameSettings
     public static float MusicVolume { get; private set; }
     public static float SfxVolume { get; private set; }
     public static bool PassArrows { get; private set; }
+    public static ControlPreference Controls { get; private set; }
+    public static float TouchScale { get; private set; } = 1f;
+    public static float TouchOpacity { get; private set; } = 0.7f;
+    public static bool TouchLeftHanded { get; private set; }
+    // Solo web: resolución interna del canvas respecto a la de la pantalla (0 = automática)
+    public static float RenderScale { get; private set; }
 
     // Se lanza tras cualquier cambio (lo escuchan los AudioVolume, por ejemplo)
     public static event Action Changed;
@@ -57,6 +84,12 @@ public static class GameSettings
     // pedir desde un clic del jugador: no se toca nada al arrancar y el desplegable de resolución se oculta.
     public static bool IsWeb => Application.platform == RuntimePlatform.WebGLPlayer;
 
+    // Build nativa de Android/iOS: la resolución y la pantalla completa las decide el sistema
+    public static bool IsNativeMobile => Application.isMobilePlatform && !IsWeb;
+
+    // Por si alguien lee los ajustes antes que Init (el orden de los RuntimeInitializeOnLoadMethod no es fijo)
+    public static void EnsureLoaded() => Load();
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     static void Init()
     {
@@ -64,8 +97,10 @@ public static class GameSettings
         if (IsWeb)
         {
             Fullscreen = false;   // el navegador siempre arranca en ventana
+            WebPlatform.SetRenderScale(RenderScale);
             return;
         }
+        if (IsNativeMobile) return;   // siempre pantalla completa a la resolución del dispositivo
         ClampToAvailable();   // p. ej. se guardó 2560×1440 y ahora el monitor es de 1920×1080
         ApplyDisplay();
     }
@@ -74,7 +109,7 @@ public static class GameSettings
 
     public static void SetResolution(int width, int height)
     {
-        if (IsWeb) return;
+        if (IsWeb || IsNativeMobile) return;
         Width = width;
         Height = height;
         ApplyDisplay();
@@ -92,6 +127,7 @@ public static class GameSettings
             Save();
             return;
         }
+        if (IsNativeMobile) { Save(); return; }
         ClampToAvailable();
         ApplyDisplay();
         Save();
@@ -115,11 +151,47 @@ public static class GameSettings
         Save();
     }
 
+    public static void SetControls(ControlPreference p)
+    {
+        Controls = p;
+        Save();
+    }
+
+    public static void SetTouchScale(float v)
+    {
+        TouchScale = Mathf.Clamp(v, TouchScaleMin, TouchScaleMax);
+        Save();
+    }
+
+    public static void SetTouchOpacity(float v)
+    {
+        TouchOpacity = Mathf.Clamp(v, TouchOpacityMin, TouchOpacityMax);
+        Save();
+    }
+
+    public static void SetTouchLeftHanded(bool on)
+    {
+        TouchLeftHanded = on;
+        Save();
+    }
+
+    // Solo hace algo en la web: cambia la resolución interna del canvas al momento
+    public static void SetRenderScale(float scale)
+    {
+        RenderScale = Mathf.Clamp(scale, 0f, 1f);
+        if (IsWeb) WebPlatform.SetRenderScale(RenderScale);
+        Save();
+    }
+
     public static void ResetToDefaults()
     {
         LoadDefaults();
-        ClampToAvailable();
-        ApplyDisplay();
+        if (IsWeb) WebPlatform.SetRenderScale(RenderScale);
+        else if (!IsNativeMobile)
+        {
+            ClampToAvailable();
+            ApplyDisplay();
+        }
         Save();
     }
 
@@ -214,6 +286,11 @@ public static class GameSettings
         MusicVolume = PlayerPrefs.GetFloat(KeyMusic, MusicVolume);
         SfxVolume = PlayerPrefs.GetFloat(KeySfx, SfxVolume);
         PassArrows = PlayerPrefs.GetInt(KeyArrows, PassArrows ? 1 : 0) == 1;
+        Controls = (ControlPreference)Mathf.Clamp(PlayerPrefs.GetInt(KeyControls, (int)Controls), 0, 2);
+        TouchScale = Mathf.Clamp(PlayerPrefs.GetFloat(KeyTouchScale, TouchScale), TouchScaleMin, TouchScaleMax);
+        TouchOpacity = Mathf.Clamp(PlayerPrefs.GetFloat(KeyTouchOpacity, TouchOpacity), TouchOpacityMin, TouchOpacityMax);
+        TouchLeftHanded = PlayerPrefs.GetInt(KeyTouchLeft, TouchLeftHanded ? 1 : 0) == 1;
+        RenderScale = Mathf.Clamp(PlayerPrefs.GetFloat(KeyRenderScale, RenderScale), 0f, 1f);
     }
 
     static void LoadDefaults()
@@ -224,6 +301,11 @@ public static class GameSettings
         MusicVolume = d != null ? d.DefaultMusicVolume : 0.8f;
         SfxVolume = d != null ? d.DefaultSfxVolume : 0.8f;
         PassArrows = d == null || d.DefaultPassArrows;
+        Controls = d != null ? d.DefaultControls : ControlPreference.Auto;
+        TouchScale = d != null ? Mathf.Clamp(d.DefaultTouchScale, TouchScaleMin, TouchScaleMax) : 1f;
+        TouchOpacity = d != null ? Mathf.Clamp(d.DefaultTouchOpacity, TouchOpacityMin, TouchOpacityMax) : 0.7f;
+        TouchLeftHanded = d != null && d.DefaultTouchLeftHanded;
+        RenderScale = d != null ? Mathf.Clamp(d.DefaultRenderScale, 0f, 1f) : 0f;
 
         // Si no cabe en el monitor (p. ej. un portátil 1366×768), ClampToAvailable la baja después
         Width = res.x;
@@ -245,6 +327,11 @@ public static class GameSettings
         PlayerPrefs.SetFloat(KeyMusic, MusicVolume);
         PlayerPrefs.SetFloat(KeySfx, SfxVolume);
         PlayerPrefs.SetInt(KeyArrows, PassArrows ? 1 : 0);
+        PlayerPrefs.SetInt(KeyControls, (int)Controls);
+        PlayerPrefs.SetFloat(KeyTouchScale, TouchScale);
+        PlayerPrefs.SetFloat(KeyTouchOpacity, TouchOpacity);
+        PlayerPrefs.SetInt(KeyTouchLeft, TouchLeftHanded ? 1 : 0);
+        PlayerPrefs.SetFloat(KeyRenderScale, RenderScale);
         PlayerPrefs.SetInt(KeyVersion, Version);
         PlayerPrefs.Save();
         Changed?.Invoke();

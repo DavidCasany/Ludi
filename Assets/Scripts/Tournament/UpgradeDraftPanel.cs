@@ -52,6 +52,7 @@ public class UpgradeDraftPanel : MonoBehaviour
         h.childForceExpandWidth = h.childForceExpandHeight = false;
 
         TextMeshProUGUI hint = UIKit.Text(root, "Hint", "Clica una carta  ·  o prem 1, 2, 3", 20f, UIKit.TextFaint);
+        InputHint.Attach(hint, "Toca una carta per triar-la");
         UIKit.Place(hint.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -136f - CardHeight),
                     new Vector2(1000f, 30f));
     }
@@ -169,6 +170,7 @@ public class UpgradeDraftPanel : MonoBehaviour
 
         // Atajo de teclado, arriba a la derecha del papel
         TextMeshProUGUI key = UIKit.Text(card.transform, "Key", number.ToString(), 16f, InkSoft, FontStyles.Bold);
+        InputHint.Attach(key, null);   // el número es la tecla: con el dedo no hace falta
         UIKit.Place(key.rectTransform, new Vector2(0f, 1f), new Vector2(0.86f * W - 14f, -0.145f * H), new Vector2(28f, 24f));
 
         float y = 0.16f * H + 40f;
