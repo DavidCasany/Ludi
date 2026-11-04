@@ -13,7 +13,7 @@ using UnityEngine.SceneManagement;
 //
 // Las medidas reales (metros) se pasan a unidades de Unity con una escala automática:
 //   escala = min(anchoPista / 40, altoPista / 20)
-// y todo lo que depende de la portería se mide desde su BOCA real (Goal.Mouth), así las marcas
+// y todo lo que depende de la portería se mide desde la BOCA de su marco (cara de los postes), así las marcas
 // siempre cuadran con las porterías de la escena aunque no estén a la distancia reglamentaria.
 //
 // El suelo es una textura procedural (parquet o terrazo) generada al cargar la escena.
@@ -182,8 +182,7 @@ public class RinkVisual : MonoBehaviour
     // Marcas de un fondo de pista: área de penalti, semicírculo del portero, línea de gol y puntos
     void BuildGoalEnd(Goal goal, int index, Vector3 center, Bounds rink, float s)
     {
-        Vector2 mouth2 = goal.Mouth;
-        Vector3 mouth = new Vector3(mouth2.x, mouth2.y, 0f);
+        Vector3 mouth = GoalFront(goal, center);
         float front = mouth.x < center.x ? 1f : -1f;   // dirección hacia el centro de la pista
 
         // Si en la escena la portería está más cerca del centro que en la realidad, se encogen las marcas
@@ -227,6 +226,42 @@ public class RinkVisual : MonoBehaviour
                  lineColor, SpotOrder);
         MakeFill("PuntoFaltaDirecta" + index, Circle(mouth + new Vector3(front * freeHitSpotDistance * sg, 0f, 0f), spotRadius, 20),
                  lineColor, SpotOrder);
+    }
+
+    // Boca VISUAL de la portería: la cara del marco (postes) que mira al centro de la pista.
+    // No sirve Goal.Mouth: la ZonaGol (trigger que cuenta el gol) está en medio de la portería, no en la
+    // boca, y las marcas quedaban por detrás de los postes (la portería parecía adelantada).
+    // Se usan los colliders sólidos del marco (prefab Porteria: postes y fondo); si no hay, el dibujo.
+    Vector3 GoalFront(Goal goal, Vector3 center)
+    {
+        Vector2 m = goal.Mouth;
+        Transform root = goal.transform.parent != null ? goal.transform.parent : goal.transform;
+
+        bool has = false;
+        Bounds frame = default(Bounds);
+        foreach (Collider2D col in root.GetComponentsInChildren<Collider2D>())
+        {
+            if (col.isTrigger || !NearGoal(col.bounds, m)) continue;
+            if (!has) { frame = col.bounds; has = true; } else frame.Encapsulate(col.bounds);
+        }
+        if (!has)
+        {
+            foreach (SpriteRenderer sr in root.GetComponentsInChildren<SpriteRenderer>())
+            {
+                if (!sr.enabled || sr.sprite == null || !NearGoal(sr.bounds, m)) continue;
+                if (!has) { frame = sr.bounds; has = true; } else frame.Encapsulate(sr.bounds);
+            }
+        }
+        if (!has) return new Vector3(m.x, m.y, 0f);
+
+        float fx = m.x < center.x ? frame.max.x : frame.min.x;
+        return new Vector3(fx, m.y, 0f);
+    }
+
+    // Descarta objetos que no son de esta portería (por si el padre agrupa más cosas)
+    static bool NearGoal(Bounds b, Vector2 mouth)
+    {
+        return Mathf.Abs(b.center.x - mouth.x) < 2.5f && Mathf.Abs(b.center.y - mouth.y) < 3f;
     }
 
     // ---------------------------------------------------------------- SUELO
