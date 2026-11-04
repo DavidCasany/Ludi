@@ -15,10 +15,10 @@ using UnityEngine.UI;
 public class GoalkeeperQTEMeter : MonoBehaviour
 {
     [Tooltip("Radi de l'arc en píxels de referència (pantalla de 1080 d'alt)")]
-    [SerializeField] float radiusPx = 130f;
+    [SerializeField] float radiusPx = 85f;
     [Tooltip("Gruix de la franja (fracció del radi)")]
-    [SerializeField, Range(0.08f, 0.4f)] float thickness = 0.2f;
-    [SerializeField] float labelSize = 30f;
+    [SerializeField, Range(0.08f, 0.4f)] float thickness = 0.16f;
+    [SerializeField] float labelSize = 24f;
 
     const float CanvasSize = 400f;   // unitats internes del Canvas (es reescala al món)
 
@@ -108,7 +108,7 @@ public class GoalkeeperQTEMeter : MonoBehaviour
 
         // El text, just per davant de l'arc (cap a d'on ve la bola), sense girar
         float r = CanvasSize * 0.25f;
-        label.anchoredPosition = towardShot * (r + 46f);
+        label.anchoredPosition = towardShot * (r + 34f);
     }
 
     // ---------- Construcció ----------
@@ -154,10 +154,10 @@ public class GoalkeeperQTEMeter : MonoBehaviour
         float rMid = d * 0.5f * (1f - thickness * 0.5f);
         float len = d * 0.5f * thickness * 1.9f;
         tickBack = UIKit.Image(cursorPivot, "TickOutline", HudSkin.Ink, 4f);
-        tickBack.rectTransform.sizeDelta = new Vector2(len + 8f, 16f);
+        tickBack.rectTransform.sizeDelta = new Vector2(len + 6f, 12f);
         tickBack.rectTransform.anchoredPosition = new Vector2(-rMid, 0f);
         tick = UIKit.Image(cursorPivot, "Tick", Color.white, 3f);
-        tick.rectTransform.sizeDelta = new Vector2(len, 8f);
+        tick.rectTransform.sizeDelta = new Vector2(len, 6f);
         tick.rectTransform.anchoredPosition = new Vector2(-rMid, 0f);
 
         // Text (fora de l'arc, perquè no es giri ni s'emmiralli)

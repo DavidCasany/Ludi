@@ -262,6 +262,7 @@ public static class GameSettings
     {
 #if UNITY_EDITOR
         Debug.Log($"[GameSettings] Monitor: «{d.name}». A l'editor no es mou la finestra: prova-ho al joc compilat.");
+        DisplayChanged?.Invoke();   // (no canvia res, però la pantalla de Configuració es refresca igual)
 #else
         Vector2Int pos = Vector2Int.zero;
         if (!Fullscreen)
