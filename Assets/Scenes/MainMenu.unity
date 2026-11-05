@@ -586,7 +586,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: HOCKEY<color=#F2782B>MANIACS</color>
+  m_text: HOQUEI<color=#F2782B>MANIACS</color>
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: e36ba09ca8a840a4ca0cf60ff963d0cf, type: 2}
   m_sharedMaterial: {fileID: 2100000, guid: 22cf8527882d4b945ba79614cb1b08fb, type: 2}
@@ -1707,12 +1707,15 @@ MonoBehaviour:
   settingsButton: {fileID: 903365489}
   creditsButton: {fileID: 102374618}
   quitButton: {fileID: 73096183}
+  controlsButton: {fileID: 0}
   rows:
   - {fileID: 1999543908}
   - {fileID: 435017972}
   - {fileID: 102374612}
   - {fileID: 73096177}
   wrapNavigation: 1
+  gearSpinTime: 0.45
+  gearSpinDegrees: 360
 --- !u!1 &818234442
 GameObject:
   m_ObjectHideFlags: 0
