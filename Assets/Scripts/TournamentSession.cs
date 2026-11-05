@@ -74,7 +74,8 @@ public static class TournamentSession
 
     // ---------- Inicio ----------
 
-    public static bool StartNew(TournamentConfig config)
+    // 'player': l'equip triat a la pantalla de selecció; si és null (o no és del torneig), el del config
+    public static bool StartNew(TournamentConfig config, TeamData player = null)
     {
         string error="";
         if (config == null || !config.IsValid(out error))
@@ -84,7 +85,8 @@ public static class TournamentSession
         }
 
         Config = config;
-        PlayerTeam = IndexOf(config.PlayerTeam);
+        PlayerTeam = IndexOf(player);
+        if (PlayerTeam < 0) PlayerTeam = IndexOf(config.PlayerTeam);
         rngSeed = Environment.TickCount;
         rng = new System.Random(rngSeed);
         simulatedCount = 0;

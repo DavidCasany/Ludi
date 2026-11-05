@@ -15,6 +15,8 @@ public class TournamentHub : MonoBehaviour
 {
     [SerializeField] TournamentConfig config;
     [SerializeField] string mainMenuScene = "MainMenu";
+    [Tooltip("Pantalla on es tria l'equip en començar un torneig nou")]
+    [SerializeField] string teamSelectionScene = "TeamSelection";
 
     TournamentHubUI ui;
     BracketMatch nextMatch;
@@ -80,9 +82,10 @@ public class TournamentHub : MonoBehaviour
 
     void NewTournament()
     {
-        if (leaving) return;
-        TournamentSession.ClearSave();
-        if (TournamentSession.StartNew(config)) Advance();
+        if (leaving || !SceneReady(teamSelectionScene)) return;
+        leaving = true;
+        TeamSelectionUI.TournamentRequest = config;
+        SceneManager.LoadScene(teamSelectionScene);
     }
 
     void BackToMenu()

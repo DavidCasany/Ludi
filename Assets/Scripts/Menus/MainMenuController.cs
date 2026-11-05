@@ -126,17 +126,18 @@ public class MainMenuController : MonoBehaviour
         StartNewTournament();
     }
 
+    // Es tria l'equip a la pantalla de selecció (la del PvE, amb un sol equip); allà es crea el torneig
     void StartNewTournament()
     {
-        TryLoad(TournamentScene, "Nuevo torneo", () =>
+        TryLoad(pveScene, "Nuevo torneo", () =>
         {
             if (tournamentConfig == null)
             {
                 Debug.LogError("[MainMenu] Asigna un TournamentConfig al MainMenuController.", this);
                 return false;
             }
-            TournamentSession.ClearSave();
-            return TournamentSession.StartNew(tournamentConfig);
+            TeamSelectionUI.TournamentRequest = tournamentConfig;
+            return true;
         });
     }
 

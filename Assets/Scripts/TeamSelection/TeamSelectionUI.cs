@@ -16,8 +16,18 @@ using UnityEngine.InputSystem;
 //  - Un equipo ya elegido por el otro lado no se puede elegir (mismos colores = no se distinguen).
 //  - JUGAR rellena un MatchSetup a través de TeamSelectionLauncher; no se carga Match a mano.
 //  - Esc: desde el visitante vuelve al local; desde el local vuelve al menú.
+//
+// Modo torneo (TournamentRequest != null, lo pone el menú en "Torneig nou"):
+//  - solo se elige TU equipo (el panel del rival se oculta) entre los equipos del torneo,
+//  - JUGAR crea el torneo con ese equipo y carga el cuadro.
 public class TeamSelectionUI : MonoBehaviour
 {
+    // Torneo pendiente de empezar: si no es null, esta pantalla elige el equipo del torneo
+    public static TournamentConfig TournamentRequest { get; set; }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetStatics() => TournamentRequest = null;
+
     enum Side { Home, Away }
 
     [Header("Equipos (los TeamData de Assets/Data/Teams)")]
@@ -57,7 +67,9 @@ public class TeamSelectionUI : MonoBehaviour
     bool leaving;
     bool navigating;   // la última entrada fue teclado/mando (con ratón no se mueve la selección sola)
 
-    bool IsPvP => mode == MatchMode.PvP;
+    TournamentConfig tournament;   // modo torneo
+    bool IsTournament => tournament != null;
+    bool IsPvP => !IsTournament && mode == MatchMode.PvP;
     TeamSidePanel ActivePanel => active == Side.Home ? homePanel : awayPanel;
     TeamData ActiveTeam => active == Side.Home ? home : away;
     TeamData OtherTeam => active == Side.Home ? away : home;
@@ -74,6 +86,14 @@ public class TeamSelectionUI : MonoBehaviour
         homePanel.Button.onClick.AddListener(() => SetActiveSide(Side.Home));
         awayPanel.Button.onClick.AddListener(() => SetActiveSide(Side.Away));
 
+        tournament = TournamentRequest;
+        if (IsTournament)
+        {
+            // Los equipos son los del torneo, no la lista del 1 VS 1
+            List<TeamData> list = new List<TeamData>();
+            foreach (TeamData t in tournament.Teams) list.Add(t);
+            teams = list.ToArray();
+        }
         BuildCards();
     }
 
@@ -82,9 +102,14 @@ public class TeamSelectionUI : MonoBehaviour
         Time.timeScale = 1f;   // por si venimos de un partido pausado
         mode = MatchLaunch.Mode == MatchMode.PvP ? MatchMode.PvP : MatchMode.PvE;   // aquí Torneo no aplica
 
-        if (titleText != null) titleText.text = IsPvP ? "1 VS 1 · PvP" : "1 VS 1 · PvE";
+        if (titleText != null) titleText.text = IsTournament ? "TORNEIG" : IsPvP ? "1 VS 1 · PvP" : "1 VS 1 · PvE";
         homePanel.SetTitle(IsPvP ? "JUGADOR 1" : "EL TEU EQUIP");
         awayPanel.SetTitle(IsPvP ? "JUGADOR 2" : "RIVAL · CPU");
+        if (IsTournament)
+        {
+            awayPanel.gameObject.SetActive(false);   // al torneig els rivals són tots els altres
+            CenterSingleSide();
+        }
         ShowError(null);
 
         SetActiveSide(Side.Home);
@@ -137,6 +162,33 @@ public class TeamSelectionUI : MonoBehaviour
             Debug.LogError("[TeamSelection] Hacen falta al menos 2 equipos en la lista 'teams'.", this);
     }
 
+    // Sense el panell del rival, el panell propi (a l'esquerra) i la graella (al centre) queden desplaçats
+    // a l'esquerra: es tornen a col·locar com un sol bloc centrat [panell | espai | graella].
+    [Tooltip("Modo torneo: espacio entre el panel del equipo y la rejilla")]
+    [SerializeField] float tournamentGap = 70f;
+
+    void CenterSingleSide()
+    {
+        RectTransform panel = (RectTransform)homePanel.transform;
+        RectTransform cardsRt = grid as RectTransform;
+        if (cardsRt == null || panel.parent != cardsRt.parent) return;   // layout tocat a mà: no s'hi toca
+
+        float pw = panel.rect.width, gw = cardsRt.rect.width;
+        float left = -(pw + tournamentGap + gw) * 0.5f;
+        SetCenterX(panel, left + pw * 0.5f, pw);
+        SetCenterX(cardsRt, left + pw + tournamentGap + gw * 0.5f, gw);
+    }
+
+    // Ancla horizontal al centro del padre manteniendo la vertical y el ancho
+    static void SetCenterX(RectTransform rt, float x, float width)
+    {
+        rt.anchorMin = new Vector2(0.5f, rt.anchorMin.y);
+        rt.anchorMax = new Vector2(0.5f, rt.anchorMax.y);
+        rt.pivot = new Vector2(0.5f, rt.pivot.y);
+        rt.sizeDelta = new Vector2(width, rt.sizeDelta.y);
+        rt.anchoredPosition = new Vector2(x, rt.anchoredPosition.y);
+    }
+
     // ---------- Elección ----------
 
     void SetActiveSide(Side side)
@@ -159,12 +211,12 @@ public class TeamSelectionUI : MonoBehaviour
         if (active == Side.Home)
         {
             home = card.Team;
-            if (away == null) { SetActiveSide(Side.Away); return; }
+            if (away == null && !IsTournament) { SetActiveSide(Side.Away); return; }
         }
         else away = card.Team;
 
         Refresh();
-        if (navigating && home != null && away != null) Select(playButton);
+        if (navigating && playButton.interactable) Select(playButton);
     }
 
     void PickRandom()
@@ -208,11 +260,13 @@ public class TeamSelectionUI : MonoBehaviour
         homePanel.Show(home, false);
         awayPanel.Show(away, false);
 
-        playButton.interactable = home != null && away != null && home != away;
+        playButton.interactable = IsTournament ? home != null : home != null && away != null && home != away;
 
         if (instructionText != null)
         {
-            if (playButton.interactable)
+            if (IsTournament)
+                instructionText.text = home != null ? "Prem JUGAR per començar el torneig" : "Tria el teu equip per al torneig";
+            else if (playButton.interactable)
                 instructionText.text = "Prem JUGAR per començar";
             else if (active == Side.Home)
                 instructionText.text = IsPvP ? "Jugador 1: tria el teu equip" : "Tria el teu equip";
@@ -226,6 +280,7 @@ public class TeamSelectionUI : MonoBehaviour
     void Play()
     {
         if (leaving || !playButton.interactable) return;
+        if (IsTournament) { StartTournament(); return; }
 
         bool ok = IsPvP ? TeamSelectionLauncher.PlayPvP(home, away, matchScene)
                         : TeamSelectionLauncher.PlayPvE(home, away, matchScene);
@@ -240,6 +295,26 @@ public class TeamSelectionUI : MonoBehaviour
         SetButtonsInteractable(false);
     }
 
+    void StartTournament()
+    {
+        string hub = tournament.HubScene;
+        if (string.IsNullOrEmpty(hub) || !Application.CanStreamedLevelBeLoaded(hub))
+        {
+            ShowError("No s'ha pogut començar el torneig. Revisa que l'escena '" + hub + "' sigui a Build Profiles.");
+            return;
+        }
+        TournamentSession.ClearSave();
+        if (!TournamentSession.StartNew(tournament, home))
+        {
+            ShowError("No s'ha pogut començar el torneig. Mira la consola.");
+            return;
+        }
+        TournamentRequest = null;
+        leaving = true;
+        SetButtonsInteractable(false);
+        SceneManager.LoadScene(hub);
+    }
+
     void BackToMenu()
     {
         if (leaving) return;
@@ -248,6 +323,7 @@ public class TeamSelectionUI : MonoBehaviour
             Debug.LogWarning($"[TeamSelection] No se puede cargar '{mainMenuScene}': revisa el nombre y Build Profiles.", this);
             return;
         }
+        TournamentRequest = null;
         leaving = true;
         SetButtonsInteractable(false);
         SceneManager.LoadScene(mainMenuScene);
