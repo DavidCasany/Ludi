@@ -303,6 +303,7 @@ MonoBehaviour:
   greenWidthNear: 0.14
   nearDistance: 3
   farDistance: 12
+  streakGreenBonus: 1.5
   resultShowTime: 0.5
   debugLog: 1
 --- !u!1 &163244663
@@ -1325,6 +1326,7 @@ MonoBehaviour:
   ballStart: {x: 0, y: 0}
   rinkWalls: {fileID: 163244665}
   halfDuration: 120
+  goalHitStop: 0.12
   resetDelay: 2
   halfTimeBreak: 4
   overtimeBreak: 3

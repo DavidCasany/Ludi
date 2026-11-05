@@ -71,15 +71,15 @@ public class SettingsMenuUI : MonoBehaviour
         SetupMonitors();
         resolutionDropdown.onValueChanged.AddListener(OnResolutionChanged);
         fullscreenToggle.onValueChanged.AddListener(OnFullscreenChanged);
+        // Rang abans dels listeners: si canviar min/max retalla el valor, no s'ha de guardar com a volum
+        musicSlider.minValue = sfxSlider.minValue = 0f;
+        musicSlider.maxValue = sfxSlider.maxValue = 1f;
         musicSlider.onValueChanged.AddListener(OnMusicChanged);
         sfxSlider.onValueChanged.AddListener(OnSfxChanged);
         passArrowsToggle.onValueChanged.AddListener(GameSettings.SetPassArrows);
         SetupControls();
         if (resetButton != null) resetButton.onClick.AddListener(ResetDefaults);   // opcional
         backButton.onClick.AddListener(Back);
-
-        musicSlider.minValue = sfxSlider.minValue = 0f;
-        musicSlider.maxValue = sfxSlider.maxValue = 1f;
     }
 
     void Start()

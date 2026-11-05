@@ -31,7 +31,7 @@ public static class GameSettings
 
     // Súbelo cuando cambien los valores por defecto o el formato: los ajustes guardados con otra versión
     // (p. ej. los de las pruebas en el editor) se descartan y se vuelve a los de SettingsData.
-    const int Version = 3;   // 3: música al 5 % i efectes al 80 % per defecte
+    const int Version = 4;   // 4: música al 5 % i efectes al 75 % per defecte (descarta guardats amb el volum a 0)
 
     // Las claves nuevas (controles táctiles, render web) no obligan a subir Version: si faltan en un guardado
     // antiguo se usa el valor por defecto
@@ -296,9 +296,20 @@ public static class GameSettings
         Resolution r = Screen.currentResolution;
         return new Vector2Int(r.width, r.height);
 #else
+        // Web i mòbil: no hi ha "finestra en un monitor". Screen.mainWindowDisplayInfo hi llança una excepció
+        // i, com que LoadDefaults el crida primer, deixava tots els ajustos a 0 / false.
+        if (IsWeb || IsNativeMobile) return new Vector2Int(Screen.width, Screen.height);
+
         // La del monitor on és la finestra (amb dues pantalles poden ser diferents)
-        DisplayInfo d = Screen.mainWindowDisplayInfo;
-        if (d.width > 0 && d.height > 0) return new Vector2Int(d.width, d.height);
+        try
+        {
+            DisplayInfo d = Screen.mainWindowDisplayInfo;
+            if (d.width > 0 && d.height > 0) return new Vector2Int(d.width, d.height);
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning("[GameSettings] No s'ha pogut llegir el monitor: " + e.Message);
+        }
         return new Vector2Int(Display.main.systemWidth, Display.main.systemHeight);
 #endif
     }
@@ -392,10 +403,9 @@ public static class GameSettings
     static void LoadDefaults()
     {
         SettingsData d = Data;
-        Vector2Int res = d == null || d.DefaultToNative ? NativeResolution() : d.DefaultResolution;
         Fullscreen = d == null || d.DefaultFullscreen;
         MusicVolume = d != null ? d.DefaultMusicVolume : 0.05f;
-        SfxVolume = d != null ? d.DefaultSfxVolume : 0.8f;
+        SfxVolume = d != null ? d.DefaultSfxVolume : 0.75f;
         Monitor = -1;
         monitorName = "";
         PassArrows = d == null || d.DefaultPassArrows;
@@ -405,7 +415,9 @@ public static class GameSettings
         TouchLeftHanded = d != null && d.DefaultTouchLeftHanded;
         RenderScale = d != null ? Mathf.Clamp(d.DefaultRenderScale, 0f, 1f) : 0f;
 
+        // La resolució va l'última: si fallés, la resta d'ajustos ja tindrien el seu valor per defecte.
         // Si no cabe en el monitor (p. ej. un portátil 1366×768), ClampToAvailable la baja después
+        Vector2Int res = d == null || d.DefaultToNative ? NativeResolution() : d.DefaultResolution;
         Width = res.x;
         Height = res.y;
     }
